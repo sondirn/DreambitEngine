@@ -133,6 +133,11 @@ public class SpriteDrawer :
 
     protected override void OnDraw()
     {
+        // Blueprint authors can leave the sprite unassigned (or assign it at runtime).
+        // Faulting the entity here would also suppress unrelated editor gizmos.
+        if (Sprite is null && Scene?.ExecutionMode == SceneExecutionMode.Editor)
+            return;
+
         ArgumentNullException.ThrowIfNull(
             Sprite);
 

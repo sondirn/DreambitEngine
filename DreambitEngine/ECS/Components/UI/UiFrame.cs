@@ -206,7 +206,8 @@ public class UiFrame : DrawableComponent<UiFrame>
             keyboardAvailable && Input.IsRawKeyPressed(Keys.Escape),
             gamePadAvailable && Input.IsRawGamePadButtonPressed(Buttons.B),
             keyboardAvailable && IsKeyboardNavigationHeld(),
-            gamePadAvailable && IsGamePadNavigationHeld());
+            gamePadAvailable && IsGamePadNavigationHeld(),
+            pointerAvailable && Input.IsRawMousePressed(MouseButton.Right));
 
         return Layout.Update(viewport, input);
     }

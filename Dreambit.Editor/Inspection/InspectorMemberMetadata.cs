@@ -19,6 +19,12 @@ internal sealed record InspectorMemberMetadata(
     string? Header,
     string? Tooltip)
 {
+    public bool IsVisible(Func<string, object?> getValue)
+    {
+        var condition = Member.GetCustomAttribute<ShowInInspectorWhenAttribute>();
+        return condition is null || Equals(getValue(condition.MemberName), condition.Value);
+    }
+
     public object? GetValue(object target)
     {
         return Member switch

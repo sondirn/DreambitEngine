@@ -301,6 +301,12 @@ public abstract class UiElement
     /// <summary>Raised when the primary pointer button is pressed over this element.</summary>
     public event EventHandler<UiPointerEventArgs> PointerPressed;
 
+    /// <summary>Raised when the secondary button is pressed, including during primary pointer capture.</summary>
+    public event EventHandler<UiPointerEventArgs> SecondaryPointerPressed;
+
+    /// <summary>Raised when this element loses pointer capture, including when hidden or disabled.</summary>
+    public event EventHandler PointerCaptureLost;
+
     /// <summary>Raised when the primary pointer button is released for this element.</summary>
     public event EventHandler<UiPointerEventArgs> PointerReleased;
 
@@ -823,6 +829,17 @@ public abstract class UiElement
     {
         OnPointerPressed(args);
         PointerPressed?.Invoke(this, args);
+    }
+
+    internal void RaiseSecondaryPointerPressed(UiPointerEventArgs args)
+    {
+        SecondaryPointerPressed?.Invoke(this, args);
+    }
+
+    internal void RaisePointerCaptureLost()
+    {
+        OnPointerCaptureLost();
+        PointerCaptureLost?.Invoke(this, EventArgs.Empty);
     }
 
     internal void RaisePointerReleased(UiPointerEventArgs args)

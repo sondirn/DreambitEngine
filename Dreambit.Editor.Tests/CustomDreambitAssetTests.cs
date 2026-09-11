@@ -684,6 +684,11 @@ public sealed class ExplicitOverrideEnemyConfigLoader : AssetLoaderBase<Explicit
 
 internal sealed class TestAssetRegistry(AssetId assetId, string assetName) : IAssetRegistry
 {
+    private readonly IReadOnlyList<AssetCatalogEntry> _assets =
+        Array.AsReadOnly(new[] { new AssetCatalogEntry(assetId, assetName, null) });
+
+    public IReadOnlyList<AssetCatalogEntry> GetAssets() => _assets;
+
     public bool TryResolveAssetName(AssetId requestedAssetId, out string resolvedAssetName)
     {
         resolvedAssetName = assetName;

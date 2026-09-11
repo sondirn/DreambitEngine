@@ -49,7 +49,7 @@ public class Collider : Component
                 Core.SpriteBatch.DrawPolygon(
                     geometry.Polygon.Vertices,
                     Color.White,
-                    thickness * Scene.MainCamera.WorldUnitsPerScreenPixel);
+                    thickness);
 
                 break;
 
@@ -59,7 +59,7 @@ public class Collider : Component
                     geometry.Circle.Radius,
                     Color.White,
                     32,
-                    thickness * Scene.MainCamera.WorldUnitsPerScreenPixel);
+                    thickness);
 
                 break;
 
@@ -67,7 +67,7 @@ public class Collider : Component
                 DrawDebugCapsule(
                     geometry.Capsule,
                     Color.White,
-                    thickness * Scene.MainCamera.WorldUnitsPerScreenPixel);
+                    thickness);
 
                 break;
         }

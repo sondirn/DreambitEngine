@@ -60,29 +60,37 @@ public static class SpriteBatchExtensions
     public static List<string> SplitTextIntoLines(SpriteFontBase spriteFont, string text, float maxWidth)
     {
         var lines = new List<string>();
-        var words = text.Split(' ');
-        var currentLine = string.Empty;
+        if (text.Length == 0)
+            return lines;
 
-        foreach (var word in words)
+        // Hard breaks must occupy their own rows in both measurement and drawing.
+        // Leaving newlines inside a wrapped row underestimates the block height
+        // and clips later entries in bottom-aligned text such as console output.
+        foreach (var paragraph in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
         {
-            var testLine = currentLine + (currentLine.Length > 0 ? " " : "") + word;
-            var size = spriteFont.MeasureString(testLine);
+            var currentLine = string.Empty;
 
-            if (size.X > maxWidth)
+            foreach (var word in paragraph.Split(' '))
             {
-                if (currentLine.Length > 0)
-                    lines.Add(currentLine);
+                var testLine = currentLine + (currentLine.Length > 0 ? " " : "") + word;
+                var size = spriteFont.MeasureString(testLine);
 
-                currentLine = word;
-            }
-            else
-            {
-                currentLine = testLine;
-            }
-        }
+                if (size.X > maxWidth)
+                {
+                    if (currentLine.Length > 0)
+                        lines.Add(currentLine);
 
-        if (currentLine.Length > 0)
+                    currentLine = word;
+                }
+                else
+                {
+                    currentLine = testLine;
+                }
+            }
+
+            // Preserve blank rows, including a trailing newline.
             lines.Add(currentLine);
+        }
 
         return lines;
     }

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DreambitEngine.AssetBaker.Abstractions;
 
 namespace DreambitEngine.AssetBaker.Pipeline;
@@ -84,5 +85,7 @@ internal sealed class SourceAssetRegistryEntry
 {
     public Guid Id { get; set; }
     public string Path { get; set; } = string.Empty;
+    [JsonPropertyName("type")]
+    public string? TypeId { get; set; }
     public AssetImportSettings? ImportSettings { get; set; }
 }

@@ -281,6 +281,10 @@ internal sealed class SceneEntityInspector(
         {
             try
             {
+                if (!components.Any(component => member.IsVisible(name =>
+                        members.FirstOrDefault(candidate => candidate.Member.Name == name)?.GetValue(component))))
+                    continue;
+
                 if (!string.IsNullOrWhiteSpace(member.Header))
                     EditorGui.Header(member.Header);
 

@@ -389,7 +389,7 @@ public sealed class AssetBakePipeline
         {
             cancellationToken.ThrowIfCancellationRequested();
             const string registryCacheKey = "registry/runtime";
-            const string registryCacheSignature = "runtime-registry-v4";
+            const string registryCacheSignature = "runtime-registry-v5";
             liveCacheKeys.Add(registryCacheKey);
             var registryHash = ComputeRuntimeRegistryHash(
                 sourceRegistry.SourceHash,
@@ -475,11 +475,11 @@ public sealed class AssetBakePipeline
             if (!seenNames.Add(logicalName))
                 throw new InvalidDataException(
                     $"Two source assets resolve to runtime name '{logicalName}'.");
-            runtimeAssets.Add(new RuntimeRegistryEntry(entry.Id, logicalName));
+            runtimeAssets.Add(new RuntimeRegistryEntry(entry.Id, logicalName, entry.TypeId));
         }
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(
-            new RuntimeAssetRegistryDocument(1, runtimeAssets),
+            new RuntimeAssetRegistryDocument(2, runtimeAssets),
             JsonOptions);
         using var output = new MemoryStream();
         JsnbWriter.Write(output, payload, 0);
@@ -817,7 +817,10 @@ public sealed class AssetBakePipeline
         int SchemaVersion,
         IReadOnlyList<RuntimeRegistryEntry> Assets);
 
-    private sealed record RuntimeRegistryEntry(Guid Id, string Name);
+    private sealed record RuntimeRegistryEntry(
+        Guid Id,
+        string Name,
+        [property: System.Text.Json.Serialization.JsonPropertyName("type")] string? TypeId);
 
     private sealed class BakeCacheWriterLease : IDisposable
     {

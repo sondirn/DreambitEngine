@@ -28,6 +28,7 @@ nav:
       - Time: core/time.md
       - Coroutines: core/coroutines.md
       - Logging and debugging: core/logging.md
+      - Developer console: core/developer-console.md
   - ECS:
       - Overview: ecs/index.md
       - Entities: ecs/entities.md
@@ -124,6 +125,7 @@ nav:
       - Overview: assets/index.md
       - Content projects and Asset Baker: assets/content-pipeline.md
       - Loading resources: assets/resources.md
+      - Scene asset registries: assets/registries.md
       - Sprites and sprite sheets: assets/sprites.md
       - Sprite animation: assets/animations.md
       - Entity blueprints: assets/blueprints.md

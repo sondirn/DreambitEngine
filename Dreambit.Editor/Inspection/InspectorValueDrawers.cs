@@ -60,6 +60,7 @@ internal sealed class InspectorValueDrawerRegistry
         Register(new StringValueDrawer());
         Register(new VectorValueDrawer());
         Register(new ColorValueDrawer());
+        Register(new Box2DValueDrawer());
         Register(new DictionaryValueDrawer());
         Register(new CollectionValueDrawer());
         Register(new NestedObjectValueDrawer());
@@ -83,6 +84,21 @@ internal sealed class InspectorValueDrawerRegistry
         return drawer.Draw(this, label, type, value, context);
     }
 
+    internal static Type? GetReferencedAssetType(Type type) =>
+        type.IsGenericType && type.GetGenericTypeDefinition() == typeof(AssetReference<>)
+            ? type.GetGenericArguments()[0]
+            : typeof(DreambitAsset).IsAssignableFrom(type) ? type : null;
+
+    internal static object? CreateAssetSelection(Type type, AssetRecord asset)
+    {
+        var assetType = GetReferencedAssetType(type);
+        if (assetType is null || !AssetTypeClassifier.IsCompatibleWith(asset, assetType))
+            return null;
+        if (typeof(IAssetReference).IsAssignableFrom(type))
+            return Activator.CreateInstance(type, asset.Id, asset.LogicalAssetName);
+        return Resources.LoadDreambitAsset(asset.Id, asset.LogicalAssetName, type);
+    }
+
     private sealed class ObjectReferenceValueDrawer(
         AssetDatabase assets,
         EditorDragDropService dragDrop,
@@ -94,7 +110,7 @@ internal sealed class InspectorValueDrawerRegistry
 
         public bool CanDraw(Type type)
         {
-            return typeof(DreambitAsset).IsAssignableFrom(type) ||
+            return GetReferencedAssetType(type) is not null ||
                    type == typeof(Entity) ||
                    typeof(Component).IsAssignableFrom(type);
         }
@@ -109,6 +125,8 @@ internal sealed class InspectorValueDrawerRegistry
             var display = value switch
             {
                 DreambitAsset asset => asset.AssetName ?? asset.GetType().Name,
+                IAssetReference reference => assets.TryResolveAssetName(reference.Id, out var name)
+                    ? name : reference.AssetName ?? reference.Id.ToString(),
                 Entity entity => entity.Name,
                 Component component => $"{component.Entity.Name} ({component.GetType().Name})",
                 _ => "None"
@@ -155,14 +173,14 @@ internal sealed class InspectorValueDrawerRegistry
             var changed = false;
             try
             {
-                if (typeof(DreambitAsset).IsAssignableFrom(type))
+                if (GetReferencedAssetType(type) is { } assetType)
                 {
                     var payload = ImGui.AcceptDragDropPayload(EditorDragDropService.ProjectItemPayloadType);
                     if (payload.NativePtr != null && dragDrop.ProjectItem is { IsFolder: false } item &&
                         assets.TryGetAsset(item.RelativePath, out var asset) &&
-                        AssetTypeClassifier.IsCompatibleWith(asset!, type))
+                        AssetTypeClassifier.IsCompatibleWith(asset!, assetType))
                     {
-                        var loaded = Resources.LoadDreambitAsset(item.AssetId, asset!.LogicalAssetName, type);
+                        var loaded = CreateAssetSelection(type, asset!);
                         if (loaded is not null && type.IsInstanceOfType(loaded))
                         {
                             value = loaded;
@@ -208,17 +226,17 @@ internal sealed class InspectorValueDrawerRegistry
             using var child = EditorGui.Child("PickerItems", new Vector2(360f, 260f));
             if (!child.IsVisible)
                 return false;
-            if (typeof(DreambitAsset).IsAssignableFrom(type))
+            if (GetReferencedAssetType(type) is { } assetType)
                 foreach (var asset in assets.GetSnapshot().Assets)
                 {
-                    if (!AssetTypeClassifier.IsCompatibleWith(asset, type))
+                    if (!AssetTypeClassifier.IsCompatibleWith(asset, assetType))
                         continue;
                     if (!string.IsNullOrWhiteSpace(_search) &&
                         !asset.RelativePath.Contains(_search, StringComparison.OrdinalIgnoreCase))
                         continue;
                     if (!EditorGui.Selectable(asset.Id.ToString(), asset.RelativePath))
                         continue;
-                    var loaded = Resources.LoadDreambitAsset(asset.Id, asset.LogicalAssetName, type);
+                    var loaded = CreateAssetSelection(type, asset);
                     if (loaded is not null && type.IsInstanceOfType(loaded))
                     {
                         value = loaded;

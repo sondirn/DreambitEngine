@@ -400,7 +400,14 @@ public class Core : Game
 
         if (_networking is { IsConnected: true })
         {
-            clientState = "HOST | ";
+            if (_networking.IsClient)
+            {
+                clientState = "CLIENT | ";
+            }
+            if (_networking.IsHost)
+            {
+                clientState = "HOST | ";
+            }
         }
 
         Dreambit.Window.SetTitle(

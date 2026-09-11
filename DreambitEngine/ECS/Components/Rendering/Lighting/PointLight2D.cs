@@ -39,7 +39,7 @@ public class PointLight2D : Light2D
     {
         Core.SpriteBatch.DrawHollowRectangle(
             Bounds,
-            Color.White);
+            Color.White, Scene.Instance.MainCamera.WorldUnitsPerScreenPixel);
     }
 
     public override void OnEditorDrawGizmos(

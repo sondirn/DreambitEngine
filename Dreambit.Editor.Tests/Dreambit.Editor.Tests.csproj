@@ -19,5 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Dreambit.Editor/Dreambit.Editor.csproj" />
+    <None Include="../Dreambit.Content/Assets/Fonts/monogram.ttf"
+          Link="TestAssets/monogram.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

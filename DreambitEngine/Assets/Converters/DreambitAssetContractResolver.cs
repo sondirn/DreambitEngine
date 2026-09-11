@@ -9,6 +9,20 @@ namespace Dreambit;
 
 internal sealed class DreambitAssetContractResolver : DefaultContractResolver
 {
+    protected override JsonContract CreateContract(Type objectType)
+    {
+        var referenceConverter = AssetReferenceConverter.Instance;
+        if (referenceConverter.CanConvert(objectType))
+        {
+            // Deferred references and their authoring lists have a fixed token contract.
+            // Object/array contracts consult Newtonsoft's global attribute caches, which
+            // retain closed generic types from collectible games. A converter-backed scalar
+            // contract keeps these types scoped to this resolver, even though the token is JSON.
+            return new JsonPrimitiveContract(objectType) { Converter = referenceConverter };
+        }
+        return base.CreateContract(objectType);
+    }
+
     protected override List<MemberInfo> GetSerializableMembers(Type objectType)
     {
         var usesOptIn = DreambitSerializationRules.UsesOptInSerialization(objectType);

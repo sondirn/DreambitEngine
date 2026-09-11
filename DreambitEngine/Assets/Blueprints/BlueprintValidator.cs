@@ -140,6 +140,13 @@ public static class BlueprintValidator
             return;
         }
 
+        if (typeof(IAssetReference).IsAssignableFrom(targetType))
+        {
+            if (!DreambitAssetReferenceToken.TryRead(token, out _, out _))
+                errors.Add($"{path}: deferred asset references must be tagged stable asset IDs.");
+            return;
+        }
+
         if (BlueprintResolver.IsDreambitAsset(targetType))
         {
             var isLegacyPath = token.Type == JTokenType.String &&

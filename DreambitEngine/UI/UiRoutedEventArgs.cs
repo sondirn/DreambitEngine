@@ -28,12 +28,16 @@ public sealed class UiPointerEventArgs : UiRoutedEventArgs
         UiLayout layout,
         UiElement source,
         Vector2 position,
-        int wheelDelta = 0)
+        int wheelDelta = 0,
+        bool shiftDown = false,
+        bool primaryHeld = false)
     {
         _layout = layout;
         Source = source;
         Position = position;
         WheelDelta = wheelDelta;
+        ShiftDown = shiftDown;
+        PrimaryHeld = primaryHeld;
     }
 
     /// <summary>Gets the pointer position in UI coordinates.</summary>
@@ -41,6 +45,12 @@ public sealed class UiPointerEventArgs : UiRoutedEventArgs
 
     /// <summary>Gets the pointer-wheel movement associated with this event.</summary>
     public int WheelDelta { get; }
+
+    /// <summary>Whether Shift was held when the pointer event was routed.</summary>
+    public bool ShiftDown { get; }
+
+    /// <summary>Whether the primary pointer button is still held.</summary>
+    public bool PrimaryHeld { get; }
 
     /// <summary>Gets whether the pointer is inside the current target's visible bounds.</summary>
     public bool IsInside =>

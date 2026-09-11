@@ -31,6 +31,12 @@ public abstract class SceneServiceComponent : Component
     }
 
     /// <summary>
+    /// Required startup services may abort scene activation after the normal fault report.
+    /// Other services retain the existing callback quarantine behavior.
+    /// </summary>
+    protected virtual bool PropagateStartupExceptions => false;
+
+    /// <summary>
     ///     Called during scene shutdown after ordinary entities have been destroyed,
     ///     but while every scene service is still available.
     /// </summary>
@@ -61,6 +67,8 @@ public abstract class SceneServiceComponent : Component
             HandleCallbackException(
                 nameof(OnServicesReady),
                 exception);
+            if (PropagateStartupExceptions)
+                throw;
         }
     }
 

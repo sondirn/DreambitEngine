@@ -250,31 +250,9 @@ public class Resources : Singleton<Resources>
         if (!type.IsSubclassOf(typeof(DreambitAsset)))
             return null;
 
-        if (Instance.ContentCollection.TryGet(assetName, type, out var cachedAsset))
-            return cachedAsset;
-
         try
         {
-            Instance.Logger.Trace("Loading {0} - {1}", type.Name, assetName);
-
-            var loader = ResolveLoader(type);
-            if (loader is null)
-                throw new ContentLoadException($"No Dreambit loader is registered for {type.FullName}.");
-
-            var asset = loader.Load(assetName, PakName, UsePak, ContentDirectory);
-            if (asset is null || !type.IsInstanceOfType(asset))
-                throw new ContentLoadException(
-                    $"The loader for '{assetName}' did not return {type.FullName}.");
-
-            Instance.ContentCollection.TryAdd(
-                assetName,
-                type,
-                asset,
-                loader.AddToDisposableList);
-
-            AssignDreambitAssetIdentity(asset, assetName);
-
-            return asset;
+            return LoadDreambitAssetCore(assetName, type);
         }
         catch (Exception e)
         {
@@ -283,6 +261,78 @@ public class Resources : Singleton<Resources>
 
             return null;
         }
+    }
+
+    /// <summary>
+    /// Finds authored assets assignable to TAsset without opening content. Legacy/untyped
+    /// entries are excluded. Unknown non-empty type IDs fail because compatibility cannot be
+    /// determined safely. Results are snapshots, so assembly reloads cannot stale a type cache.
+    /// </summary>
+    public static IReadOnlyList<AssetCatalogEntry> FindAssets<TAsset>() where TAsset : DreambitAsset
+    {
+        var matches = new List<AssetCatalogEntry>();
+        foreach (var entry in GetAssetCatalog())
+        {
+            if (string.IsNullOrWhiteSpace(entry.TypeId))
+                continue;
+            var actualType = ResolveCatalogAssetType(entry);
+            if (typeof(TAsset).IsAssignableFrom(actualType))
+                matches.Add(entry);
+        }
+        return matches.AsReadOnly();
+    }
+
+    internal static IReadOnlyList<AssetCatalogEntry> GetAssetCatalog() =>
+        AssetRegistry?.GetAssets() ?? throw new InvalidOperationException(
+            "No asset catalog is installed. Build content with a Dreambit asset registry before discovering assets.");
+
+    internal static Type ResolveCatalogAssetType(AssetCatalogEntry entry)
+    {
+        if (!DreambitAssetTypeRegistry.TryResolve(entry.TypeId, out var actualType))
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) has unresolved Dreambit type ID '{entry.TypeId ?? "<none>"}'.");
+        return actualType;
+    }
+
+    /// <summary>
+    /// Loads a catalog entry through its concrete loader and the shared Resources cache.
+    /// Unlike the legacy path overload, required catalog loads propagate failures to the caller.
+    /// </summary>
+    public static TAsset LoadDreambitAsset<TAsset>(AssetCatalogEntry entry) where TAsset : DreambitAsset
+    {
+        if (entry.Id.IsEmpty || string.IsNullOrWhiteSpace(entry.AssetName))
+            throw new ContentLoadException($"Invalid asset catalog entry '{entry.AssetName}' ({entry.Id}).");
+        var actualType = ResolveCatalogAssetType(entry);
+        if (!typeof(TAsset).IsAssignableFrom(actualType))
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) has type '{actualType.FullName}', " +
+                $"which is incompatible with '{typeof(TAsset).FullName}'.");
+
+        var asset = LoadDreambitAssetCore(entry.AssetName, actualType);
+        if (asset is not TAsset typedAsset)
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) did not load as '{typeof(TAsset).FullName}'.");
+        typedAsset.AssetId = entry.Id;
+        return typedAsset;
+    }
+
+    private static object LoadDreambitAssetCore(string assetName, Type type)
+    {
+        if (Instance.ContentCollection.TryGet(assetName, type, out var cachedAsset))
+            return cachedAsset;
+
+        Instance.Logger.Trace("Loading {0} - {1}", type.Name, assetName);
+        var loader = ResolveLoader(type);
+        if (loader is null)
+            throw new ContentLoadException($"No Dreambit loader is registered for {type.FullName}.");
+
+        var asset = loader.Load(assetName, PakName, UsePak, ContentDirectory);
+        if (asset is null || !type.IsInstanceOfType(asset))
+            throw new ContentLoadException($"The loader for '{assetName}' did not return {type.FullName}.");
+
+        Instance.ContentCollection.TryAdd(assetName, type, asset, loader.AddToDisposableList);
+        AssignDreambitAssetIdentity(asset, assetName);
+        return asset;
     }
 
     public static void UnloadAsset(string assetName)

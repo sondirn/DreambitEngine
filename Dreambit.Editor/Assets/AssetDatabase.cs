@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using Dreambit;
 using DreambitEngine.AssetBaker.Abstractions;
+using DreambitEngine.AssetBaker.Core;
 
 namespace Dreambit.Editor.Assets;
 
@@ -24,6 +25,8 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
         new(PathComparer);
     private Dictionary<Guid, AssetRegistryEntry> _entriesById = [];
     private AssetDatabaseSnapshot _snapshot = AssetDatabaseSnapshot.Empty;
+    private readonly AssetBakerRegistry _bakers = AssetBakerRegistry.CreateDefault();
+    private IReadOnlyList<AssetCatalogEntry> _catalog = Array.Empty<AssetCatalogEntry>();
     private long _watcherRefreshRequestedAt;
     private bool _watcherRefreshPending;
     private bool _disposed;
@@ -201,6 +204,12 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
         asset = GetSnapshot().Assets.FirstOrDefault(candidate =>
             PathComparer.Equals(candidate.RelativePath, normalizedPath));
         return asset is not null;
+    }
+
+    public IReadOnlyList<AssetCatalogEntry> GetAssets()
+    {
+        lock (_sync)
+            return _catalog;
     }
 
     /// <summary>
@@ -607,6 +616,17 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
             .OrderBy(asset => asset.RelativePath, PathComparer)
             .ToArray();
         var folders = ScanFolders();
+        // Build from live files, never the persisted tombstones. Match the bake's source-only
+        // exclusions while leaving the editor's full project snapshot and identity APIs intact.
+        _catalog = Array.AsReadOnly(assets.Where(asset =>
+            {
+                var extension = Path.GetExtension(asset.RelativePath);
+                return _bakers.GetByExt(extension) is not null &&
+                       !extension.Equals(".css", StringComparison.OrdinalIgnoreCase) &&
+                       !extension.Equals(".ucss", StringComparison.OrdinalIgnoreCase);
+            })
+            .Select(asset => new AssetCatalogEntry(asset.Id, asset.LogicalAssetName, asset.TypeId))
+            .ToArray());
         var missingCount = _document.Assets.Count - assets.Length;
         _snapshot = new AssetDatabaseSnapshot(
             _snapshot.Version + 1,

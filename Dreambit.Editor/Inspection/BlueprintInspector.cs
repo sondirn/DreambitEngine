@@ -130,8 +130,20 @@ internal sealed class BlueprintInspector(
         DrawContext context)
     {
         var defaultComponent = context.GetDefaultComponent(componentType);
-        foreach (var member in metadata.Get(componentType, InspectorTargetKind.Component))
+        var members = metadata.Get(componentType, InspectorTargetKind.Component);
+        foreach (var member in members)
         {
+            if (!member.IsVisible(name =>
+                {
+                    var dependency = members.FirstOrDefault(candidate => candidate.Member.Name == name);
+                    if (dependency is null)
+                        return null;
+                    return component.Properties.TryGetValue(dependency.SerializedName, out var conditionToken)
+                        ? DreambitJson.FromToken(conditionToken, dependency.ValueType)
+                        : defaultComponent is null ? null : dependency.GetValue(defaultComponent);
+                }))
+                continue;
+
             if (member.ValueType == typeof(Entity) || typeof(Component).IsAssignableFrom(member.ValueType))
             {
                 DrawEntityReferenceMember(document, component, member, context);
