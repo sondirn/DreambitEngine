@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Networking - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Networking";
+        var mkdocs_page_input_path = "networking\\index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../UI/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../UI/Stylesheets/">Stylesheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Networking</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#core-concepts">Core concepts</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#scene-safe-entity-references">Scene-safe Entity references</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#network-roles">Network roles</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#networkobject">NetworkObject</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#presence">Presence</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#configure-networking-before-starting-a-session">Configure networking before starting a session</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#menus-and-other-local-scenes">Menus and other local Scenes</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#starting-a-server-or-host">Starting a server or host</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#connecting-a-client">Connecting a client</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#connection-handshake">Connection handshake</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#synchronized-scene-loading">Synchronized Scene loading</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#editor-authored-scene-blueprints">Editor-authored Scene Blueprints</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#recommended-scene-class">Recommended Scene class</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#why-scene-blueprints-are-loaded-eagerly">Why Scene Blueprints are loaded eagerly</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#what-loadintoself-actually-does">What LoadIntoSelf actually does</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#runtime-load-options-and-entity-ids">Runtime load options and Entity IDs</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#how-an-editor-authored-replicated-entity-binds">How an editor-authored replicated Entity binds</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#boxed-entity-blueprint-instances-in-an-editor-scene">Boxed Entity Blueprint instances in an editor Scene</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#reusing-a-runtime-scene-type">Reusing a runtime Scene type</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#changing-between-editor-authored-scenes">Changing between editor-authored Scenes</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tiled-references-inside-a-scene-blueprint">Tiled references inside a Scene Blueprint</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#authored-entities-and-dynamic-entities">Authored entities and dynamic entities</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#authored-network-entities">Authored network entities</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#dynamic-network-entities">Dynamic network entities</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#dynamic-spawn-synchronization">Dynamic spawn synchronization</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#network-lifecycle-callbacks">Network lifecycle callbacks</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#component-replication">Component replication</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#supported-automatic-member-types">Supported automatic member types</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#do-not-replicate-raw-ecs-references">Do not replicate raw ECS references</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#root-only-component-replication">Root-only Component replication</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#replication-is-server-authoritative">Replication is server-authoritative</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#snapshots">Snapshots</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#structural-revisions">Structural revisions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#scene-epochs">Scene epochs</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#typed-gameplay-messages">Typed gameplay messages</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#define-a-self-describing-message">Define a self-describing message</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#register-its-handler-through-a-module">Register its handler through a module</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#send-continuous-input">Send continuous input</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#send-discrete-gameplay-actions">Send discrete gameplay actions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#current-logical-channels">Current logical channels</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ownership-and-player-entities">Ownership and player entities</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#game-side-player-coordinator">Game-side player coordinator</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#despawning-and-disconnect-ownership">Despawning and disconnect ownership</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#destroywithowner">DestroyWithOwner</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#networktransform2d-authority">NetworkTransform2D authority</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#example-interacting-with-an-authored-door">Example: interacting with an authored door</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#example-inventory">Example: inventory</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#direct-ip-transport">Direct IP transport</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#main-thread-integration">Main-thread integration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#initial-scene-baseline">Initial Scene baseline</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#content-compatibility">Content compatibility</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#building-a-game-on-top-of-dreambit-networking">Building a game on top of Dreambit networking</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#recommended-end-to-end-game-flow">Recommended end-to-end game flow</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#practical-rules">Practical rules</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#current-limitations-and-next-layers">Current limitations and next layers</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#recommended-next-implementation-milestone">Recommended next implementation milestone</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tiled</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../tiled/">Overview and quick start</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Networking</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="networking">Networking<a class="headerlink" href="#networking" title="Permanent link">&para;</a></h1>
+<p>Dreambit networking is a server-authoritative networking foundation built around the existing
+Dreambit ECS, <code>Scene</code>, Entity Blueprint, Scene Blueprint, asset, and lifecycle systems.</p>
+<p>The networking layer is designed so game code can continue to be ordinary Dreambit gameplay code.
+Networking provides transport, connection/session state, synchronized scene loading, network entity
+identity, ownership metadata, replication, spawning/despawning, and typed messages. The game remains
+responsible for rules such as movement, interaction, combat, inventory, validation, and presentation.</p>
+<p>Related documentation: <a href="../core/scenes/">Scenes</a>, <a href="../ecs/blueprints/">Entity blueprints</a>,
+<a href="../assets/resources/">Scene/asset loading</a>, and <a href="../assets/blueprints/">Entity Blueprint assets</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Implementation status</p>
+<p>This page describes the current public networking APIs and protocol version 3. Direct IP is the
+available transport today; Steam P2P and other transports remain future integrations behind the
+same transport boundary.</p>
+</div>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>The networking stack is divided into layers:</p>
+<pre><code class="language-text">┌──────────────────────────────────────────────┐
+│                   Game                       │
+│                                              │
+│ Player input, interactions, inventory,       │
+│ combat, enemies, game-specific messages      │
+├──────────────────────────────────────────────┤
+│               NetworkService                 │
+│                                              │
+│ Public Dreambit networking API               │
+│ Spawn / Despawn / Send / ChangeScene / etc.  │
+├──────────────────────────────────────────────┤
+│               NetworkSession                 │
+│                                              │
+│ Handshake, peers, scene synchronization,     │
+│ baselines, structural state, replication     │
+├──────────────────────┬───────────────────────┤
+│     NetworkWorld     │ Registries / Protocol │
+│                      │                       │
+│ Network Entity IDs   │ Typed message schemas │
+│ ownership            │ replication schemas   │
+│ player mappings      │ packet encoding       │
+├──────────────────────┴───────────────────────┤
+│              INetworkTransport               │
+│                                              │
+│ DirectIpTransport today                      │
+│ Other transports can be added later          │
+└──────────────────────────────────────────────┘
+</code></pre>
+<p><code>NetworkService</code> is the public game-facing API. <code>NetworkSession</code> owns the networking protocol and
+connection lifecycle. <code>NetworkWorld</code> owns runtime networking identity for one synchronized <code>Scene</code>.
+<code>INetworkTransport</code> isolates the session from the underlying connection technology.</p>
+<p>This separation means game code should not need to know whether packets are ultimately being carried
+over Direct IP, Steam P2P, or another future transport.</p>
+<h2 id="core-concepts">Core concepts<a class="headerlink" href="#core-concepts" title="Permanent link">&para;</a></h2>
+<p>Dreambit uses several distinct identifiers because they solve different problems.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NetworkPeerId</code></td>
+<td>Identifies a connected peer/player for the active session.</td>
+</tr>
+<tr>
+<td><code>NetworkEntityId</code></td>
+<td>Identifies one replicated Entity across machines.</td>
+</tr>
+<tr>
+<td><code>NetworkSceneEpoch</code></td>
+<td>Identifies the synchronized Scene generation in which network entities exist.</td>
+</tr>
+<tr>
+<td><code>NetworkStructuralRevision</code></td>
+<td>Orders reliable topology changes such as spawn, despawn, ownership, and player mappings.</td>
+</tr>
+<tr>
+<td><code>NetworkEntityRef</code></td>
+<td>Safe cross-machine Entity reference containing both the Scene epoch and network Entity ID.</td>
+</tr>
+</tbody>
+</table>
+<p>An ordinary Dreambit <code>Entity.Id</code> remains the local/runtime and serialized Scene identity. A
+<code>NetworkEntityId</code> is the cross-machine identity used by the networking system.</p>
+<p>For example, the server and client may materialize the same dynamic Blueprint as different local
+Entities:</p>
+<pre><code class="language-text">Server:
+    Entity.Id        = AAAAAAAA-....
+    NetworkEntityId = 57
+
+Client:
+    Entity.Id        = BBBBBBBB-....
+    NetworkEntityId = 57
+</code></pre>
+<p>The machines agree on <code>NetworkEntityId = 57</code>; they do not need matching runtime <code>Entity.Id</code> values
+for dynamically spawned network entities.</p>
+<h3 id="scene-safe-entity-references">Scene-safe Entity references<a class="headerlink" href="#scene-safe-entity-references" title="Permanent link">&para;</a></h3>
+<p>A <code>NetworkEntityRef</code> combines the current Scene epoch with an Entity ID:</p>
+<pre><code class="language-csharp">var network = Core.Instance.Networking;
+
+if (network.TryGetNetworkId(target, out var networkId))
+{
+    var reference = new NetworkEntityRef(
+        network.SceneEpoch,
+        networkId);
+}
+</code></pre>
+<p>Resolve it later with:</p>
+<pre><code class="language-csharp">if (network.TryResolve(reference, out var entity))
+{
+    // The reference belongs to the current synchronized Scene.
+}
+</code></pre>
+<p>A reference from an old Scene epoch does not resolve in the new Scene, even if a numeric
+<code>NetworkEntityId</code> is later reused.</p>
+<h2 id="network-roles">Network roles<a class="headerlink" href="#network-roles" title="Permanent link">&para;</a></h2>
+<p>Dreambit defines four roles:</p>
+<pre><code class="language-csharp">NetworkRole.Offline
+NetworkRole.Server
+NetworkRole.Host
+NetworkRole.Client
+</code></pre>
+<p>A <strong>server</strong> is authoritative and has no local client player.</p>
+<p>A <strong>host</strong> is an authoritative listen server that also has a local logical peer.</p>
+<p>A <strong>client</strong> connects to an authoritative server or host.</p>
+<p><code>Core.Instance.Networking</code> exposes convenient role checks:</p>
+<pre><code class="language-csharp">var network = Core.Instance.Networking;
+
+if (network.IsServer)
+{
+    // Runs on dedicated servers and hosts.
+}
+
+if (network.IsClient)
+{
+    // Runs on remote clients and hosts.
+}
+
+if (network.IsHost)
+{
+    // Listen-server-specific behavior, if the game actually needs it.
+}
+</code></pre>
+<p>Prefer <code>IsServer</code> when deciding who is allowed to change authoritative gameplay state.</p>
+<h2 id="networkobject">NetworkObject<a class="headerlink" href="#networkobject" title="Permanent link">&para;</a></h2>
+<p>An Entity participates in the network world by having a <code>NetworkObject</code> Component.</p>
+<pre><code class="language-csharp">public sealed class NetworkObject : Component
+{
+    [DreambitSerialize]
+    public NetworkPresence Presence { get; set; }
+}
+</code></pre>
+<p><code>NetworkObject</code> is deliberately an inert authored marker. Runtime networking identity and ownership
+are stored in <code>NetworkWorld</code>, not serialized into the Component.</p>
+<p>This keeps session-specific values out of Scene and Entity Blueprint data.</p>
+<h3 id="presence">Presence<a class="headerlink" href="#presence" title="Permanent link">&para;</a></h3>
+<pre><code class="language-csharp">NetworkPresence.Replicated
+NetworkPresence.ServerOnly
+NetworkPresence.ClientOnly
+</code></pre>
+<p>Their current meanings are:</p>
+<table>
+<thead>
+<tr>
+<th>Presence</th>
+<th style="text-align: right;">Server</th>
+<th style="text-align: right;">Host</th>
+<th style="text-align: right;">Remote client</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Replicated</code></td>
+<td style="text-align: right;">yes</td>
+<td style="text-align: right;">yes</td>
+<td style="text-align: right;">yes</td>
+</tr>
+<tr>
+<td><code>ServerOnly</code></td>
+<td style="text-align: right;">yes</td>
+<td style="text-align: right;">yes</td>
+<td style="text-align: right;">no</td>
+</tr>
+<tr>
+<td><code>ClientOnly</code></td>
+<td style="text-align: right;">no</td>
+<td style="text-align: right;">no</td>
+<td style="text-align: right;">yes</td>
+</tr>
+</tbody>
+</table>
+<p>A host is authoritative, so <code>ClientOnly</code> objects are removed on a host just as they are on a
+dedicated server.</p>
+<h2 id="configure-networking-before-starting-a-session">Configure networking before starting a session<a class="headerlink" href="#configure-networking-before-starting-a-session" title="Permanent link">&para;</a></h2>
+<p>Scene, message, and replication registrations are frozen while a session is active. Register the
+game's networking contract first, then start the server/host/client.</p>
+<p>Game registrations are grouped into feature-level <code>INetworkModule</code> implementations. A module uses
+<code>NetworkRegistrationContext.Handle&lt;T&gt;</code> for self-describing messages and
+<code>NetworkRegistrationContext.Replicate&lt;T&gt;</code> for replicated Components. Apply the modules once through
+<code>NetworkService.Configure(...)</code> before starting a session.</p>
+<p><code>Core</code> creates its <code>NetworkService</code> before the first Scene is assigned. The service then survives
+Scene transitions for the lifetime of the game. A project should therefore register its networking
+contract once during application boot. If configuration is triggered from a menu Scene, guard it so
+the same module is not applied twice: duplicate message IDs, message types, replicated Component IDs,
+and replicated Component types are rejected.</p>
+<p><code>NetworkOptions</code> are copied when a session starts. Edit them while offline; after <code>Stop()</code>, edit them
+again before starting another session. An edit made during an active session does not reconfigure
+that running session.</p>
+<p>A game-level bootstrap can keep this configuration in one place:</p>
+<pre><code class="language-csharp">using Dreambit;
+using Dreambit.Networking;
+using Dreambit.Networking.Transport;
+
+public sealed class GameNetworking
+{
+    private readonly NetworkService _network;
+
+    public GameNetworking()
+    {
+        _network = Core.Instance.Networking;
+        Configure();
+    }
+
+    private void Configure()
+    {
+        _network.Options.GameBuildId = &quot;my-game-0.1.0&quot;;
+        _network.Options.ReplicationRate = 20;
+
+        _network.Scenes.Register(
+            &quot;world&quot;,
+            static () =&gt; new GameWorldScene());
+
+        _network.Configure(
+            new PlayerNetworkingModule(),
+            new WorldInteractionNetworkingModule());
+
+        _network.PeerConnected += OnPeerConnected;
+        _network.PeerDisconnected += OnPeerDisconnected;
+        _network.ConnectionFailed += OnConnectionFailed;
+    }
+
+    private void OnPeerConnected(NetworkPeerId peer)
+    {
+    }
+
+    private void OnPeerDisconnected(
+        NetworkPeerId peer,
+        TransportDisconnectReason reason,
+        string? diagnostic)
+    {
+    }
+
+    private void OnConnectionFailed(
+        TransportDisconnectReason reason,
+        string? diagnostic)
+    {
+    }
+}
+</code></pre>
+<p>Modules should normally follow gameplay boundaries such as player movement, inventory, farming,
+combat, or world interaction. Their registrations persist across <code>Stop()</code> and later session starts;
+do not apply the same module again when restarting a session. The <a href="#typed-gameplay-messages">typed gameplay messages</a>
+section defines the complete <code>PlayerNetworkingModule</code> used above.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not configure modules or register new network Scenes, replicated Components, or typed messages
+after a session starts. The registries are intentionally frozen so every peer has one stable
+protocol contract.</p>
+</div>
+<h3 id="menus-and-other-local-scenes">Menus and other local Scenes<a class="headerlink" href="#menus-and-other-local-scenes" title="Permanent link">&para;</a></h3>
+<p>Starting a network session does not turn the currently active Scene into a network Scene.</p>
+<p>This supports the usual game flow:</p>
+<pre><code class="language-text">Core creates NetworkService
+        ↓
+local title/menu Scene starts
+        ↓
+player chooses offline, host, or join
+        ↓
+StartHost / StartServer / Connect
+        ↓
+the menu remains a local Scene
+        ↓
+server calls ChangeScene(key), or client receives SceneChange
+        ↓
+Core swaps to the catalog-created synchronized Scene
+        ↓
+NetworkWorld attaches and synchronization begins
+</code></pre>
+<p>While the menu remains local, <code>CurrentSceneKey</code> is <code>null</code>, <code>SceneEpoch</code> is <code>None</code>, and its Entities
+do not receive network identities. A client may remain on its own connection screen until the server
+requests a synchronized Scene. A host or server enters the first synchronized world explicitly with
+<code>ChangeScene(key)</code>.</p>
+<p>Once a session starts, direct Scene transitions are guarded even if the current Scene is still local.
+This prevents one peer from silently leaving the authoritative flow. To cancel a connection or return
+to ordinary local navigation, call <code>Stop()</code> first and then use <code>Scene.SetNextScene(...)</code>.</p>
+<p>For an offline/local game, do not start a network session and continue using ordinary
+<code>Scene.SetNextScene(...)</code> transitions.</p>
+<h2 id="starting-a-server-or-host">Starting a server or host<a class="headerlink" href="#starting-a-server-or-host" title="Permanent link">&para;</a></h2>
+<p>An authoritative session may start before the first Scene or while a local menu/bootstrap Scene is
+already running. That local Scene remains outside the network world. The server or host chooses the
+first synchronized Scene with <code>ChangeScene</code>.</p>
+<p>For Direct IP:</p>
+<pre><code class="language-csharp">var network = Core.Instance.Networking;
+
+network.StartHost(7777);
+network.ChangeScene(&quot;world&quot;);
+</code></pre>
+<p>For a dedicated server:</p>
+<pre><code class="language-csharp">var network = Core.Instance.Networking;
+
+network.StartServer(7777);
+network.ChangeScene(&quot;world&quot;);
+</code></pre>
+<p>The order matters:</p>
+<pre><code class="language-text">configure registries
+        ↓
+local menu may already be running
+        ↓
+StartHost / StartServer
+        ↓
+Networking.ChangeScene(&quot;world&quot;)
+        ↓
+Core performs the Scene swap
+        ↓
+NetworkSession attaches a NetworkWorld
+        ↓
+Scene initialization and synchronization begin
+</code></pre>
+<p>The authoritative server controls synchronized Scene changes through
+<code>NetworkService.ChangeScene</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code>Scene.SetNextScene(...)</code> is intentionally rejected while any networking session is
+active. Use <code>Core.Instance.Networking.ChangeScene(key)</code> on the server/host. Clients follow the
+server's <code>SceneChange</code> message. Stop the session before returning to local-only Scene navigation.</p>
+</div>
+<h2 id="connecting-a-client">Connecting a client<a class="headerlink" href="#connecting-a-client" title="Permanent link">&para;</a></h2>
+<p>The client configures the same Scene, message, and replication registrations, then connects. It may
+do this while its local menu or connection Scene is already running:</p>
+<pre><code class="language-csharp">Core.Instance.Networking.Connect(
+    &quot;127.0.0.1&quot;,
+    7777);
+</code></pre>
+<p>The client does <strong>not</strong> choose the synchronized Scene itself.</p>
+<p>After the handshake, the server sends the client's Scene key and epoch. The client resolves that key
+through its local <code>NetworkSceneCatalog</code>, constructs the matching <code>Scene</code>, synchronizes the world, and
+only then allows the Scene to begin gameplay.</p>
+<h2 id="connection-handshake">Connection handshake<a class="headerlink" href="#connection-handshake" title="Permanent link">&para;</a></h2>
+<p>A new client does not immediately enter gameplay.</p>
+<p>The current handshake validates:</p>
+<ul>
+<li>Dreambit networking protocol version.</li>
+<li><code>NetworkOptions.GameBuildId</code>.</li>
+<li>baked content fingerprint, when one is available/configured.</li>
+<li>typed message schema hash.</li>
+<li>replicated Component schema hash.</li>
+</ul>
+<p>Conceptually:</p>
+<pre><code class="language-text">CLIENT                                            SERVER
+  |                                                  |
+  |--------------- transport connected ------------&gt;|
+  |                                                  |
+  |-------------------- Hello ----------------------&gt;|
+  |  protocol version                               |
+  |  GameBuildId                                    |
+  |  content fingerprint                            |
+  |  message schema                                 |
+  |  replication schema                             |
+  |                                                  |
+  |&lt;------------------- Welcome ---------------------|
+  |                   NetworkPeerId                  |
+  |                                                  |
+</code></pre>
+<p>If the contracts do not match, the server rejects the client before it enters the synchronized
+world.</p>
+<p>This protects the game from situations such as one peer running an incompatible component schema or
+different baked content.</p>
+<h2 id="synchronized-scene-loading">Synchronized Scene loading<a class="headerlink" href="#synchronized-scene-loading" title="Permanent link">&para;</a></h2>
+<p>Networking does not serialize a live <code>Scene</code> object across the network.</p>
+<p>Instead, every game registers stable Scene keys:</p>
+<pre><code class="language-csharp">network.Scenes.Register(
+    &quot;village&quot;,
+    static () =&gt; new VillageScene());
+
+network.Scenes.Register(
+    &quot;mine&quot;,
+    static () =&gt; new MineScene());
+</code></pre>
+<p>The server changes Scenes by key:</p>
+<pre><code class="language-csharp">network.ChangeScene(&quot;mine&quot;);
+</code></pre>
+<p>The server sends the key and a new <code>NetworkSceneEpoch</code>. Every client uses its own local factory to
+construct the corresponding Scene.</p>
+<p>This makes Scene construction local while keeping Scene <strong>choice and timing</strong> authoritative.</p>
+<h2 id="editor-authored-scene-blueprints">Editor-authored Scene Blueprints<a class="headerlink" href="#editor-authored-scene-blueprints" title="Permanent link">&para;</a></h2>
+<p>Dreambit's networking model works directly with Scenes constructed in Dreambit.Editor.</p>
+<p>A <code>SceneBlueprint</code> is a <code>.scene</code> Dreambit asset containing:</p>
+<ul>
+<li>Scene name.</li>
+<li>serialized Entity Blueprints.</li>
+<li>optional Tiled reference.</li>
+<li>Scene settings.</li>
+</ul>
+<p>The recommended runtime architecture is:</p>
+<pre><code class="language-text">Dreambit.Editor
+     ↓
+Scenes/village.scene
+     ↓
+NetworkSceneCatalog.RegisterBlueprint&lt;VillageScene&gt;()
+     ↓
+Scene.CreateFromBlueprint&lt;VillageScene&gt;()
+     ↓
+live Dreambit entities are materialized while Scene.Created
+     ↓
+NetworkWorld assignment and Scene initialization
+     ↓
+network authored-entity binding and client baseline
+     ↓
+OnBegin()
+</code></pre>
+<p>The runtime <code>Scene</code> class supplies behavior and lifecycle. The <code>.scene</code> asset supplies the authored
+data.</p>
+<h3 id="recommended-scene-class">Recommended Scene class<a class="headerlink" href="#recommended-scene-class" title="Permanent link">&para;</a></h3>
+<p>For an editor-authored Scene:</p>
+<pre><code class="language-csharp">using Dreambit;
+
+public sealed class VillageScene : Scene
+{
+    protected override void OnInitialize()
+    {
+        // The Scene Blueprint has already been materialized. Initialize only
+        // runtime behavior that is not represented by authored Components.
+    }
+
+    protected override void OnBegin()
+    {
+        // On a synchronized client, the network baseline has already been
+        // applied before OnBegin is allowed to run.
+    }
+
+    protected override void OnUpdate()
+    {
+    }
+
+    protected override void OnPhysicsUpdate()
+    {
+    }
+
+    protected override void OnEnd()
+    {
+    }
+}
+</code></pre>
+<p>Register that runtime Scene class with the network catalog:</p>
+<pre><code class="language-csharp">network.Scenes.RegisterBlueprint&lt;VillageScene&gt;(
+    &quot;village&quot;,
+    &quot;Scenes/village&quot;);
+</code></pre>
+<p>Then the host starts with:</p>
+<pre><code class="language-csharp">network.StartHost(7777);
+network.ChangeScene(&quot;village&quot;);
+</code></pre>
+<p>A client only connects:</p>
+<pre><code class="language-csharp">network.Connect(&quot;127.0.0.1&quot;, 7777);
+</code></pre>
+<p>The server tells the client to construct <code>"village"</code>. Each peer invokes the same local catalog
+registration and loads its own copy of <code>Scenes/village</code>.</p>
+<h3 id="why-scene-blueprints-are-loaded-eagerly">Why Scene Blueprints are loaded eagerly<a class="headerlink" href="#why-scene-blueprints-are-loaded-eagerly" title="Permanent link">&para;</a></h3>
+<p><code>RegisterBlueprint&lt;TScene&gt;</code> creates the requested runtime Scene type and materializes the Scene
+Blueprint before returning it to networking. This is important for source-specific hosts such as
+<code>TiledScene</code>, which must receive their linked-source configuration while still in <code>Scene.Created</code>.</p>
+<p>The synchronized load order is:</p>
+<pre><code class="language-text">catalog factory
+    ↓
+new TScene()
+    ↓
+LoadIntoSelf(scene asset) while Scene.Created
+    ↓
+Core assigns the Scene and networking attaches NetworkWorld
+    ↓
+first Tick: InitializeInternals() and OnInitialize()
+    ↓
+Services.ActivateAll()
+    ↓
+Scene.Starting
+    ↓
+network startup gate
+    ↓
+OnBegin() only when the gate succeeds
+    ↓
+Scene.Running
+</code></pre>
+<p>Ordinary authored entities therefore exist before the Scene is assigned. A <code>TiledScene</code> imports its
+configured map during <code>OnInitialize</code>. Both paths complete before the network startup gate scans for
+authored <code>NetworkObject</code> Components.</p>
+<p>On the server:</p>
+<pre><code class="language-text">RegisterBlueprint&lt;TScene&gt; factory
+    ↓
+all authored NetworkObjects materialize
+    ↓
+OnInitialize (including Tiled import when applicable)
+    ↓
+Services activate
+    ↓
+network startup gate
+    ↓
+BindServerAuthoredEntities
+    ↓
+OnBegin
+</code></pre>
+<p>On a remote client:</p>
+<pre><code class="language-text">RegisterBlueprint&lt;TScene&gt; factory
+    ↓
+all local authored NetworkObjects materialize
+    ↓
+OnInitialize (including Tiled import when applicable)
+    ↓
+network startup gate
+    ↓
+send SceneLoaded
+    ↓
+wait for baseline
+    ↓
+bind authored network IDs
+    ↓
+apply replicated state
+    ↓
+send Ready
+    ↓
+startup gate opens
+    ↓
+OnBegin
+</code></pre>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not call <code>LoadIntoSelf</code> again from <code>OnInitialize</code> or defer it until <code>OnBegin</code> when using
+<code>RegisterBlueprint</code>. The catalog factory has already loaded the asset, and the networking startup
+gate needs that authored identity to remain stable.</p>
+</div>
+<h3 id="what-loadintoself-actually-does">What LoadIntoSelf actually does<a class="headerlink" href="#what-loadintoself-actually-does" title="Permanent link">&para;</a></h3>
+<p>The convenience overload:</p>
+<pre><code class="language-csharp">LoadIntoSelf(&quot;Scenes/village&quot;);
+</code></pre>
+<p>loads the baked asset:</p>
+<pre><code class="language-csharp">Resources.LoadAsset&lt;SceneBlueprint&gt;(&quot;Scenes/village&quot;);
+</code></pre>
+<p>and then uses:</p>
+<pre><code class="language-csharp">SceneBlueprintLoadOptions.Runtime
+</code></pre>
+<p>The runtime load path performs this order:</p>
+<pre><code class="language-text">optional Tiled materialization
+        ↓
+Scene settings
+        ↓
+materialize boxed Entity Blueprint instances
+        ↓
+validate Blueprint/component structure
+        ↓
+create Entity hierarchies
+        ↓
+build Components
+        ↓
+deserialize Component data and references
+        ↓
+Component creation callbacks
+</code></pre>
+<p>If any Entity hierarchy fails to materialize, the Scene Blueprint spawn path rolls that hierarchy
+back.</p>
+<h4 id="runtime-load-options-and-entity-ids">Runtime load options and Entity IDs<a class="headerlink" href="#runtime-load-options-and-entity-ids" title="Permanent link">&para;</a></h4>
+<p><code>SceneBlueprintLoadOptions.Runtime</code> preserves serialized Entity GUIDs by default:</p>
+<pre><code class="language-csharp">public bool PreserveEntityIds { get; init; } = true;
+</code></pre>
+<p>That behavior is essential for <strong>authored network entities</strong>.</p>
+<p>The same editor-created Scene asset loaded by the server and client produces the same authored root
+Entity IDs. Networking uses those stable IDs as the source locator during the baseline.</p>
+<p>You normally do not need to call this method yourself. The catalog registration:</p>
+<pre><code class="language-csharp">network.Scenes.RegisterBlueprint&lt;VillageScene&gt;(&quot;village&quot;, &quot;Scenes/village&quot;);
+</code></pre>
+<p>uses the correct strict runtime options through <code>Scene.CreateFromBlueprint&lt;VillageScene&gt;</code>.</p>
+<h3 id="how-an-editor-authored-replicated-entity-binds">How an editor-authored replicated Entity binds<a class="headerlink" href="#how-an-editor-authored-replicated-entity-binds" title="Permanent link">&para;</a></h3>
+<p>Suppose the editor-authored Scene contains:</p>
+<pre><code class="language-text">Village
+└── AncientDoor
+    ├── GUID: 8a3f...
+    ├── NetworkObject
+    │   └── Presence = Replicated
+    ├── DoorNetworkState
+    ├── SpriteDrawer
+    └── BoxCollider
+</code></pre>
+<p>Both machines load the same <code>.scene</code>.</p>
+<p>The server sees the <code>NetworkObject</code> and assigns a runtime network identity:</p>
+<pre><code class="language-text">source Entity GUID 8a3f...  -&gt;  NetworkEntityId 47
+</code></pre>
+<p>The server includes that authored binding in the client's baseline.</p>
+<p>The client already has its own <code>AncientDoor</code>, loaded from the same Scene Blueprint with the same
+serialized GUID:</p>
+<pre><code class="language-text">client Entity GUID 8a3f...
+</code></pre>
+<p>The client therefore registers its existing local Entity as:</p>
+<pre><code class="language-text">NetworkEntityId 47
+</code></pre>
+<p>No duplicate door is spawned. Networking binds the already-authored object to the server's runtime
+network identity.</p>
+<p>This is the central difference between an <strong>authored network Entity</strong> and a <strong>dynamic network
+spawn</strong>.</p>
+<h3 id="boxed-entity-blueprint-instances-in-an-editor-scene">Boxed Entity Blueprint instances in an editor Scene<a class="headerlink" href="#boxed-entity-blueprint-instances-in-an-editor-scene" title="Permanent link">&para;</a></h3>
+<p>A Scene Blueprint may contain an instance of an external <code>EntityBlueprint</code>.</p>
+<p>For example, the editor Scene can place three instances of:</p>
+<pre><code class="language-text">Blueprints/door.blueprint
+</code></pre>
+<p>instead of duplicating the full Component/child data into the Scene asset.</p>
+<p>When <code>LoadIntoSelf</code> materializes a boxed Blueprint instance, Dreambit:</p>
+<ol>
+<li>resolves and clones the source Entity Blueprint;</li>
+<li>remaps the source root GUID to the <strong>instance root GUID stored in the Scene</strong>;</li>
+<li>creates deterministic descendant GUIDs from the instance root and source child GUIDs;</li>
+<li>remaps serialized Entity/Component references that point into the hierarchy;</li>
+<li>applies the instance's root position, rotation, and scale.</li>
+</ol>
+<p>That means multiple linked instances of the same source Blueprint can remain distinct and stable in
+an editor-authored Scene.</p>
+<p>If the source Blueprint root contains:</p>
+<pre><code class="language-text">NetworkObject
+DoorNetworkState
+</code></pre>
+<p>each editor-placed instance can become a separate authored network root because each instance root
+has its own stable Scene GUID.</p>
+<p>For example:</p>
+<pre><code class="language-text">door.blueprint source
+        |
+        +------ editor instance A -&gt; source GUID A -&gt; NetworkEntityId 21
+        |
+        +------ editor instance B -&gt; source GUID B -&gt; NetworkEntityId 22
+        |
+        +------ editor instance C -&gt; source GUID C -&gt; NetworkEntityId 23
+</code></pre>
+<p>This is useful for authored doors, chests, NPCs, harvest nodes, world objects, and other reusable
+Blueprint-based content.</p>
+<h3 id="reusing-a-runtime-scene-type">Reusing a runtime Scene type<a class="headerlink" href="#reusing-a-runtime-scene-type" title="Permanent link">&para;</a></h3>
+<p>If most game logic lives in Components and Scene services, one runtime Scene type can host many
+ordinary editor-authored Scene assets. Register each network key and asset explicitly:</p>
+<pre><code class="language-csharp">network.Scenes.RegisterBlueprint&lt;GameplayScene&gt;(
+    &quot;village&quot;,
+    &quot;Scenes/village&quot;);
+
+network.Scenes.RegisterBlueprint&lt;GameplayScene&gt;(
+    &quot;forest&quot;,
+    &quot;Scenes/forest&quot;);
+
+network.Scenes.RegisterBlueprint&lt;GameplayScene&gt;(
+    &quot;mine&quot;,
+    &quot;Scenes/mine&quot;);
+</code></pre>
+<p>The editor controls the Scene contents. The network key is the stable protocol-facing name.</p>
+<p>If a particular Scene needs custom runtime lifecycle behavior, register a dedicated <code>Scene</code> subclass.
+There is no Blueprint-backed wrapper class and no inheritance collision with specialized hosts.</p>
+<h3 id="changing-between-editor-authored-scenes">Changing between editor-authored Scenes<a class="headerlink" href="#changing-between-editor-authored-scenes" title="Permanent link">&para;</a></h3>
+<p>The server/host changes Scene:</p>
+<pre><code class="language-csharp">Core.Instance.Networking.ChangeScene(&quot;forest&quot;);
+</code></pre>
+<p>The flow is:</p>
+<pre><code class="language-text">SERVER
+    ChangeScene(&quot;forest&quot;)
+        ↓
+    catalog eagerly creates GameplayScene from &quot;Scenes/forest&quot;
+        ↓
+    clients receive SceneChange(&quot;forest&quot;, new epoch)
+        ↓
+    Core swaps the server Scene
+        ↓
+    server Scene initializes
+        ↓
+    authored network objects bind
+        ↓
+    each client eagerly creates the same catalog Scene + Blueprint
+        ↓
+    client Scene initializes
+        ↓
+    client sends SceneLoaded
+        ↓
+    server sends baseline
+        ↓
+    client binds authored GUIDs + dynamic entities + state
+        ↓
+    client Ready
+        ↓
+    client OnBegin
+</code></pre>
+<p>Every synchronized transition receives a new <code>NetworkSceneEpoch</code>, so delayed traffic from the old
+Scene cannot be mistaken for state in the new Scene.</p>
+<h3 id="tiled-references-inside-a-scene-blueprint">Tiled references inside a Scene Blueprint<a class="headerlink" href="#tiled-references-inside-a-scene-blueprint" title="Permanent link">&para;</a></h3>
+<p>Register a Tiled-linked Scene Blueprint with a <code>TiledScene</code> subclass:</p>
+<pre><code class="language-csharp">public sealed class VillageScene : TiledScene
+{
+    public VillageScene() : base()
+    {
+    }
+
+    protected override void OnTiledMapLoaded(TiledMapInstance map)
+    {
+    }
+}
+
+network.Scenes.RegisterBlueprint&lt;VillageScene&gt;(
+    &quot;village&quot;,
+    &quot;Scenes/village&quot;);
+</code></pre>
+<p>The blueprint link is configured eagerly while the Scene is in <code>Created</code>; the map is imported during
+<code>TiledScene.OnInitialize</code>. After initialization completes, networking scans the resulting live Scene
+for <code>NetworkObject</code> Components.</p>
+<p>Networking does not have a separate Tiled network protocol. The synchronized unit remains the
+resulting Dreambit <code>Scene</code>.</p>
+<p>For ordinary editor-authored network gameplay entities, prefer Dreambit Scene entities or linked
+Entity Blueprint instances whose serialized identity is under Dreambit's control. If imported map
+generation is used to create network roots, those generated entities must also have stable,
+matching source identity on every peer.</p>
+<h2 id="authored-entities-and-dynamic-entities">Authored entities and dynamic entities<a class="headerlink" href="#authored-entities-and-dynamic-entities" title="Permanent link">&para;</a></h2>
+<p>Dreambit supports two different creation models.</p>
+<h3 id="authored-network-entities">Authored network entities<a class="headerlink" href="#authored-network-entities" title="Permanent link">&para;</a></h3>
+<p>These already exist in the synchronized Scene Blueprint.</p>
+<p>Examples:</p>
+<ul>
+<li>doors;</li>
+<li>chests;</li>
+<li>persistent NPCs;</li>
+<li>world switches;</li>
+<li>harvest nodes;</li>
+<li>authored enemies;</li>
+<li>interactable objects.</li>
+</ul>
+<p>They are matched between server and client by stable source Entity GUID and then assigned a
+<code>NetworkEntityId</code>.</p>
+<h3 id="dynamic-network-entities">Dynamic network entities<a class="headerlink" href="#dynamic-network-entities" title="Permanent link">&para;</a></h3>
+<p>These are created while the game is running.</p>
+<p>Examples:</p>
+<ul>
+<li>connected player characters;</li>
+<li>projectiles;</li>
+<li>dropped items;</li>
+<li>spawned enemies;</li>
+<li>temporary effects that genuinely require network identity.</li>
+</ul>
+<p>Dynamic network entities are spawned by the <strong>server</strong> from an <code>EntityBlueprint</code>:</p>
+<pre><code class="language-csharp">var player = network.Spawn(
+    playerBlueprint,
+    new NetworkSpawnOptions
+    {
+        Owner = peer,
+        DestroyWithOwner = true,
+        Position = spawnPosition
+    });
+</code></pre>
+<p>When runtime values must be part of the spawn transaction, initialize them with the callback
+overload:</p>
+<pre><code class="language-csharp">var crop = network.Spawn(
+    cropBlueprint,
+    entity =&gt;
+    {
+        var state = entity.GetComponent&lt;CropNetworkState&gt;()
+                    ?? throw new InvalidOperationException(
+                        &quot;The crop Blueprint requires CropNetworkState.&quot;);
+
+        state.CropDefinitionId = cropDefinitionId;
+        state.PlantedAtTick = network.ServerTick;
+        state.TileX = tile.X;
+        state.TileY = tile.Y;
+    },
+    new NetworkSpawnOptions
+    {
+        Position = worldPosition
+    });
+</code></pre>
+<p>The callback runs on the authoritative server after Blueprint materialization, but before network
+registration and initial-state capture. If it throws, Dreambit rolls back the spawn and destroys the
+partially created Entity.</p>
+<p>The Blueprint must have a stable <code>AssetId</code>. The root must contain exactly one <code>NetworkObject</code> with
+<code>NetworkPresence.Replicated</code>.</p>
+<p>A dynamic network Blueprint cannot contain another <code>NetworkObject</code> in a descendant hierarchy. Spawn
+each independent network root separately.</p>
+<h3 id="dynamic-spawn-synchronization">Dynamic spawn synchronization<a class="headerlink" href="#dynamic-spawn-synchronization" title="Permanent link">&para;</a></h3>
+<p>A live spawn is a small transaction:</p>
+<pre><code class="language-text">Spawn
+    ↓
+initial replicated Component state
+    ↓
+initial replicated Component state
+    ↓
+...
+    ↓
+SpawnReady
+</code></pre>
+<p>On a remote client, Dreambit materializes the Blueprint but suspends gameplay updates across the
+hierarchy until all initial state has been applied.</p>
+<p>Conceptually:</p>
+<pre><code class="language-text">FRAME 100
+    Spawn arrives
+    Entity Blueprint is materialized
+    UpdatesSuspended = true
+
+    Scene.Tick
+        Entity.Update -&gt; blocked
+        Entity.PhysicsUpdate -&gt; blocked
+
+FRAME 101
+    initial Component state arrives
+    values are applied
+
+    Scene.Tick
+        still blocked
+
+FRAME 102
+    SpawnReady arrives
+    all expected initial Components are present
+    UpdatesSuspended = false
+
+    Scene.Tick
+        first gameplay update sees authoritative initial state
+</code></pre>
+<p>This prevents a newly spawned projectile/player/enemy from running one frame with stale Blueprint
+defaults before its server state arrives.</p>
+<div class="admonition note">
+<p class="admonition-title">When initial state is captured</p>
+<p><code>NetworkService.Spawn</code> captures the initial replicated Component state during the spawn call,
+after the Blueprint has been materialized and the optional initialization callback has completed,
+but before <code>Spawn</code> returns. Values authored in the Blueprint, established by Component creation
+callbacks, or assigned by the initialization callback are included. A value assigned by game code
+after <code>Spawn</code> returns is ordinary live state and reaches clients in a later snapshot, not in the
+<code>Spawn</code>/initial-state/<code>SpawnReady</code> transaction.</p>
+</div>
+<h3 id="network-lifecycle-callbacks">Network lifecycle callbacks<a class="headerlink" href="#network-lifecycle-callbacks" title="Permanent link">&para;</a></h3>
+<p>Ordinary Component creation and authoritative network readiness are separate lifecycle phases.
+<code>OnCreated</code> runs after Blueprint values have been deserialized, but before a server's <code>Spawn</code>
+initializer and before a client receives runtime replicated state.</p>
+<p>Dreambit provides two explicit callbacks for work that depends on authoritative network state:</p>
+<table>
+<thead>
+<tr>
+<th>Callback</th>
+<th>Guarantee</th>
+<th>When it runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OnNetworkStateApplied</code></td>
+<td>One complete replicated Component payload has been decoded and assigned.</td>
+<td>On remote clients during initial synchronization and after later snapshots.</td>
+</tr>
+<tr>
+<td><code>OnNetworkSpawnReady</code></td>
+<td>The entire network Entity has its identity, owner, and complete initial replicated state.</td>
+<td>Once on the server/host and once on each client, before client gameplay updates resume.</td>
+</tr>
+</tbody>
+</table>
+<p>The live-spawn order is:</p>
+<pre><code class="language-text">SERVER / HOST
+    Blueprint materialized
+    OnCreated
+    Spawn initializer
+    network identity registered
+    initial state captured
+    OnNetworkSpawnReady
+    Spawn transaction sent
+
+REMOTE CLIENT
+    Spawn received
+    Blueprint materialized
+    OnCreated (Blueprint defaults)
+    hierarchy updates suspended
+    complete Component payload applied
+    OnNetworkStateApplied(InitialSpawn)
+    ...remaining initial Components applied...
+    SpawnReady received
+    OnNetworkSpawnReady
+    hierarchy updates resumed
+</code></pre>
+<p><code>OnNetworkSpawnReady</code> is delivered to Components on the network root and its descendants. This lets
+a presentation Component on a child safely construct sprites, animation, colliders, or other local
+state from authoritative values on the root:</p>
+<pre><code class="language-csharp">public sealed class NetworkCropState : Component
+{
+    private string? _displayedCropId;
+    private int _displayedGrowthStage = -1;
+
+    [Replicated(1, MaxLength = 64)]
+    public string CropId { get; set; } = string.Empty;
+
+    [Replicated(2)]
+    public int GrowthStage { get; set; }
+
+    public override void OnNetworkSpawnReady(
+        NetworkSpawnReadyContext context)
+    {
+        // Every initial replicated Component on this Entity is now ready.
+        RefreshPresentationIfChanged();
+    }
+
+    public override void OnNetworkStateApplied(
+        NetworkStateAppliedContext context)
+    {
+        // Initial state is presented by OnNetworkSpawnReady after the entire Entity is ready.
+        if (!context.IsInitial)
+            RefreshPresentationIfChanged();
+    }
+
+    private void RefreshPresentationIfChanged()
+    {
+        if (_displayedCropId == CropId &amp;&amp;
+            _displayedGrowthStage == GrowthStage)
+        {
+            return;
+        }
+
+        // Resolve the CropDefinition and update the local SpriteDrawer here.
+        _displayedCropId = CropId;
+        _displayedGrowthStage = GrowthStage;
+    }
+}
+</code></pre>
+<p><code>NetworkStateAppliedContext.Kind</code> identifies the source:</p>
+<pre><code class="language-csharp">NetworkStateApplyKind.InitialSpawn
+NetworkStateApplyKind.InitialBaseline
+NetworkStateApplyKind.Snapshot
+</code></pre>
+<p><code>context.IsInitial</code> is a convenience for the first two cases. Initial Component callbacks occur as
+each Component payload is applied, so another replicated Component on the Entity may still be
+pending. Use <code>OnNetworkSpawnReady</code> whenever work needs the complete Entity.</p>
+<div class="admonition warning">
+<p class="admonition-title">Keep authoritative initialization in Spawn</p>
+<p><code>OnNetworkSpawnReady</code> runs after the server has captured the initial state. Do not assign initial
+replicated gameplay values there. Assign them in the <code>NetworkService.Spawn</code> initialization
+callback so they are included in the reliable spawn transaction.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Snapshots report application, not necessarily a change</p>
+<p>Dreambit sends full Component snapshots. <code>OnNetworkStateApplied</code> can therefore run even when the
+decoded values equal the previous values. Cache the last presentation-relevant values before
+rebuilding expensive local state. Direct property assignments on a server or host do not invoke
+<code>OnNetworkStateApplied</code>; it specifically reports inbound authoritative state on a client.</p>
+</div>
+<h2 id="component-replication">Component replication<a class="headerlink" href="#component-replication" title="Permanent link">&para;</a></h2>
+<p>Replication is intended for persistent authoritative state.</p>
+<p>A Component opts in with <code>[NetworkReplicated]</code>, and individual members opt in with <code>[Replicated]</code>.</p>
+<pre><code class="language-csharp">using Dreambit.ECS;
+using Dreambit.Networking.Replication;
+using Microsoft.Xna.Framework;
+
+[NetworkReplicated(100)]
+public sealed class PlayerNetworkState : Component
+{
+    [Replicated(1)]
+    public Vector2 Position { get; set; }
+
+    [Replicated(2)]
+    public Vector2 Velocity { get; set; }
+
+    [Replicated(3)]
+    public ushort Health { get; set; }
+
+    [Replicated(4)]
+    public PlayerFacing Facing { get; set; }
+}
+
+public enum PlayerFacing : byte
+{
+    Down,
+    Left,
+    Right,
+    Up
+}
+</code></pre>
+<p>Register it from the feature's network module before starting networking:</p>
+<pre><code class="language-csharp">public void Register(NetworkRegistrationContext network)
+{
+    network.Replicate&lt;PlayerNetworkState&gt;();
+}
+</code></pre>
+<p>Apply the containing module once with <code>network.Configure(...)</code>. The numeric replicated Component and
+field IDs are part of the network schema. Treat them as stable protocol identifiers.</p>
+<h3 id="supported-automatic-member-types">Supported automatic member types<a class="headerlink" href="#supported-automatic-member-types" title="Permanent link">&para;</a></h3>
+<p>Automatic replication currently supports:</p>
+<ul>
+<li><code>bool</code>;</li>
+<li>signed/unsigned integer primitives;</li>
+<li><code>float</code>;</li>
+<li><code>double</code>;</li>
+<li><code>Guid</code>;</li>
+<li>bounded UTF-8 <code>string</code>;</li>
+<li><code>AssetId</code>;</li>
+<li><code>NetworkEntityRef</code>;</li>
+<li><code>Vector2</code>;</li>
+<li><code>Vector3</code>;</li>
+<li><code>Vector4</code>;</li>
+<li><code>Quaternion</code>;</li>
+<li><code>Color</code>;</li>
+<li>enums.</li>
+</ul>
+<p>For complex state, register a custom Component codec.</p>
+<h3 id="do-not-replicate-raw-ecs-references">Do not replicate raw ECS references<a class="headerlink" href="#do-not-replicate-raw-ecs-references" title="Permanent link">&para;</a></h3>
+<p>This is rejected:</p>
+<pre><code class="language-csharp">[Replicated(1)]
+public Entity Target { get; set; }
+</code></pre>
+<p>Use:</p>
+<pre><code class="language-csharp">[Replicated(1)]
+public NetworkEntityRef Target { get; set; }
+</code></pre>
+<p>Similarly, replicate an <code>AssetId</code> rather than a <code>DreambitAsset</code> object reference.</p>
+<h3 id="root-only-component-replication">Root-only Component replication<a class="headerlink" href="#root-only-component-replication" title="Permanent link">&para;</a></h3>
+<p>Version 1 replication binds registered replicated Components on the network root only.</p>
+<p>Valid:</p>
+<pre><code class="language-text">Player
+├── NetworkObject
+├── PlayerNetworkState      &lt;- replicated
+├── PlayerMotor
+├── Visual
+│   └── SpriteDrawer
+└── InteractionAnchor
+    └── InteractionComponent
+</code></pre>
+<p>Invalid:</p>
+<pre><code class="language-text">Player
+├── NetworkObject
+└── Visual
+    └── AppearanceNetworkState   &lt;- registered [NetworkReplicated] Component
+</code></pre>
+<p>Dreambit rejects the invalid shape rather than silently ignoring the descendant Component.</p>
+<p>Keep the network state on the same Entity as <code>NetworkObject</code>. Children can still contain ordinary
+rendering, collider, interaction, animation, audio, and other non-replicated Components.</p>
+<h3 id="replication-is-server-authoritative">Replication is server-authoritative<a class="headerlink" href="#replication-is-server-authoritative" title="Permanent link">&para;</a></h3>
+<p>Ownership does <strong>not</strong> transfer replication authority to the client.</p>
+<p>The normal flow is:</p>
+<pre><code class="language-text">CLIENT
+    reads input
+        ↓
+    sends command/request
+        ↓
+SERVER
+    validates request
+        ↓
+    updates authoritative ECS state
+        ↓
+    runs gameplay/physics
+        ↓
+    publishes replicated state
+        ↓
+CLIENT
+    receives authoritative state
+        ↓
+    presents/interpolates it
+</code></pre>
+<p>A client owning an Entity is game metadata. It means things such as:</p>
+<ul>
+<li>this is the peer's player;</li>
+<li>this peer is allowed to request actions for this Entity;</li>
+<li>this Entity may be destroyed when the peer disconnects.</li>
+</ul>
+<p>It does not mean the client can overwrite authoritative replicated state on the server.</p>
+<h2 id="snapshots">Snapshots<a class="headerlink" href="#snapshots" title="Permanent link">&para;</a></h2>
+<p>The server advances its network tick with the fixed 60 Hz physics simulation.</p>
+<p>Replicated state snapshots are sent according to:</p>
+<pre><code class="language-csharp">network.Options.ReplicationRate
+</code></pre>
+<p>The default is 20 Hz.</p>
+<p>Snapshots are full Component states sent as <code>UnreliableSequenced</code> traffic. If an older snapshot is
+lost, the next full snapshot can heal the state.</p>
+<p>For example:</p>
+<pre><code class="language-text">snapshot sequence 100 -&gt; received
+snapshot sequence 101 -&gt; lost
+snapshot sequence 102 -&gt; received
+
+client uses 102
+</code></pre>
+<p>There is no reason to retransmit snapshot 101 after 102 has already arrived.</p>
+<p>Dreambit tracks snapshot sequence state per:</p>
+<pre><code class="language-text">NetworkEntityId + replicated Component ID
+</code></pre>
+<p>and ignores old/out-of-order state.</p>
+<p>The current system does not yet perform delta compression, dirty masks, relevancy filtering,
+prediction, or general-purpose transform interpolation. Those can be layered on later without
+changing the session/world identity model.</p>
+<h2 id="structural-revisions">Structural revisions<a class="headerlink" href="#structural-revisions" title="Permanent link">&para;</a></h2>
+<p>Persistent topology changes must be ordered reliably.</p>
+<p>Dreambit increments <code>NetworkStructuralRevision</code> for changes such as:</p>
+<pre><code class="language-text">Spawn
+Despawn
+Ownership
+PlayerEntity mapping
+</code></pre>
+<p>Suppose the client understands world revision 15, and the server creates Entity 50 at revision 16.</p>
+<p>An unreliable snapshot for Entity 50 can race ahead of the reliable Spawn:</p>
+<pre><code class="language-text">client topology: revision 15
+
+UDP snapshot:
+    revision 16
+    Entity 50
+
+reliable Spawn has not arrived yet
+</code></pre>
+<p>The client knows it does not understand topology revision 16 yet, so it drops the snapshot.</p>
+<p>Later:</p>
+<pre><code class="language-text">reliable Spawn revision 16
+    ↓
+Entity 50 now exists
+    ↓
+next full snapshot arrives
+    ↓
+state heals automatically
+</code></pre>
+<p>This lets Dreambit use reliable traffic for topology and inexpensive lossy traffic for transient
+state without applying state to entities that do not exist yet.</p>
+<h2 id="scene-epochs">Scene epochs<a class="headerlink" href="#scene-epochs" title="Permanent link">&para;</a></h2>
+<p><code>NetworkSceneEpoch</code> applies the same protection across Scene transitions.</p>
+<p>For example:</p>
+<pre><code class="language-text">Village
+    epoch 7
+    Entity 23 = sheep
+
+transition
+
+Mine
+    epoch 8
+</code></pre>
+<p>A delayed packet from epoch 7 cannot be interpreted as state in epoch 8.</p>
+<p>This is also why <code>NetworkEntityRef</code> contains both the epoch and Entity ID.</p>
+<h2 id="typed-gameplay-messages">Typed gameplay messages<a class="headerlink" href="#typed-gameplay-messages" title="Permanent link">&para;</a></h2>
+<p>Persistent state and gameplay intent are different problems.</p>
+<p>Use replication for:</p>
+<pre><code class="language-text">health
+door open/closed state
+authoritative position
+animation state
+current item identity
+world state
+</code></pre>
+<p>Use typed messages for:</p>
+<pre><code class="language-text">player input
+interact request
+craft request
+inventory move request
+dialogue choice
+server notification
+one-shot gameplay event
+</code></pre>
+<h3 id="define-a-self-describing-message">Define a self-describing message<a class="headerlink" href="#define-a-self-describing-message" title="Permanent link">&para;</a></h3>
+<p>A gameplay message implements <code>INetworkMessage&lt;TSelf&gt;</code> and owns its stable protocol ID, allowed
+direction, maximum payload size, and binary serialization contract:</p>
+<pre><code class="language-csharp">using Dreambit.Networking.Messaging;
+using Dreambit.Networking.Protocol;
+
+public readonly record struct PlayerInputMessage(
+    float X,
+    float Y) : INetworkMessage&lt;PlayerInputMessage&gt;
+{
+    public static ushort Id =&gt; 200;
+
+    public static NetworkMessageDirection Direction =&gt;
+        NetworkMessageDirection.ClientToServer;
+
+    public static int MaximumPayload =&gt;
+        sizeof(float) * 2;
+
+    public static void Write(
+        NetworkWriter writer,
+        PlayerInputMessage message)
+    {
+        writer.WriteSingle(message.X);
+        writer.WriteSingle(message.Y);
+    }
+
+    public static PlayerInputMessage Read(
+        ref NetworkReader reader)
+    {
+        return new PlayerInputMessage(
+            reader.ReadSingle(),
+            reader.ReadSingle());
+    }
+}
+</code></pre>
+<p>The message ID must be nonzero and unique. <code>MaximumPayload</code> is the largest encoded message body in
+bytes, not the size of the enclosing Dreambit packet. Keep IDs and field order stable once builds are
+expected to communicate with each other.</p>
+<h3 id="register-its-handler-through-a-module">Register its handler through a module<a class="headerlink" href="#register-its-handler-through-a-module" title="Permanent link">&para;</a></h3>
+<p>The feature module associates the message contract with its receive handler:</p>
+<pre><code class="language-csharp">using Dreambit.Networking;
+using Dreambit.Networking.Messaging;
+
+public sealed class PlayerNetworkingModule : INetworkModule
+{
+    public void Register(NetworkRegistrationContext network)
+    {
+        network.Replicate&lt;PlayerNetworkState&gt;();
+        network.Handle&lt;PlayerInputMessage&gt;(HandlePlayerInput);
+    }
+
+    private static void HandlePlayerInput(
+        NetworkMessageContext context,
+        PlayerInputMessage message)
+    {
+        // Validate the request, then update server-authoritative game state.
+    }
+}
+</code></pre>
+<p>Apply the module before starting a session:</p>
+<pre><code class="language-csharp">network.Configure(new PlayerNetworkingModule());
+</code></pre>
+<p><code>Handle&lt;T&gt;</code> derives the ID, direction, payload bound, and serializer from <code>T</code>; those values are no
+longer repeated at the handler registration site. Both peers must configure the same message and
+replication contracts so their handshake schema hashes match.</p>
+<p>The message schema hash includes the registered ID, direction, maximum payload, and message type.
+Treat a change to <code>Write</code>/<code>Read</code> field order or meaning as a protocol change and update the game's
+<code>NetworkOptions.GameBuildId</code> so incompatible builds cannot connect.</p>
+<p>The handler receives a <code>NetworkMessageContext</code> containing:</p>
+<pre><code class="language-csharp">context.Sender
+context.SceneEpoch
+context.ServerTick
+</code></pre>
+<p><code>context.Sender</code> is particularly important on the authoritative server because it tells game code
+which peer actually sent the request.</p>
+<p>Message handlers run while Dreambit applies inbound network work on the main thread. A host-local
+<code>SendToServer</code> or <code>Send</code> call uses the same serialization and direction checks, but may invoke its
+handler synchronously during the send call.</p>
+<p>Expected gameplay rejection—invalid range, missing inventory, stale target, cooldown, or lack of
+permission—should return normally from the handler. Do not use exceptions for ordinary invalid client
+requests.</p>
+<h3 id="send-continuous-input">Send continuous input<a class="headerlink" href="#send-continuous-input" title="Permanent link">&para;</a></h3>
+<p>Movement input is normally disposable if a newer input sample already exists, so it can use
+unreliable sequenced delivery:</p>
+<pre><code class="language-csharp">using Dreambit.Networking.Transport;
+
+network.SendToServer(
+    new PlayerInputMessage(move.X, move.Y),
+    NetworkDelivery.UnreliableSequenced);
+</code></pre>
+<h3 id="send-discrete-gameplay-actions">Send discrete gameplay actions<a class="headerlink" href="#send-discrete-gameplay-actions" title="Permanent link">&para;</a></h3>
+<p>A one-time action such as interaction is normally reliable:</p>
+<pre><code class="language-csharp">network.SendToServer(
+    new InteractRequest(targetReference));
+</code></pre>
+<p><code>ReliableOrdered</code> is the default.</p>
+<h3 id="current-logical-channels">Current logical channels<a class="headerlink" href="#current-logical-channels" title="Permanent link">&para;</a></h3>
+<p>The session currently uses:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Channel</th>
+<th>Delivery</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td>reliable ordered</td>
+<td>protocol, handshake, Scene sync, baseline, spawn/despawn, initial state</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>reliable ordered</td>
+<td>typed gameplay messages</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>unreliable sequenced</td>
+<td>server-to-client typed messages and snapshots</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>unreliable sequenced</td>
+<td>client-to-server typed messages</td>
+</tr>
+</tbody>
+</table>
+<p>Game code normally chooses delivery semantics, not raw channel numbers.</p>
+<h2 id="ownership-and-player-entities">Ownership and player entities<a class="headerlink" href="#ownership-and-player-entities" title="Permanent link">&para;</a></h2>
+<p><code>NetworkSpawnOptions.Owner</code> associates an Entity with a peer.</p>
+<pre><code class="language-csharp">var player = network.Spawn(
+    playerBlueprint,
+    new NetworkSpawnOptions
+    {
+        Owner = peer,
+        DestroyWithOwner = true,
+        Position = spawnPosition
+    });
+</code></pre>
+<p><code>NetworkService.SetPlayerEntity</code> separately marks which network Entity represents the peer's actual
+player character:</p>
+<pre><code class="language-csharp">network.SetPlayerEntity(peer, player);
+</code></pre>
+<p>These are related but different concepts.</p>
+<pre><code class="language-text">Owner
+    &quot;peer 5 owns this network object&quot;
+
+PlayerEntity mapping
+    &quot;this particular network object is peer 5's player character&quot;
+</code></pre>
+<p>On the local client:</p>
+<pre><code class="language-csharp">var player = Core.Instance.Networking.LocalPlayerEntity;
+</code></pre>
+<p>can then resolve the local player's synchronized Entity.</p>
+<p>Ownership checks are also available:</p>
+<pre><code class="language-csharp">if (network.IsOwnedByLocalPeer(entity))
+{
+    // Local-player presentation/input behavior.
+}
+</code></pre>
+<h3 id="game-side-player-coordinator">Game-side player coordinator<a class="headerlink" href="#game-side-player-coordinator" title="Permanent link">&para;</a></h3>
+<p>The engine does not define what a game's "player" means. A game-level coordinator can own that
+mapping and spawn policy.</p>
+<pre><code class="language-csharp">public sealed class PlayerNetworkCoordinator
+{
+    private readonly NetworkService _network;
+    private readonly EntityBlueprint _playerBlueprint;
+    private readonly Dictionary&lt;NetworkPeerId, Entity&gt; _players = [];
+
+    public PlayerNetworkCoordinator(
+        NetworkService network,
+        EntityBlueprint playerBlueprint)
+    {
+        _network = network;
+        _playerBlueprint = playerBlueprint;
+    }
+
+    public Entity SpawnPlayer(
+        NetworkPeerId peer,
+        Vector3 position)
+    {
+        var player = _network.Spawn(
+            _playerBlueprint,
+            new NetworkSpawnOptions
+            {
+                Owner = peer,
+                DestroyWithOwner = true,
+                Position = position
+            });
+
+        _network.SetPlayerEntity(peer, player);
+        _players.Add(peer, player);
+
+        return player;
+    }
+
+    public bool TryGetPlayer(
+        NetworkPeerId peer,
+        out Entity? player)
+    {
+        return _players.TryGetValue(peer, out player);
+    }
+}
+</code></pre>
+<p>Game code can then route a client request through <code>context.Sender</code>:</p>
+<pre><code class="language-csharp">private void HandlePlayerInput(
+    NetworkMessageContext context,
+    PlayerInputMessage message)
+{
+    if (!network.IsServer)
+        return;
+
+    if (!players.TryGetPlayer(
+            context.Sender,
+            out var player) ||
+        player is null)
+    {
+        return;
+    }
+
+    var input = player.GetComponent&lt;PlayerInputState&gt;();
+    input.Movement = new Vector2(
+        message.X,
+        message.Y);
+}
+</code></pre>
+<p>The networking layer delivers and identifies the request. The normal gameplay Component performs
+the actual movement.</p>
+<h2 id="despawning-and-disconnect-ownership">Despawning and disconnect ownership<a class="headerlink" href="#despawning-and-disconnect-ownership" title="Permanent link">&para;</a></h2>
+<p>The authoritative server can explicitly despawn a network Entity:</p>
+<pre><code class="language-csharp">network.Despawn(entity);
+</code></pre>
+<p>The topology revision advances, remote clients receive the despawn, and each <code>NetworkWorld</code> removes
+the network registration.</p>
+<p>A registered <code>NetworkObject</code> also informs <code>NetworkWorld</code> when its Entity is destroyed, allowing
+ordinary ECS destruction to be reconciled with network topology.</p>
+<p>For intentional network gameplay removal, prefer the explicit networking API:</p>
+<pre><code class="language-csharp">network.Despawn(entity);
+</code></pre>
+<p>because it makes the authoritative intent clear.</p>
+<h3 id="destroywithowner">DestroyWithOwner<a class="headerlink" href="#destroywithowner" title="Permanent link">&para;</a></h3>
+<p>Dynamic spawns default to:</p>
+<pre><code class="language-csharp">DestroyWithOwner = true;
+</code></pre>
+<p>When a peer disconnects:</p>
+<pre><code class="language-text">DestroyWithOwner = true
+    -&gt; authoritative Entity is despawned
+
+DestroyWithOwner = false
+    -&gt; Entity remains
+    -&gt; ownership is cleared
+</code></pre>
+<p>Examples:</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Typical policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>player character</td>
+<td>destroy</td>
+</tr>
+<tr>
+<td>temporary owned projectile</td>
+<td>destroy</td>
+</tr>
+<tr>
+<td>dropped persistent item</td>
+<td>keep</td>
+</tr>
+<tr>
+<td>placed building</td>
+<td>keep</td>
+</tr>
+<tr>
+<td>world chest</td>
+<td>usually authored/not peer-owned</td>
+</tr>
+</tbody>
+</table>
+<h2 id="networktransform2d-authority">NetworkTransform2D authority<a class="headerlink" href="#networktransform2d-authority" title="Permanent link">&para;</a></h2>
+<p><code>NetworkTransform2D</code> is registered by Dreambit automatically. Add it beside <code>NetworkObject</code> and
+choose its serialized <code>Authority</code> value in the blueprint inspector:</p>
+<table>
+<thead>
+<tr>
+<th>Authority</th>
+<th>Pose source</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Server</code></td>
+<td>dedicated server or host</td>
+<td>monsters, NPCs, world objects, strict authoritative movement</td>
+</tr>
+<tr>
+<td><code>Client</code></td>
+<td>the Entity's assigned owning peer</td>
+<td>responsive player movement in cooperative/casual games</td>
+</tr>
+<tr>
+<td><code>Both</code></td>
+<td>server/host and assigned owning peer</td>
+<td>deliberately shared control; latest server-processed pose wins</td>
+</tr>
+</tbody>
+</table>
+<p><code>Server</code> is the safe default. <code>Client</code> does not allow every client to move the Entity. The server
+accepts a client pose only when the sending peer matches the Entity's runtime owner from
+<code>NetworkSpawnOptions.Owner</code> or <code>NetworkService.SetOwner</code>. It then applies that pose locally and
+includes it in normal snapshots sent to the other clients.</p>
+<div class="admonition warning">
+<p class="admonition-title">Client authority is not movement validation</p>
+<p>The built-in client-authority path checks the Entity identity, ownership, transform authority,
+packet ordering, and finite numeric values. It does not enforce game-specific speed, acceleration,
+collision, teleport, scale, or world-bound rules. Use <code>Server</code> authority for hostile clients, or
+add server-side validation before treating a client-authored pose as trusted gameplay state.</p>
+</div>
+<pre><code class="language-csharp">var player = Network.Spawn(
+    playerBlueprint,
+    new NetworkSpawnOptions
+    {
+        Owner = peerId
+    });
+
+player.GetComponent&lt;NetworkTransform2D&gt;().Authority =
+    TransformAuthority.Client;
+</code></pre>
+<p>A listen host's locally owned Entity also works with <code>Client</code> authority without a transport
+round-trip. An Entity using <code>Client</code> authority but having no assigned peer owner has no client pose
+source, so assign ownership when spawning it.</p>
+<p>The current component smooths remote position, rotation, and scale toward the newest server-relayed
+pose and snaps errors larger than <code>SnapDistance</code>. <code>ApplyToLocalOwner = false</code> remains available for a
+future predicted local controller using strict <code>Server</code> authority. Input history, prediction,
+reconciliation, and buffered snapshot interpolation are not implemented yet.</p>
+<h2 id="example-interacting-with-an-authored-door">Example: interacting with an authored door<a class="headerlink" href="#example-interacting-with-an-authored-door" title="Permanent link">&para;</a></h2>
+<p>Assume the editor-authored <code>Village.scene</code> contains a door with:</p>
+<pre><code class="language-text">AncientDoor
+├── NetworkObject (Replicated)
+├── DoorNetworkState
+├── DoorInteraction
+├── SpriteDrawer
+└── BoxCollider
+</code></pre>
+<p>The state Component:</p>
+<pre><code class="language-csharp">using Dreambit.ECS;
+using Dreambit.Networking.Replication;
+
+[NetworkReplicated(110)]
+public sealed class DoorNetworkState : Component
+{
+    [Replicated(1)]
+    public bool IsOpen { get; set; }
+}
+</code></pre>
+<p>The client does not directly decide that the authoritative door is open. It sends intent through a
+self-describing message:</p>
+<pre><code class="language-csharp">using Dreambit.Networking;
+using Dreambit.Networking.Messaging;
+using Dreambit.Networking.Protocol;
+
+public readonly record struct InteractRequest(
+    NetworkEntityRef Target) : INetworkMessage&lt;InteractRequest&gt;
+{
+    public static ushort Id =&gt; 210;
+
+    public static NetworkMessageDirection Direction =&gt;
+        NetworkMessageDirection.ClientToServer;
+
+    public static int MaximumPayload =&gt;
+        sizeof(uint) + sizeof(ulong);
+
+    public static void Write(
+        NetworkWriter writer,
+        InteractRequest message)
+    {
+        writer.WriteUInt32(
+            message.Target.SceneEpoch.Value);
+        writer.WriteUInt64(
+            message.Target.EntityId.Value);
+    }
+
+    public static InteractRequest Read(
+        ref NetworkReader reader)
+    {
+        return new InteractRequest(
+            new NetworkEntityRef(
+                new NetworkSceneEpoch(
+                    reader.ReadUInt32()),
+                new NetworkEntityId(
+                    reader.ReadUInt64())));
+    }
+}
+</code></pre>
+<p>Register its handler in the world-interaction module:</p>
+<pre><code class="language-csharp">using Dreambit.Networking;
+using Dreambit.Networking.Messaging;
+
+public sealed class WorldInteractionNetworkingModule : INetworkModule
+{
+    public void Register(NetworkRegistrationContext network)
+    {
+        network.Replicate&lt;DoorNetworkState&gt;();
+        network.Handle&lt;InteractRequest&gt;(HandleInteractRequest);
+    }
+
+    private static void HandleInteractRequest(
+        NetworkMessageContext context,
+        InteractRequest request)
+    {
+        // Resolve request.Target and validate context.Sender before opening the door.
+    }
+}
+</code></pre>
+<p>Apply <code>WorldInteractionNetworkingModule</code> through the same startup <code>network.Configure(...)</code> call used
+for the rest of the game's modules.</p>
+<p>Create a reference when the local interaction system chooses a target:</p>
+<pre><code class="language-csharp">private static NetworkEntityRef GetNetworkReference(
+    NetworkService network,
+    Entity entity)
+{
+    return network.TryGetNetworkId(
+        entity,
+        out var id)
+        ? new NetworkEntityRef(
+            network.SceneEpoch,
+            id)
+        : NetworkEntityRef.None;
+}
+</code></pre>
+<p>Send it:</p>
+<pre><code class="language-csharp">var target = GetNetworkReference(
+    network,
+    interactableEntity);
+
+if (target.IsValid)
+{
+    network.SendToServer(
+        new InteractRequest(target));
+}
+</code></pre>
+<p>Server handling should validate the request against ordinary gameplay rules:</p>
+<pre><code class="language-text">request from peer 3
+    ↓
+does the NetworkEntityRef resolve?
+    ↓
+does peer 3 have a valid player?
+    ↓
+is that player close enough?
+    ↓
+is the player facing the object?
+    ↓
+is the object currently interactable?
+    ↓
+execute the normal interaction
+    ↓
+DoorNetworkState.IsOpen = true
+    ↓
+replication distributes the authoritative result
+</code></pre>
+<p>This pattern is preferable to replicating a temporary <code>WantsToInteract</code> boolean every snapshot.</p>
+<p><strong>Client requests intent. The server determines truth. Replication distributes truth.</strong></p>
+<h2 id="example-inventory">Example: inventory<a class="headerlink" href="#example-inventory" title="Permanent link">&para;</a></h2>
+<p>Inventory actions use the same separation.</p>
+<p>Instead of trusting a client to send a new authoritative inventory array, send a request such as:</p>
+<pre><code class="language-text">MoveInventoryItemRequest
+    source slot
+    target slot
+</code></pre>
+<p>The server:</p>
+<pre><code class="language-text">receives request
+    ↓
+identifies sender
+    ↓
+validates ownership and slot rules
+    ↓
+mutates authoritative Inventory
+    ↓
+distributes resulting state
+</code></pre>
+<p>The resulting state can be represented by replicated Component state or by reliable server-to-client
+messages, depending on the game's inventory architecture.</p>
+<h2 id="direct-ip-transport">Direct IP transport<a class="headerlink" href="#direct-ip-transport" title="Permanent link">&para;</a></h2>
+<p>The current Direct IP transport combines:</p>
+<pre><code class="language-text">TCP
+    reliable ordered traffic
+
+UDP
+    unreliable sequenced traffic
+</code></pre>
+<p>TCP reliable frames preserve the logical Dreambit channel. UDP maintains a sequence per logical
+channel so stale/out-of-order unreliable data can be rejected.</p>
+<p>The TCP connection also provides a random association token used to associate the peer's UDP
+endpoint with the same logical transport connection.</p>
+<p>The current Direct IP implementation is IPv4-only.</p>
+<p>It is a useful development/direct-connect transport, but it should not be treated as a complete
+internet matchmaking, NAT traversal, account authentication, or anti-cheat solution. It does not
+provide transport encryption or cryptographic peer authentication; the UDP association token is an
+endpoint-association mechanism, not an account identity or security boundary.</p>
+<h2 id="main-thread-integration">Main-thread integration<a class="headerlink" href="#main-thread-integration" title="Permanent link">&para;</a></h2>
+<p>Transport worker threads do not directly mutate the ECS.</p>
+<p>The important <code>Core.Update</code> order is:</p>
+<pre><code class="language-text">Time / Window
+    ↓
+Network.PollTransport
+    ↓
+Input pre-update / UI routing / input update
+    ↓
+Network.ApplyInbound
+    ↓
+pending Scene change
+    ↓
+fixed physics
+    ↓
+Scene.Tick
+    ↓
+Network.AfterSceneTick
+    ↓
+input post-update
+</code></pre>
+<p>This gives networking a predictable main-thread application boundary.</p>
+<p>Incoming protocol work can create/update/despawn entities before the current gameplay <code>Scene.Tick</code>.
+Live-spawn update suspension guarantees a newly materialized Entity cannot run gameplay until its
+initial authoritative network state is committed.</p>
+<h2 id="initial-scene-baseline">Initial Scene baseline<a class="headerlink" href="#initial-scene-baseline" title="Permanent link">&para;</a></h2>
+<p>A client joining an already-running world receives a baseline before its <code>Scene.OnBegin</code>.</p>
+<p>The baseline contains:</p>
+<pre><code class="language-text">Begin
+    expected counts
+
+AuthoredEntity records
+    source Scene GUID -&gt; NetworkEntityId
+
+DynamicEntity records
+    Blueprint AssetId
+    owner
+    transform
+    enabled state
+    destroy-with-owner
+
+PlayerEntity records
+    NetworkPeerId -&gt; NetworkEntityId
+
+ComponentState records
+    replicated state for every registered network Entity
+
+End
+</code></pre>
+<p>The server validates the baseline before transmitting it.</p>
+<p>On the client:</p>
+<pre><code class="language-text">bind authored entities
+    ↓
+materialize dynamic entities
+    ↓
+restore player mappings
+    ↓
+apply Component states
+    ↓
+set StructuralRevision / ServerTick
+    ↓
+send Ready
+    ↓
+allow Scene.OnBegin
+</code></pre>
+<p>A late join therefore starts from one coherent authoritative world snapshot rather than trying to
+replay the entire history of the session.</p>
+<h2 id="content-compatibility">Content compatibility<a class="headerlink" href="#content-compatibility" title="Permanent link">&para;</a></h2>
+<p>When no explicit <code>NetworkOptions.ContentFingerprint</code> is supplied, networking can use Dreambit's
+active baked-content fingerprint.</p>
+<p>PAK/blob content can therefore reject peers whose baked game content differs.</p>
+<p>Loose-file content has no automatic baked fingerprint. During loose-file development, set
+<code>NetworkOptions.ContentFingerprint</code> yourself if you need strict content compatibility between peers.</p>
+<h2 id="building-a-game-on-top-of-dreambit-networking">Building a game on top of Dreambit networking<a class="headerlink" href="#building-a-game-on-top-of-dreambit-networking" title="Permanent link">&para;</a></h2>
+<p>A useful game-level division is:</p>
+<table>
+<thead>
+<tr>
+<th>Game layer</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GameNetworking</code></td>
+<td>Sets networking options, registers Scene keys, and applies feature network modules.</td>
+</tr>
+<tr>
+<td><code>INetworkModule</code> implementations</td>
+<td>Register replicated Components and self-describing message handlers by gameplay feature.</td>
+</tr>
+<tr>
+<td>game network coordinator</td>
+<td>Handles peer lifecycle and game-specific player/session policy.</td>
+</tr>
+<tr>
+<td><code>Scene</code> subclasses</td>
+<td>Supply runtime behavior and specialized source hosting for editor-authored <code>.scene</code> assets.</td>
+</tr>
+<tr>
+<td>replicated Components</td>
+<td>Persistent server-authoritative state.</td>
+</tr>
+<tr>
+<td>typed messages</td>
+<td>Commands, requests, and one-shot notifications.</td>
+</tr>
+<tr>
+<td>normal gameplay Components</td>
+<td>Movement, combat, interaction, inventory, AI, etc.</td>
+</tr>
+<tr>
+<td>presentation Components</td>
+<td>Client interpolation and visual smoothing.</td>
+</tr>
+<tr>
+<td>Entity/Scene Blueprints</td>
+<td>Authorable content and reusable network-spawn sources.</td>
+</tr>
+</tbody>
+</table>
+<p>A useful design rule is:</p>
+<blockquote>
+<p><strong>Network state describes gameplay. It should not become the gameplay architecture.</strong></p>
+</blockquote>
+<p>A player can remain an ordinary Dreambit Entity:</p>
+<pre><code class="language-text">Player
+├── NetworkObject
+├── PlayerNetworkState
+├── PlayerMotor
+├── PlayerInteraction
+├── Inventory
+├── Collider
+├── Animator
+└── SpriteDrawer
+</code></pre>
+<p>Networking should not replace <code>PlayerMotor</code>, <code>Inventory</code>, <code>Interaction</code>, or the other gameplay
+systems. It supplies the authoritative data flow around them.</p>
+<h2 id="recommended-end-to-end-game-flow">Recommended end-to-end game flow<a class="headerlink" href="#recommended-end-to-end-game-flow" title="Permanent link">&para;</a></h2>
+<p>A small multiplayer game can use this sequence:</p>
+<pre><code class="language-text">GAME STARTUP
+    configure Networking.Options
+    register network Scenes
+    configure feature network modules
+        register replicated Components
+        register self-describing message handlers
+
+HOST
+    StartHost(port)
+    ChangeScene(&quot;village&quot;)
+
+CLIENT
+    Connect(host, port)
+
+HANDSHAKE
+    protocol/build/content/schema validation
+    assign NetworkPeerId
+
+SCENE
+    server sends &quot;village&quot; + SceneEpoch
+    both sides eagerly create VillageScene from &quot;Scenes/village&quot;
+    both sides initialize the already-authored Scene
+
+INITIAL SYNC
+    server binds editor-authored NetworkObjects
+    client sends SceneLoaded
+    server sends baseline
+    client binds authored objects + dynamic objects + state
+    client sends Ready
+    client OnBegin executes
+
+PLAYER JOIN
+    server loads player EntityBlueprint
+    server Networking.Spawn(...)
+    server SetPlayerEntity(peer, player)
+    client receives Spawn + initial state + SpawnReady
+
+GAMEPLAY
+    client sends input/requests
+    server validates and simulates
+    server sends snapshots
+    clients interpolate/present
+
+SCENE CHANGE
+    server Networking.ChangeScene(&quot;forest&quot;)
+    new SceneEpoch
+    both sides eagerly create the registered Scene from &quot;Scenes/forest&quot;
+    new baseline
+
+DISCONNECT
+    server removes/retains owned objects according to DestroyWithOwner
+</code></pre>
+<h2 id="practical-rules">Practical rules<a class="headerlink" href="#practical-rules" title="Permanent link">&para;</a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>A session can start from a live local menu.</strong> The menu stays local. The server/host enters the
+first synchronized world with <code>Networking.ChangeScene(key)</code>; a client waits for that server
+instruction.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Register editor-authored Scenes with <code>Scenes.RegisterBlueprint&lt;TScene&gt;</code>.</strong> It eagerly creates
+the typed Scene Blueprint host before assignment, so authored <code>NetworkObject</code> entities exist
+before the startup gate performs binding and synchronization.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Use stable Scene keys.</strong> Both peers must register the same key to a factory that constructs the
+corresponding local Scene.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Use <code>Networking.Spawn</code> for runtime entities that must exist on all peers.</strong> Do not use ordinary
+local <code>Entity.Create</code> and expect the network layer to reproduce it remotely.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Keep <code>[NetworkReplicated]</code> Components on the <code>NetworkObject</code> root.</strong> Version 1 explicitly
+rejects registered replicated Components on descendants.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Use <code>NetworkEntityRef</code> instead of raw <code>Entity</code>/<code>Component</code> references in network state.</strong></p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Treat the server/host as the replication authority.</strong> Ordinary replicated Component state is
+server-authored. <code>NetworkTransform2D</code> is the explicit exception: <code>Client</code>/<code>Both</code> can accept an
+owning peer's pose, which the server validates and relays.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Use messages for intent and replication for state.</strong> Continuous input is often
+<code>UnreliableSequenced</code>; discrete actions are normally <code>ReliableOrdered</code>.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Configure each <code>INetworkModule</code> exactly once before the session starts.</strong> Registrations remain
+installed across <code>Stop()</code> and restart; applying a module again attempts duplicate registrations.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Do not call <code>Scene.SetNextScene</code> during an active session.</strong> The server/host calls
+<code>Networking.ChangeScene</code>; clients follow it. Call <code>Stop()</code> before resuming local-only transitions.</p>
+</div>
+<h2 id="current-limitations-and-next-layers">Current limitations and next layers<a class="headerlink" href="#current-limitations-and-next-layers" title="Permanent link">&para;</a></h2>
+<p>The current foundation intentionally does not yet provide every higher-level multiplayer feature.</p>
+<p>Useful next layers include:</p>
+<ul>
+<li>interpolation using buffered snapshots;</li>
+<li>optional client prediction/reconciliation for responsive movement;</li>
+<li>relevancy/interest management for large worlds;</li>
+<li>snapshot batching and/or dirty-state/delta optimization when profiling demonstrates the need;</li>
+<li>additional transports such as Steam P2P;</li>
+<li>matchmaking/lobbies/session discovery;</li>
+<li>production authentication/security appropriate to the game's deployment model.</li>
+</ul>
+<p>These features can be added on top of the existing <code>NetworkService</code> / <code>NetworkSession</code> /
+<code>NetworkWorld</code> architecture without changing the fundamental Scene and network-identity model.</p>
+<h3 id="recommended-next-implementation-milestone">Recommended next implementation milestone<a class="headerlink" href="#recommended-next-implementation-milestone" title="Permanent link">&para;</a></h3>
+<p>Before adding more networking infrastructure, build one small two-player vertical slice:</p>
+<pre><code class="language-text">editor-authored village.scene
+    ↓
+host + one client
+    ↓
+two dynamically spawned players
+    ↓
+server-authoritative movement
+    ↓
+one editor-authored replicated door/chest
+    ↓
+typed interaction request
+    ↓
+replicated open/closed state
+    ↓
+spawn and despawn one dropped item
+    ↓
+transition to a second editor-authored Scene
+    ↓
+disconnect/reconnect/late join
+</code></pre>
+<p>That slice exercises the important real-game paths:</p>
+<pre><code class="language-text">Scene Blueprint loading
+authored Entity binding
+dynamic Blueprint spawning
+ownership
+typed messages
+replication
+late join baseline
+Scene epochs
+structural revisions
+disconnect cleanup
+</code></pre>
+<p>Once that works comfortably, the next high-value movement feature is snapshot buffering and
+interpolation for <code>NetworkTransform2D</code>, followed by optional prediction and reconciliation for
+strict <code>Server</code> authority.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../input/actions/" class="btn btn-neutral float-left" title="Actions, maps, and bindings"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../physics/" class="btn btn-neutral float-right" title="Overview">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../input/actions/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../physics/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

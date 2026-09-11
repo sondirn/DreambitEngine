@@ -1,0 +1,10 @@
+<templateSet group="Dreambit UCSS">
+  <template name="dbclass" value=".$CLASS$ {&#10;    $END$&#10;}" description="Dreambit UCSS class rule" toReformat="true" toShortenFQNames="true">
+    <variable name="CLASS" expression="" defaultValue="&quot;class-name&quot;" alwaysStopAt="true" />
+    <context><option name="CSS" value="true" /></context>
+  </template>
+  <template name="dbelement" value="$ELEMENT$ {&#10;    $END$&#10;}" description="Dreambit UCSS element rule" toReformat="true" toShortenFQNames="true">
+    <variable name="ELEMENT" expression="" defaultValue="&quot;Button&quot;" alwaysStopAt="true" />
+    <context><option name="CSS" value="true" /></context>
+  </template>
+</templateSet>

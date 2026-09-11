@@ -121,9 +121,7 @@ internal sealed class HierarchyPanel : EditorPanel
 
         var displayName = entity.IsTiledGenerated
             ? $"[Tiled] {entity.Name}"
-            : entity.IsLDtkGenerated
-                ? $"[LDtk] {entity.Name}"
-                : entity.Name;
+            : entity.Name;
 
         bool open;
         using (EditorGui.Muted(!entity.LocallyEnabled))
@@ -237,7 +235,8 @@ internal sealed class HierarchyPanel : EditorPanel
             if (EditorGui.MenuItem("Create Empty"))
                 TryEdit(() => document!.CreateEmpty(
                     "Entity",
-                    _documentContext.IsBlueprint ? _documentContext.Blueprints.Root : null));
+                    _documentContext.IsBlueprint ? _documentContext.Blueprints.Root : null,
+                    GetViewportCenter()));
             if (EditorGui.MenuItem("Create From Blueprint"))
             {
                 _blueprintSearch = string.Empty;
@@ -258,9 +257,7 @@ internal sealed class HierarchyPanel : EditorPanel
                               ReferenceEquals(entity, _documentContext.Blueprints.Root);
         if (entity.IsImportedMapGenerated)
         {
-            EditorGui.MutedText(entity.IsTiledGenerated
-                ? "Generated from the linked Tiled map"
-                : "Generated from the linked LDtk project");
+            EditorGui.MutedText("Generated from the linked Tiled map");
             EditorGui.Separator();
         }
 
@@ -442,6 +439,7 @@ internal sealed class HierarchyPanel : EditorPanel
                         using var source = _blueprintSources.Load(blueprint);
                         document.InstantiateBlueprint(
                             source,
+                            GetViewportCenter(source.Position.Z),
                             parent: _documentContext.IsBlueprint ? _documentContext.Blueprints.Root : null);
                         _error = null;
                         EditorGui.ClosePopup();
@@ -460,6 +458,11 @@ internal sealed class HierarchyPanel : EditorPanel
                 new Vector2(90f, 0f)))
             EditorGui.ClosePopup();
     }
+
+    private Microsoft.Xna.Framework.Vector3 GetViewportCenter(float z = 0f) =>
+        _documentContext.IsBlueprint
+            ? new Microsoft.Xna.Framework.Vector3(_workspace.BlueprintCameraX, _workspace.BlueprintCameraY, z)
+            : new Microsoft.Xna.Framework.Vector3(_workspace.SceneCameraX, _workspace.SceneCameraY, z);
 
     private void RequestDelete(IEnumerable<Entity> entities)
     {

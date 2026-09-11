@@ -16,20 +16,8 @@ public class SpriteDrawer :
     public float Opacity { get; internal set; } =
         1.0f;
 
-    /// <summary>
-    /// The custom pivot in pixels relative to the sprite's source rectangle.
-    /// It is converted to world space using the sprite draw scale.
-    /// </summary>
-    [DreambitSerialize]
-    public Vector2 Pivot { get; internal set; } =
-        Vector2.Zero;
-
-    [DreambitSerialize]
-    public PivotType PivotType { get; internal set; } =
-        PivotType.Center;
-
     [DreambitSerialize("SpritePath")]
-    public Sprite Sprite { get; set; }
+    public Sprite? Sprite { get; set; }
 
     /// <summary>
     /// Legacy source compatibility. Blueprints serialize <see cref="Sprite"/> as
@@ -135,26 +123,6 @@ public class SpriteDrawer :
         return this;
     }
 
-    public SpriteDrawer WithPivot(
-        PivotType type)
-    {
-        PivotType = type;
-
-        return this;
-    }
-
-    public SpriteDrawer WithPivot(
-        Vector2 pivotInPixels)
-    {
-        PivotType =
-            PivotType.Custom;
-
-        Pivot =
-            pivotInPixels;
-
-        return this;
-    }
-
     public SpriteDrawer SetSprite(
         Sprite sprite)
     {
@@ -165,6 +133,11 @@ public class SpriteDrawer :
 
     protected override void OnDraw()
     {
+        // Blueprint authors can leave the sprite unassigned (or assign it at runtime).
+        // Faulting the entity here would also suppress unrelated editor gizmos.
+        if (Sprite is null && Scene?.ExecutionMode == SceneExecutionMode.Editor)
+            return;
+
         ArgumentNullException.ThrowIfNull(
             Sprite);
 
@@ -221,14 +194,17 @@ public class SpriteDrawer :
     /// </summary>
     protected virtual Vector2 GetOriginToUse()
     {
-        var origin =
-            Pivot;
+        if(Sprite is null)
+            return Vector2.Zero;
 
-        if (PivotType != PivotType.Custom)
+        var origin =
+            Sprite.Pivot;
+
+        if (Sprite.PivotType != PivotType.Custom)
         {
             var relative =
                 PivotHelper.GetRelativePivot(
-                    PivotType);
+                    Sprite.PivotType);
 
             origin =
                 new Vector2(

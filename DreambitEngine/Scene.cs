@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using Dreambit.ECS;
 using Dreambit.Events;
-using Dreambit.LDtk;
+using Dreambit.Networking;
 using Dreambit.Scripting;
 using Dreambit.Tiled;
 using Dreambit.UI;
@@ -29,12 +31,14 @@ public class Scene : IDisposable
 
         Entities = new EntityRepository(this);
         Drawables = new DrawableRepository();
+        Services = new SceneServiceCollection(this);
         ScriptingManager = new ScriptingManager();
         _coroutineScheduler = new CoroutineScheduler();
+        _contentInstancesView = _contentInstances.AsReadOnly();
 
         PostProcessSettings = new PostProcessSettings();
         RenderingOptions = new RenderingOptions();
-    
+
         _renderPipeline = new RenderPipeline(this);
         State = SceneState.Created;
     }
@@ -115,32 +119,81 @@ public class Scene : IDisposable
     /// <summary>Schedules a new scene by type to be swapped in by the Core.</summary>
     public static void SetNextScene<T>() where T : Scene, new()
     {
+        Core.Instance.EnsureLocalSceneTransitionAllowed();
         var scene = new T();
         Core.Instance.SetNextScene(scene);
+    }
+
+    /// <summary>
+    /// Creates an ordinary runtime Scene and eagerly materializes a baked Scene Blueprint into it.
+    /// The returned Scene remains in the Created state and has not been scheduled or initialized.
+    /// </summary>
+    public static Scene CreateFromBlueprint(string sceneAssetName)
+    {
+        return CreateFromBlueprint(sceneAssetName, static () => new Scene());
+    }
+
+    /// <summary>
+    /// Creates a runtime Scene of the requested type and eagerly materializes a baked Scene Blueprint
+    /// into it. Use a TiledScene-derived type for a blueprint linked to a Tiled map.
+    /// The returned Scene remains in the Created state and has not been scheduled or initialized.
+    /// </summary>
+    public static TScene CreateFromBlueprint<TScene>(string sceneAssetName)
+        where TScene : Scene, new()
+    {
+        return CreateFromBlueprint(sceneAssetName, static () => new TScene());
     }
 
     public static void SetNextScene(string sceneAssetName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sceneAssetName);
-        var blueprint = Resources.LoadAsset<SceneBlueprint>(sceneAssetName)
-                        ?? throw new InvalidOperationException(
-                            $"Scene asset '{sceneAssetName}' could not be loaded.");
-
-        var scene = new Scene();
-        scene.LoadIntoSelf(blueprint);
+        Core.Instance.EnsureLocalSceneTransitionAllowed();
+        var scene = CreateFromBlueprint(sceneAssetName);
         SetNextScene(scene);
     }
 
-    public static void SetNextScene<T>(string sceneAssetName) where T : Scene, new()
+    public static void SetNextScene<TScene>(string sceneAssetName) where TScene : Scene, new()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sceneAssetName);
+        Core.Instance.EnsureLocalSceneTransitionAllowed();
+        var scene = CreateFromBlueprint<TScene>(sceneAssetName);
+        SetNextScene(scene);
+    }
+
+    private static TScene CreateFromBlueprint<TScene>(
+        string sceneAssetName,
+        Func<TScene> sceneFactory)
+        where TScene : Scene
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneAssetName);
+        ArgumentNullException.ThrowIfNull(sceneFactory);
         var blueprint = Resources.LoadAsset<SceneBlueprint>(sceneAssetName)
                         ?? throw new InvalidOperationException(
                             $"Scene asset '{sceneAssetName}' could not be loaded.");
 
-        var scene = new T();
-        scene.LoadIntoSelf(blueprint);
-        SetNextScene(scene);
+        var scene = sceneFactory()
+                    ?? throw new InvalidOperationException(
+                        $"The Scene factory for asset '{sceneAssetName}' returned null.");
+        try
+        {
+            scene.LoadIntoSelf(blueprint);
+            return scene;
+        }
+        catch (Exception materializationException)
+        {
+            try
+            {
+                scene.Dispose();
+            }
+            catch (Exception cleanupException)
+            {
+                throw new AggregateException(
+                    $"Scene asset '{sceneAssetName}' failed to materialize and its Scene failed to dispose.",
+                    materializationException,
+                    cleanupException);
+            }
+            throw;
+        }
     }
 
     public void LoadIntoSelf(SceneBlueprint blueprint)
@@ -162,11 +215,12 @@ public class Scene : IDisposable
     {
         ArgumentNullException.ThrowIfNull(blueprint);
         ArgumentNullException.ThrowIfNull(options);
-        if (blueprint.LDtk is { } ldtk)
-            MaterializeLDtkScene(ldtk, options);
-        if (blueprint.Tiled is { } tiled)
-            MaterializeTiledScene(tiled, options);
-        ApplySettings(blueprint.Settings);
+
+        blueprint.MaterializeLinkedSources(this, options);
+
+        if (options.ApplySceneSettings)
+            ApplySettings(blueprint.Settings);
+
         if (blueprint.Entities.Count == 0)
             return;
 
@@ -208,6 +262,283 @@ public class Scene : IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads a baked Scene Blueprint as an independently unloadable content instance.
+    /// Additive materialization always creates fresh runtime Entity IDs.
+    /// </summary>
+    public SceneContentInstance LoadAdditive(
+        string sceneAssetName,
+        SceneContentLoadOptions? options = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneAssetName);
+        var blueprint = Resources.LoadAsset<SceneBlueprint>(sceneAssetName)
+                        ?? throw new InvalidOperationException(
+                            $"Scene asset '{sceneAssetName}' could not be loaded.");
+        return LoadAdditiveCore(blueprint, options, sceneAssetName, false, null);
+    }
+
+    /// <summary>
+    /// Materializes a Scene Blueprint inside this Scene with an independent runtime lifetime.
+    /// </summary>
+    public SceneContentInstance LoadAdditive(
+        SceneBlueprint blueprint,
+        SceneContentLoadOptions? options = null)
+    {
+        return LoadAdditiveCore(blueprint, options, null, false, null);
+    }
+
+    /// <summary>Requests independent cleanup of one additive content instance.</summary>
+    public bool Unload(SceneContentInstance instance)
+    {
+        return UnloadContentCore(instance, null);
+    }
+
+    /// <summary>
+    /// Trusted networking-only additive materialization. The coordinator token is intentionally
+    /// private to the active session and cannot be enabled through public load options.
+    /// </summary>
+    internal SceneContentInstance LoadNetworkAdditive(
+        SceneBlueprint blueprint,
+        string? requestedAssetName,
+        object coordinator)
+    {
+        ArgumentNullException.ThrowIfNull(coordinator);
+        return LoadAdditiveCore(
+            blueprint,
+            new SceneContentLoadOptions(),
+            requestedAssetName,
+            true,
+            coordinator);
+    }
+
+    internal bool UnloadNetworkContent(SceneContentInstance instance, object coordinator)
+    {
+        ArgumentNullException.ThrowIfNull(coordinator);
+        return UnloadContentCore(instance, coordinator);
+    }
+
+    private bool UnloadContentCore(SceneContentInstance instance, object? networkCoordinator)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        if (!ReferenceEquals(instance.Scene, this))
+            throw new ArgumentException(
+                "The content instance belongs to another Scene.",
+                nameof(instance));
+        if (!instance.IsLoaded)
+            return false;
+        if (instance.IsNetworkManaged && !instance.IsNetworkCoordinator(networkCoordinator))
+            throw new InvalidOperationException(
+                "Network-managed additive content must be unloaded through its replication scope.");
+        if (_contentMutationInProgress)
+            throw new InvalidOperationException(
+                "Additive content cannot be unloaded during another content mutation.");
+
+        _contentMutationInProgress = true;
+        try
+        {
+            instance.BeginUnload();
+            var cleanupErrors = new List<Exception>();
+            var deferForContentCallbacks = _contentCallbackBoundaryDepth > 0;
+            if (deferForContentCallbacks)
+                InvalidateTiledContentForDeferredUnload(instance, cleanupErrors);
+            else
+                InvalidateTiledContent(instance, cleanupErrors);
+            DisableAndSuspendOwnedEntities(instance);
+
+            if (deferForContentCallbacks)
+            {
+                _pendingContentUnloads.Add(new PendingContentUnload(instance, cleanupErrors));
+                return true;
+            }
+
+            if (Entities.IsIterating)
+            {
+                QueueOwnedEntityDestruction(instance, cleanupErrors);
+                _pendingContentUnloads.Add(new PendingContentUnload(instance, cleanupErrors));
+                return true;
+            }
+
+            FinalizeContentUnload(instance, cleanupErrors);
+            ThrowContentCleanupErrors(instance, cleanupErrors);
+            return true;
+        }
+        finally
+        {
+            _contentMutationInProgress = false;
+        }
+    }
+
+    public bool TryGetContentInstance(
+        Guid instanceId,
+        out SceneContentInstance? instance)
+    {
+        if (_contentInstancesById.TryGetValue(instanceId, out var found) && found.IsLoaded)
+        {
+            instance = found;
+            return true;
+        }
+
+        instance = null;
+        return false;
+    }
+
+    public bool TryGetContentInstance(
+        Entity entity,
+        out SceneContentInstance? instance)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        var owner = entity.ContentOwner;
+        if (owner is not null && ReferenceEquals(owner.Scene, this) && owner.IsLoaded)
+        {
+            instance = owner;
+            return true;
+        }
+
+        instance = null;
+        return false;
+    }
+
+    private SceneContentInstance LoadAdditiveCore(
+        SceneBlueprint blueprint,
+        SceneContentLoadOptions? options,
+        string? requestedAssetName,
+        bool allowNetworkObjects,
+        object? networkCoordinator)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        options ??= new SceneContentLoadOptions();
+        ValidateAdditiveLoadState();
+
+        var sourceAssetName = string.IsNullOrWhiteSpace(blueprint.AssetName)
+            ? requestedAssetName
+            : blueprint.AssetName;
+        var instance = new SceneContentInstance(this, blueprint.AssetId, sourceAssetName);
+        if (networkCoordinator is not null)
+            instance.BindNetworkCoordinator(networkCoordinator);
+        var previousSettings = options.ApplySceneSettings ? Settings.Clone() : null;
+        var settingsApplied = false;
+
+        _contentMutationInProgress = true;
+        try
+        {
+            var materializedRoots = BlueprintInstanceMaterializer.Materialize(
+                blueprint.Entities,
+                options.BlueprintInstanceResolver ?? ResolveBlueprintInstance);
+
+            if (materializedRoots.Count > 0)
+            {
+                var validationRoot = new EntityBlueprint
+                {
+                    Name = string.IsNullOrWhiteSpace(blueprint.Name) ? "scene" : blueprint.Name,
+                    Children = materializedRoots.ToList()
+                };
+                BlueprintValidator.ValidateOrThrow(validationRoot);
+                ValidateContentBlueprintComponents(materializedRoots, allowNetworkObjects);
+            }
+            ValidateContentTiledOverrides(blueprint.Tiled, allowNetworkObjects);
+
+            _activeContentOwner = instance;
+            _activeNetworkContentCoordinator = networkCoordinator;
+            try
+            {
+                if (options.ApplySceneSettings)
+                {
+                    ApplySettings(blueprint.Settings);
+                    settingsApplied = true;
+                }
+
+                var tiledMap = blueprint.MaterializeAdditiveLinkedSources(
+                    this,
+                    options,
+                    instance);
+                if (tiledMap is not null)
+                    instance.SetTiledMap(tiledMap);
+
+                if (materializedRoots.Count > 0)
+                {
+                    var context = new BlueprintSpawnContext(materializedRoots);
+                    foreach (var root in materializedRoots)
+                    {
+                        CreateBlueprintHierarchy(
+                            root,
+                            null,
+                            context,
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
+                            false);
+                    }
+
+                    BuildBlueprintComponents(context, false);
+                    instance.SetAuthoredEntities(materializedRoots, context.SpawnedEntities);
+                }
+
+                ValidateOwnedContentEntities(instance, allowNetworkObjects);
+            }
+            finally
+            {
+                _activeContentOwner = null;
+                _activeNetworkContentCoordinator = null;
+            }
+
+            instance.Commit();
+            _contentInstances.Add(instance);
+            _contentInstancesById.Add(instance.InstanceId, instance);
+            return instance;
+        }
+        catch (Exception materializationException)
+        {
+            var cleanupErrors = new List<Exception>();
+            // Keep the provisional loading owner active while rollback callbacks run. If user
+            // cleanup creates another Entity, it joins this transaction and is drained too.
+            _activeContentOwner = instance;
+            _activeNetworkContentCoordinator = networkCoordinator;
+            try
+            {
+                InvalidateTiledContent(instance, cleanupErrors);
+
+                if (settingsApplied && previousSettings is not null)
+                {
+                    TryContentCleanup(
+                        cleanupErrors,
+                        () => ApplySettings(previousSettings));
+                }
+
+                DestroyOwnedEntitiesImmediately(instance, cleanupErrors);
+            }
+            finally
+            {
+                _activeContentOwner = null;
+                _activeNetworkContentCoordinator = null;
+            }
+
+            instance.BeginUnload();
+            instance.CompleteUnload();
+
+            if (cleanupErrors.Count > 0)
+            {
+                var allErrors = new List<Exception>(cleanupErrors.Count + 1)
+                {
+                    materializationException
+                };
+                allErrors.AddRange(cleanupErrors);
+                throw new AggregateException(
+                    "Additive Scene content failed to materialize and cleanup also failed.",
+                    allErrors);
+            }
+
+            throw;
+        }
+        finally
+        {
+            _activeContentOwner = null;
+            _activeNetworkContentCoordinator = null;
+            _contentMutationInProgress = false;
+        }
+    }
+
     #endregion
 
     #region Fields (Internals)
@@ -220,16 +551,31 @@ public class Scene : IDisposable
 
     /// <summary>Render pipeline composed of render passes.</summary>
     private RenderPipeline _renderPipeline;
+
     private bool _renderPipelineInitialized;
 
     /// <summary>Tracks disposal state to avoid double-dispose.</summary>
     private bool _isDisposed;
+
     private bool _isDisposing;
 
     private bool _hasBegun;
     private bool _hasEnded;
+    private Func<Scene, bool>? _startPreparationGate;
 
     private readonly CoroutineScheduler _coroutineScheduler;
+    private readonly List<SceneContentInstance> _contentInstances = [];
+    private readonly Dictionary<Guid, SceneContentInstance> _contentInstancesById = [];
+    private readonly List<PendingContentUnload> _pendingContentUnloads = [];
+    private readonly ReadOnlyCollection<SceneContentInstance> _contentInstancesView;
+    private SceneContentInstance? _activeContentOwner;
+    private object? _activeNetworkContentCoordinator;
+    private bool _contentMutationInProgress;
+    private int _contentCallbackBoundaryDepth;
+
+    private sealed record PendingContentUnload(
+        SceneContentInstance Instance,
+        List<Exception> CleanupErrors);
 
     #endregion
 
@@ -244,11 +590,17 @@ public class Scene : IDisposable
     /// <summary>Access to the coroutine system</summary>
     public ICoroutineService CoroutineService => _coroutineScheduler;
 
+    /// <summary>Currently loaded additive content instances.</summary>
+    public IReadOnlyList<SceneContentInstance> ContentInstances => _contentInstancesView;
+
     /// <summary>Current scene lifecycle state.</summary>
     public SceneState State { get; internal set; }
 
     /// <summary>Whether this scene is executing gameplay or hosted for authoring.</summary>
     public SceneExecutionMode ExecutionMode { get; }
+
+    /// <summary>Component-backed services owned by this scene.</summary>
+    public SceneServiceCollection Services { get; }
 
     /// <summary>Enables engine-level debug drawing and diagnostics.</summary>
     public bool DebugMode { get; set; }
@@ -268,7 +620,7 @@ public class Scene : IDisposable
     public readonly RenderingOptions RenderingOptions;
 
     /// <summary>Primary world camera.</summary>
-    public Camera2D MainCamera { get; private set; }
+    public Camera2D MainCamera { get; set; }
 
     /// <summary>UI camera for screen-space/UI rendering.</summary>
     public Camera2D UiCamera { get; private set; }
@@ -332,6 +684,7 @@ public class Scene : IDisposable
 
         UiCamera = Entity.Create("ui-camera").AttachComponent<Camera2D>();
         UiCamera.Entity.AlwaysUpdate = true;
+        UiCamera.SetTargetVerticalResolution(Math.Max(1, Window.Height));
 
         Entity.Create("event-bus").AttachComponent<EventBus>();
 
@@ -346,37 +699,81 @@ public class Scene : IDisposable
     /// </summary>
     protected virtual void SetUpRenderPipeLine()
     {
-        _renderPipeline.AddRenderPass<SortDrawablesPass>();
-        _renderPipeline.AddRenderPass<AlbedoPass>();
-        _renderPipeline.AddRenderPass<DepthPass>();
-        _renderPipeline.AddRenderPass<DepthLightingPass>();
-        _renderPipeline.AddRenderPass<BloomPass>();
-        _renderPipeline.AddRenderPass<PostProcessRenderPass>();
+        AddRenderPass<SortDrawablesPass>();
+        AddRenderPass<AlbedoPass>();
+        AddRenderPass<DepthPass>();
+        AddRenderPass<DepthLightingPass>();
+        AddRenderPass<BloomPass>();
+        AddRenderPass<PostProcessRenderPass>();
         if (ExecutionMode == SceneExecutionMode.Runtime)
         {
-            _renderPipeline.AddRenderPass<DebugRenderPass>();
-            _renderPipeline.AddRenderPass<UIRenderPass>();
+            AddRenderPass<DebugRenderPass>();
+            AddRenderPass<UIRenderPass>();
         }
     }
 
-    private void EnsureRenderPipelineInitialized(Point viewportSize)
+    private void EnsureRenderPipelineInitialized(
+        Point viewportSize)
     {
         if (_renderPipelineInitialized)
             return;
 
-        _renderPipeline.Initialize(viewportSize);
-        SetUpRenderPipeLine();
-        _renderPipelineInitialized = true;
+        try
+        {
+            _renderPipeline.Initialize(
+                viewportSize);
+
+            SetUpRenderPipeLine();
+
+            _renderPipelineInitialized = true;
+        }
+        catch (Exception initializationException)
+        {
+            // Remove the failed pipeline from Scene ownership immediately.
+            var failedPipeline =
+                _renderPipeline;
+
+            _renderPipeline =
+                new RenderPipeline(this);
+
+            _renderPipelineInitialized =
+                false;
+
+            try
+            {
+                failedPipeline?.Dispose();
+            }
+            catch (Exception cleanupException)
+            {
+                throw new AggregateException(
+                    "Scene render pipeline initialization failed and cleanup also failed.",
+                    new[]
+                    {
+                        initializationException,
+                        cleanupException
+                    });
+            }
+
+            throw;
+        }
     }
 
-    /// <summary>
+    protected void AddRenderPass<T>() where T : RenderPass, new()
+    {
+        _renderPipeline.AddRenderPass<T>();
+    }
+
+/// <summary>
     ///     Updates internal services/managers each frame (scripting, ECS tick).
     /// </summary>
     private void UpdateInternals()
     {
         ScriptingManager.Update();
-        Entities.Tick();
-        _coroutineScheduler.Update();
+        RunAtContentStructuralBoundary(ContentRepositoryWork.Tick);
+        RunAtContentCallbackBoundary(
+            _coroutineScheduler,
+            static scheduler => scheduler.Update(),
+            "CoroutineScheduler.Update");
     }
 
     /// <summary>
@@ -388,6 +785,14 @@ public class Scene : IDisposable
         if (State != SceneState.Running)
             return;
 
+        RunAtContentCallbackBoundary(
+            this,
+            static scene => scene.RouteUiInputCore(),
+            "UI input routing");
+    }
+
+    private void RouteUiInputCore()
+    {
         var frameEntries = Drawables.GetAllUiFrames()
             .Select((frame, index) => (frame, index))
             .ToList();
@@ -437,7 +842,10 @@ public class Scene : IDisposable
 
     private void EndOfFrame()
     {
-        _coroutineScheduler.EndOfFrame();
+        RunAtContentCallbackBoundary(
+            _coroutineScheduler,
+            static scheduler => scheduler.EndOfFrame(),
+            "CoroutineScheduler.EndOfFrame");
     }
 
     /// <summary>
@@ -445,13 +853,69 @@ public class Scene : IDisposable
     /// </summary>
     private void Cleanup()
     {
-        _coroutineScheduler.StopAllCoroutines();
-        ScriptingManager.CleanUp();
-        Entities.ClearLists();
-        Drawables.ClearLists();
+        var cleanupErrors =
+            new List<Exception>();
 
-        _renderPipeline?.Dispose();
+        PrepareContentInstancesForSceneCleanup(cleanupErrors);
+
+        TryCleanup(
+            cleanupErrors,
+            _coroutineScheduler.StopAllCoroutines);
+
+        TryCleanup(
+            cleanupErrors,
+            ScriptingManager.CleanUp);
+
+        TryCleanup(
+            cleanupErrors,
+            Entities.ClearLists);
+
+        CompleteContentInstancesAfterSceneCleanup(cleanupErrors);
+
+        TryCleanup(
+            cleanupErrors,
+            Drawables.ClearLists);
+
+        // Break Scene -> RenderPipeline ownership before invoking potentially
+        // user-defined pass cleanup.
+        var renderPipeline =
+            _renderPipeline;
+
         _renderPipeline = null;
+        _renderPipelineInitialized = false;
+
+        if (renderPipeline is not null)
+        {
+            TryCleanup(
+                cleanupErrors,
+                renderPipeline.Dispose);
+        }
+
+        // Do not keep disposed components alive through convenience fields.
+        MainCamera = null;
+        UiCamera = null;
+        AmbientLight = null;
+
+        if (cleanupErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "One or more resources failed while disposing the scene.",
+                cleanupErrors);
+        }
+
+        static void TryCleanup(
+            List<Exception> errors,
+            Action cleanup)
+        {
+            try
+            {
+                cleanup();
+            }
+            catch (Exception exception)
+            {
+                errors.Add(exception);
+            }
+        }
     }
 
     #endregion
@@ -480,13 +944,15 @@ public class Scene : IDisposable
                 Transition(SceneState.Initializing);
                 InitializeInternals();
                 OnInitialize();
+                Services.ActivateAll();
                 Transition(SceneState.Starting);
-                _hasBegun = true;
-                OnBegin();
-                Transition(SceneState.Running);
+                TryCompleteStart();
                 break;
 
             case SceneState.Starting:
+                TryCompleteStart();
+                break;
+
             case SceneState.Initializing:
                 // Transitional states do not execute per-frame logic.
                 break;
@@ -507,13 +973,31 @@ public class Scene : IDisposable
         }
     }
 
+    internal void SetStartPreparationGate(Func<Scene, bool>? gate)
+    {
+        _startPreparationGate = gate;
+    }
+
+    private void TryCompleteStart()
+    {
+        if (_hasBegun)
+            return;
+        if (_startPreparationGate is not null && !_startPreparationGate(this))
+            return;
+
+        _startPreparationGate = null;
+        _hasBegun = true;
+        OnBegin();
+        Transition(SceneState.Running);
+    }
+
     /// <summary>
     /// Applies queued entity/component additions and removals without running gameplay.
     /// </summary>
     public void FlushStructuralChanges()
     {
         if (_isDisposed) return;
-        Entities.FlushStructuralChanges();
+        RunAtContentStructuralBoundary(ContentRepositoryWork.FlushStructuralChanges);
     }
 
     /// <summary>Applies serialized scene rendering settings without replacing the scene.</summary>
@@ -603,88 +1087,6 @@ public class Scene : IDisposable
                    $"Blueprint asset '{instance.AssetName}' could not be loaded.");
     }
 
-    private void MaterializeLDtkScene(
-        LDtkSceneReference reference,
-        SceneBlueprintLoadOptions options)
-    {
-        var project = (options.LDtkProjectResolver ?? ResolveLDtkProject)(reference)
-                      ?? throw new InvalidOperationException(
-                          $"LDtk project asset '{reference.AssetName}' could not be loaded.");
-        var world = reference.WorldIid == Guid.Empty
-            ? project.LoadWorld()
-            : project.LoadWorld(reference.WorldIid);
-        var importer = new LDtkLevelImporter();
-        var importOptions = (reference.ImportOptions ?? new LDtkImportOptions()).Clone();
-        importOptions.Validate();
-
-        foreach (var levelStub in world.Levels)
-        {
-            var level = world.LoadLevel(levelStub.Iid);
-            var instance = importer.Import(this, world, level, importOptions);
-            if (options.MaterializeLDtkEntities)
-                LDtkSceneEntityMaterializer.Materialize(this, instance, instance.EntityInstances);
-            LDtkGeneratedEntityOverrides.Apply(
-                instance.OwnedEntities,
-                reference.EntityOverrides ?? new Dictionary<string, LDtkGeneratedEntityOverride>());
-            if (!options.MarkImportedLDtkEntitiesEditorOnly)
-                continue;
-            foreach (var entity in instance.OwnedEntities)
-                entity.IsEditorOnly = true;
-        }
-    }
-
-    private static LDtkFile ResolveLDtkProject(LDtkSceneReference reference)
-    {
-        var assetName = reference.AssetName;
-        if (reference.AssetId != Guid.Empty &&
-            Resources.AssetRegistry?.TryResolveAssetName(
-                new AssetId(reference.AssetId),
-                out var resolvedName) == true)
-        {
-            assetName = resolvedName;
-        }
-
-        return string.IsNullOrWhiteSpace(assetName)
-            ? null
-            : Resources.LoadAsset<LDtkFile>(assetName);
-    }
-
-    private void MaterializeTiledScene(
-        TiledSceneReference reference,
-        SceneBlueprintLoadOptions options)
-    {
-        var map = (options.TiledMapResolver ?? ResolveTiledMap)(reference)
-                  ?? throw new InvalidOperationException(
-                      $"Tiled map asset '{reference.AssetName}' could not be loaded.");
-        var importer = new TiledMapImporter();
-        var importOptions = (reference.ImportOptions ?? new TiledImportOptions()).Clone();
-        importOptions.Validate();
-        var instance = importer.Import(this, map, importOptions);
-        TiledGeneratedEntityOverrides.Apply(
-            instance.OwnedEntities,
-            reference.EntityOverrides ?? new Dictionary<string, TiledGeneratedEntityOverride>());
-        if (!options.MarkImportedTiledEntitiesEditorOnly)
-            return;
-        foreach (var entity in instance.OwnedEntities)
-            entity.IsEditorOnly = true;
-    }
-
-    private static TmxMap ResolveTiledMap(TiledSceneReference reference)
-    {
-        var assetName = reference.AssetName;
-        if (reference.AssetId != Guid.Empty &&
-            Resources.AssetRegistry?.TryResolveAssetName(
-                new AssetId(reference.AssetId),
-                out var resolvedName) == true)
-        {
-            assetName = resolvedName;
-        }
-
-        return string.IsNullOrWhiteSpace(assetName)
-            ? null
-            : Resources.LoadAsset<TmxMap>(assetName);
-    }
-
     /// <summary>
     ///     Physics-step driver. Called at a fixed timestep by the engine.
     /// </summary>
@@ -693,8 +1095,11 @@ public class Scene : IDisposable
         if (State == SceneState.Running)
         {
             OnPhysicsUpdate();
-            Entities.PhysicsTick();
-            _coroutineScheduler.FixedUpdate();
+            RunAtContentStructuralBoundary(ContentRepositoryWork.PhysicsTick);
+            RunAtContentCallbackBoundary(
+                _coroutineScheduler,
+                static scheduler => scheduler.FixedUpdate(),
+                "CoroutineScheduler.FixedUpdate");
         }
     }
 
@@ -706,7 +1111,10 @@ public class Scene : IDisposable
         if (State != SceneState.Running) return;
 
         //Guard.SafeCall(_renderPipeline.OnDraw, "RenderPipeline.OnDraw");
-        _renderPipeline.OnDraw();
+        RunAtContentCallbackBoundary(
+            this,
+            static scene => scene._renderPipeline.OnDraw(),
+            "RenderPipeline.OnDraw");
     }
 
     /// <summary>
@@ -725,7 +1133,14 @@ public class Scene : IDisposable
 
         var viewportSize = new Point(target.Width, target.Height);
         EnsureRenderPipelineInitialized(viewportSize);
-        _renderPipeline.Render(camera, target, viewportSize, false);
+        RunAtContentCallbackBoundary(
+            (Scene: this, Target: target, Camera: camera, ViewportSize: viewportSize),
+            static request => request.Scene._renderPipeline.Render(
+                request.Camera,
+                request.Target,
+                request.ViewportSize,
+                false),
+            "RenderPipeline.RenderTo");
     }
 
     #endregion
@@ -783,6 +1198,7 @@ public class Scene : IDisposable
         Guid? guidOverride = null)
     {
         var entity = Entities.CreateEntity(name, tags, enabled, createAt, eulerRotation, scale, guidOverride);
+        _activeContentOwner?.TrackCreatedEntity(entity);
         return entity;
     }
 
@@ -795,6 +1211,263 @@ public class Scene : IDisposable
     {
         return SpawnBlueprint(
             blueprint,
+            null,
+            enabled,
+            createAt,
+            eulerRotation,
+            scale);
+    }
+
+    internal Entity CreateContentEntity(
+        SceneContentInstance owner,
+        string name,
+        HashSet<string>? tags,
+        bool enabled,
+        Vector3? createAt,
+        Vector3? eulerRotation,
+        Vector3? scale)
+    {
+        ValidateContentOwnerMutation(owner);
+        return RunWithContentOwner(
+            owner,
+            () => CreateEntity(name, tags, enabled, createAt, eulerRotation, scale));
+    }
+
+    internal Entity CreateNetworkContentEntity(
+        SceneContentInstance owner,
+        EntityBlueprint blueprint,
+        object coordinator,
+        bool? enabled = null,
+        Vector3? createAt = null,
+        Vector3? eulerRotation = null,
+        Vector3? scale = null,
+        Action<Entity>? initialize = null)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        ArgumentNullException.ThrowIfNull(coordinator);
+        ValidateContentOwnerMutation(owner);
+        if (!owner.IsNetworkCoordinator(coordinator))
+            throw new InvalidOperationException(
+                "Only the networking session that owns this content instance may create scoped entities.");
+
+        var materialized = BlueprintInstanceMaterializer.Materialize(
+            [blueprint],
+            ResolveBlueprintInstance);
+        if (materialized.Count != 1)
+            throw new InvalidOperationException("A network Blueprint must materialize exactly one root Entity.");
+        ValidateNetworkBlueprintShape(materialized[0]);
+        ValidateContentBlueprintComponents(materialized, true);
+
+        var existingEntities = new HashSet<Entity>(
+            owner.OwnedEntities,
+            ReferenceEqualityComparer.Instance);
+        var previousCoordinator = _activeNetworkContentCoordinator;
+        _activeNetworkContentCoordinator = coordinator;
+        try
+        {
+            return RunWithContentOwner(
+                owner,
+                () =>
+                {
+                    var root = SpawnBlueprint(
+                        materialized[0],
+                        null,
+                        enabled,
+                        createAt,
+                        eulerRotation,
+                        scale);
+                    initialize?.Invoke(root);
+                    ValidateNetworkContentSpawn(owner, existingEntities, root);
+                    return root;
+                });
+        }
+        catch (Exception materializationException)
+        {
+            var cleanupErrors = new List<Exception>();
+            try
+            {
+                RunWithContentOwner(
+                    owner,
+                    () =>
+                    {
+                        RollbackNetworkContentSpawn(owner, existingEntities, cleanupErrors);
+                        return true;
+                    });
+            }
+            catch (Exception cleanupException)
+            {
+                cleanupErrors.Add(cleanupException);
+            }
+
+            if (cleanupErrors.Count != 0)
+            {
+                cleanupErrors.Insert(0, materializationException);
+                throw new AggregateException(
+                    "Scoped network spawn failed and cleanup also reported errors.",
+                    cleanupErrors);
+            }
+            throw;
+        }
+        finally
+        {
+            _activeNetworkContentCoordinator = previousCoordinator;
+        }
+    }
+
+    private static void ValidateNetworkContentSpawn(
+        SceneContentInstance owner,
+        HashSet<Entity> existingEntities,
+        Entity root)
+    {
+        var hierarchy = new HashSet<Entity>(
+            root.GetChildren(),
+            ReferenceEqualityComparer.Instance)
+        {
+            root
+        };
+        foreach (var entity in owner.OwnedEntities)
+        {
+            if (existingEntities.Contains(entity))
+                continue;
+            if (!hierarchy.Contains(entity))
+                throw new InvalidOperationException(
+                    "A scoped network Blueprint created an Entity outside its root hierarchy. " +
+                    "Runtime scoped network entities must have one exact unloadable hierarchy.");
+            if (!ReferenceEquals(entity, root) && entity.GetComponent<NetworkObject>() is not null)
+                throw new InvalidOperationException(
+                    "A scoped network Blueprint created a nested NetworkObject at runtime. " +
+                    "Spawn each network root independently.");
+        }
+    }
+
+    private void RollbackNetworkContentSpawn(
+        SceneContentInstance owner,
+        HashSet<Entity> existingEntities,
+        List<Exception> cleanupErrors)
+    {
+        HashSet<Entity>? previousRemaining = null;
+        while (true)
+        {
+            var remaining = new HashSet<Entity>(ReferenceEqualityComparer.Instance);
+            foreach (var entity in owner.GetOwnedEntitiesChildFirst())
+                if (!existingEntities.Contains(entity))
+                    remaining.Add(entity);
+            if (remaining.Count == 0)
+                return;
+            if (previousRemaining is not null && previousRemaining.SetEquals(remaining))
+            {
+                cleanupErrors.Add(new InvalidOperationException(
+                    "Scoped network spawn rollback could not release every newly created Entity."));
+                return;
+            }
+            previousRemaining = remaining;
+
+            foreach (var entity in owner.GetOwnedEntitiesChildFirst())
+            {
+                if (existingEntities.Contains(entity))
+                    continue;
+                if (Entity.IsNull(entity))
+                {
+                    owner.OnEntityDestroyed(entity);
+                    continue;
+                }
+                TryContentCleanup(
+                    cleanupErrors,
+                    () => Entities.DestroyEntityImmediately(entity));
+            }
+        }
+    }
+
+    internal Entity CreateContentEntity(
+        SceneContentInstance owner,
+        EntityBlueprint blueprint,
+        bool? enabled,
+        Vector3? createAt,
+        Vector3? eulerRotation,
+        Vector3? scale)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        ValidateContentOwnerMutation(owner);
+        BlueprintValidator.ValidateOrThrow(blueprint);
+        ValidateContentBlueprintComponents([blueprint]);
+        return RunWithContentOwner(
+            owner,
+            () => CreateEntity(blueprint, enabled, createAt, eulerRotation, scale));
+    }
+
+    internal void TrackContentEntity(
+        SceneContentInstance owner,
+        Entity entity,
+        bool includeDescendants)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ValidateContentOwnerMutation(owner);
+
+        var candidates = new List<Entity> { entity };
+        if (includeDescendants)
+            candidates.AddRange(entity.GetChildren());
+
+        var unique = new HashSet<Entity>(ReferenceEqualityComparer.Instance);
+        foreach (var candidate in candidates)
+        {
+            if (!unique.Add(candidate))
+                continue;
+            ValidateEntityForContentOwnership(owner, candidate);
+        }
+
+        foreach (var candidate in candidates)
+            if (unique.Remove(candidate))
+                owner.TrackCreatedEntity(candidate);
+    }
+
+    internal void ValidateContentComponentAttachment(Entity entity, Type componentType)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(componentType);
+        var owner = entity.ContentOwner;
+        if (owner is null)
+            return;
+        if (!owner.AcceptsOwnership)
+            throw new InvalidOperationException(
+                $"Cannot attach components to Entity '{entity.Name}' while its content instance " +
+                $"'{owner.InstanceId}' is unloading.");
+
+        var creationOrder = Dreambit.ECS.ComponentRequirementResolver.ResolveCreationOrder(
+            [componentType],
+            entity.HasComponentOfType);
+        foreach (var type in creationOrder)
+            ThrowIfForbiddenContentComponent(
+                type,
+                owner.IsNetworkCoordinator(_activeNetworkContentCoordinator));
+    }
+
+    internal void NotifyContentEntityDestroyed(Entity entity)
+    {
+        entity.ContentOwner?.OnEntityDestroyed(entity);
+    }
+
+    /// <summary>
+    /// Materializes boxed Blueprint instances before using the ordinary runtime spawn path.
+    /// This narrow seam is used by remote network spawns, whose source must behave like a
+    /// Blueprint embedded in a Scene while still receiving fresh runtime Entity IDs.
+    /// </summary>
+    internal Entity CreateNetworkEntity(
+        EntityBlueprint blueprint,
+        bool? enabled = null,
+        Vector3? createAt = null,
+        Vector3? eulerRotation = null,
+        Vector3? scale = null)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        var materialized = BlueprintInstanceMaterializer.Materialize(
+            [blueprint],
+            ResolveBlueprintInstance);
+        if (materialized.Count != 1)
+            throw new InvalidOperationException("A network Blueprint must materialize exactly one root Entity.");
+
+        ValidateNetworkBlueprintShape(materialized[0]);
+        return SpawnBlueprint(
+            materialized[0],
             null,
             enabled,
             createAt,
@@ -858,6 +1531,30 @@ public class Scene : IDisposable
         }
     }
 
+    private static void ValidateNetworkBlueprintShape(EntityBlueprint root)
+    {
+        var rootMarkers = CountNetworkObjectComponents(root);
+        if (rootMarkers != 1)
+            throw new InvalidOperationException(
+                "A network Blueprint root must contain exactly one NetworkObject component.");
+
+        foreach (var child in root.Children.SelectMany(child => child.FlattenedHierarchy()))
+            if (CountNetworkObjectComponents(child) != 0)
+                throw new InvalidOperationException(
+                    "A network Blueprint cannot contain nested NetworkObject components; " +
+                    "spawn each network root independently.");
+    }
+
+    private static int CountNetworkObjectComponents(EntityBlueprint blueprint)
+    {
+        var count = 0;
+        foreach (var component in blueprint.Components)
+            if (BlueprintResolver.ResolveComponentType(component.Type) ==
+                typeof(Networking.NetworkObject))
+                count++;
+        return count;
+    }
+
     private Entity CreateBlueprintHierarchy(
         EntityBlueprint blueprint,
         Entity parent,
@@ -885,7 +1582,7 @@ public class Scene : IDisposable
             ? rootScale.Value
             : blueprint.Scale;
 
-        var entity = Entities.CreateEntity(
+        var entity = CreateEntity(
             blueprint.Name,
             blueprint.Tags,
             enabled,
@@ -945,6 +1642,450 @@ public class Scene : IDisposable
             entity.Parent = null;
             Entities.DestroyEntityImmediately(entity);
         }
+    }
+
+    private T RunWithContentOwner<T>(SceneContentInstance owner, Func<T> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var previousOwner = _activeContentOwner;
+        if (previousOwner is not null && !ReferenceEquals(previousOwner, owner))
+            throw new InvalidOperationException(
+                "An Entity creation scope for another content instance is already active.");
+
+        _activeContentOwner = owner;
+        try
+        {
+            return action();
+        }
+        finally
+        {
+            _activeContentOwner = previousOwner;
+        }
+    }
+
+    private void ValidateAdditiveLoadState()
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed || _isDisposing, this);
+        if (ExecutionMode == SceneExecutionMode.Editor)
+            throw new InvalidOperationException(
+                "Additive Scene content is runtime-only and cannot be loaded into an editor-hosted Scene.");
+        if (State is SceneState.Ending or SceneState.Disposed)
+            throw new InvalidOperationException(
+                $"Additive Scene content cannot be loaded while the Scene is '{State}'.");
+        if (_contentMutationInProgress || _activeContentOwner is not null)
+            throw new InvalidOperationException(
+                "Nested or reentrant additive content mutation is not supported.");
+    }
+
+    private void ValidateContentOwnerMutation(SceneContentInstance owner)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        if (!ReferenceEquals(owner.Scene, this))
+            throw new ArgumentException(
+                "The content instance belongs to another Scene.",
+                nameof(owner));
+        if (!owner.IsLoaded)
+            throw new InvalidOperationException(
+                $"Content instance '{owner.InstanceId}' is not loaded.");
+        ObjectDisposedException.ThrowIf(_isDisposed || _isDisposing, this);
+    }
+
+    private static void ValidateContentBlueprintComponents(
+        IReadOnlyList<EntityBlueprint> roots,
+        bool allowNetworkObjects = false)
+    {
+        foreach (var root in roots)
+        foreach (var blueprint in root.FlattenedHierarchy())
+        {
+            var declaredTypes = new List<Type>(blueprint.Components.Count);
+            foreach (var componentBlueprint in blueprint.Components)
+            {
+                var componentType = BlueprintResolver.ResolveComponentType(componentBlueprint.Type)
+                                    ?? throw new InvalidOperationException(
+                                        $"'{componentBlueprint.Type}' is not a valid component type.");
+                declaredTypes.Add(componentType);
+            }
+
+            var creationOrder = Dreambit.ECS.ComponentRequirementResolver.ResolveCreationOrder(
+                declaredTypes,
+                static _ => false);
+            foreach (var componentType in creationOrder)
+                ThrowIfForbiddenContentComponent(componentType, allowNetworkObjects);
+        }
+    }
+
+    private static void ThrowIfForbiddenContentComponent(
+        Type componentType,
+        bool allowNetworkObjects = false)
+    {
+        if (typeof(SceneServiceComponent).IsAssignableFrom(componentType))
+            throw new InvalidOperationException(
+                $"Scene service component '{componentType.FullName}' cannot belong to additive Scene content. " +
+                "Scene services have whole-Scene lifetime.");
+        if (!allowNetworkObjects && typeof(NetworkObject).IsAssignableFrom(componentType))
+            throw new InvalidOperationException(
+                $"NetworkObject component '{componentType.FullName}' cannot belong to additive Scene content " +
+                "outside a network-managed replication scope.");
+    }
+
+    private static void ValidateContentTiledOverrides(
+        TiledSceneReference? reference,
+        bool allowNetworkObjects = false)
+    {
+        if (reference?.EntityOverrides is null)
+            return;
+
+        foreach (var entityOverride in reference.EntityOverrides.Values)
+        foreach (var componentTypeName in entityOverride.Components.Keys)
+        {
+            var componentType = BlueprintResolver.ResolveComponentType(componentTypeName);
+            if (componentType is null)
+                continue;
+
+            var creationOrder = Dreambit.ECS.ComponentRequirementResolver.ResolveCreationOrder(
+                [componentType],
+                static _ => false);
+            foreach (var requiredType in creationOrder)
+                ThrowIfForbiddenContentComponent(requiredType, allowNetworkObjects);
+        }
+    }
+
+    private static void ValidateEntityForContentOwnership(
+        SceneContentInstance owner,
+        Entity entity,
+        bool allowNetworkObjects = false)
+    {
+        if (Entity.IsNull(entity))
+            throw new InvalidOperationException("A destroyed Entity cannot be adopted by Scene content.");
+        if (!ReferenceEquals(entity.OwningScene, owner.Scene))
+            throw new InvalidOperationException(
+                "Only Entities belonging to the content instance's Scene can be adopted.");
+        if (entity.ContentOwner is { } existing && !ReferenceEquals(existing, owner))
+            throw new InvalidOperationException(
+                $"Entity '{entity.Name}' already belongs to content instance '{existing.InstanceId}'.");
+
+        foreach (var component in entity.GetAllComponents())
+            ThrowIfForbiddenContentComponent(component.GetType(), allowNetworkObjects);
+    }
+
+    private static void ValidateOwnedContentEntities(
+        SceneContentInstance owner,
+        bool allowNetworkObjects = false)
+    {
+        foreach (var entity in owner.OwnedEntities)
+            ValidateEntityForContentOwnership(owner, entity, allowNetworkObjects);
+    }
+
+    private static void DisableAndSuspendOwnedEntities(SceneContentInstance instance)
+    {
+        foreach (var entity in instance.OwnedEntities)
+        {
+            if (Entity.IsNull(entity))
+                continue;
+            entity.UpdatesSuspended = true;
+            entity.Enabled = false;
+        }
+    }
+
+    private void QueueOwnedEntityDestruction(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        foreach (var entity in instance.GetOwnedEntitiesChildFirst())
+        {
+            if (Entity.IsNull(entity))
+                continue;
+            TryContentCleanup(cleanupErrors, () => Entities.DestroyEntity(entity));
+        }
+    }
+
+    private void DestroyOwnedEntitiesImmediately(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        do
+        {
+            foreach (var entity in instance.GetOwnedEntitiesChildFirst())
+            {
+                if (Entity.IsNull(entity))
+                {
+                    instance.OnEntityDestroyed(entity);
+                    continue;
+                }
+                TryContentCleanup(cleanupErrors, () => Entities.DestroyEntityImmediately(entity));
+            }
+        }
+        // Rollback leaves the provisional instance in Loading state. Cleanup callbacks can
+        // create more entities under the active owner, so drain them before invalidating it.
+        while (instance.AcceptsOwnership && instance.OwnedEntities.Count > 0);
+    }
+
+    private static void InvalidateTiledContent(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        if (instance.TiledMap is { IsUnloaded: false } tiledMap)
+            TryContentCleanup(cleanupErrors, tiledMap.Unload);
+    }
+
+    private static void InvalidateTiledContentForDeferredUnload(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        if (instance.TiledMap is { IsUnloaded: false } tiledMap)
+            TryContentCleanup(cleanupErrors, tiledMap.InvalidateForDeferredContentUnload);
+    }
+
+    private void FinalizeContentUnload(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        DestroyOwnedEntitiesImmediately(instance, cleanupErrors);
+        _contentInstancesById.Remove(instance.InstanceId);
+        RemoveContentInstanceByReference(instance);
+        instance.CompleteUnload();
+    }
+
+    private void RemoveContentInstanceByReference(SceneContentInstance instance)
+    {
+        for (var index = 0; index < _contentInstances.Count; index++)
+        {
+            if (!ReferenceEquals(_contentInstances[index], instance))
+                continue;
+            _contentInstances.RemoveAt(index);
+            return;
+        }
+    }
+
+    private static void TryContentCleanup(
+        List<Exception> cleanupErrors,
+        Action cleanup)
+    {
+        try
+        {
+            cleanup();
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
+        }
+    }
+
+    private static void ThrowContentCleanupErrors(
+        SceneContentInstance instance,
+        List<Exception> cleanupErrors)
+    {
+        if (cleanupErrors.Count == 0)
+            return;
+        throw new AggregateException(
+            $"Content instance '{instance.InstanceId}' encountered one or more cleanup failures.",
+            cleanupErrors);
+    }
+
+    private void RunAtContentStructuralBoundary(ContentRepositoryWork repositoryWork)
+    {
+        Exception? repositoryException = null;
+        Exception? contentException = null;
+        try
+        {
+            switch (repositoryWork)
+            {
+                case ContentRepositoryWork.Tick:
+                    Entities.Tick();
+                    break;
+                case ContentRepositoryWork.FlushStructuralChanges:
+                    Entities.FlushStructuralChanges();
+                    break;
+                case ContentRepositoryWork.PhysicsTick:
+                    Entities.PhysicsTick();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(repositoryWork));
+            }
+        }
+        catch (Exception exception)
+        {
+            repositoryException = exception;
+        }
+
+        try
+        {
+            ProcessPendingContentUnloads();
+        }
+        catch (Exception exception)
+        {
+            contentException = exception;
+        }
+
+        if (repositoryException is not null && contentException is not null)
+            throw new AggregateException(
+                "Repository processing and additive content cleanup both failed.",
+                repositoryException,
+                contentException);
+        if (repositoryException is not null)
+            ExceptionDispatchInfo.Capture(repositoryException).Throw();
+        if (contentException is not null)
+            ExceptionDispatchInfo.Capture(contentException).Throw();
+    }
+
+    /// <summary>
+    /// Runs callbacks that may retain Entity or Component references while user code executes.
+    /// Additive content becomes logically unavailable immediately when unloaded from the callback,
+    /// but exact Entity destruction is delayed until the outermost callback boundary exits.
+    /// </summary>
+    internal void RunAtContentCallbackBoundary(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        RunAtContentCallbackBoundary(
+            callback,
+            static action => action(),
+            "Scene component callbacks");
+    }
+
+    private void RunAtContentCallbackBoundary<TState>(
+        TState state,
+        Action<TState> callback,
+        string callbackName)
+    {
+        Exception? callbackException = null;
+        Exception? contentException = null;
+        _contentCallbackBoundaryDepth++;
+        try
+        {
+            callback(state);
+        }
+        catch (Exception exception)
+        {
+            callbackException = exception;
+        }
+        finally
+        {
+            _contentCallbackBoundaryDepth--;
+            if (_contentCallbackBoundaryDepth == 0)
+            {
+                try
+                {
+                    ProcessPendingContentUnloads();
+                }
+                catch (Exception exception)
+                {
+                    contentException = exception;
+                }
+            }
+        }
+
+        if (callbackException is not null && contentException is not null)
+            throw new AggregateException(
+                $"{callbackName} and additive content cleanup both failed.",
+                callbackException,
+                contentException);
+        if (callbackException is not null)
+            ExceptionDispatchInfo.Capture(callbackException).Throw();
+        if (contentException is not null)
+            ExceptionDispatchInfo.Capture(contentException).Throw();
+    }
+
+    private void ProcessPendingContentUnloads()
+    {
+        if (Entities.IsIterating ||
+            _contentCallbackBoundaryDepth > 0 ||
+            _pendingContentUnloads.Count == 0)
+            return;
+
+        var allErrors = new List<Exception>();
+        _contentMutationInProgress = true;
+        try
+        {
+            while (_pendingContentUnloads.Count > 0)
+            {
+                var pending = _pendingContentUnloads[0];
+                _pendingContentUnloads.RemoveAt(0);
+                FinalizeContentUnload(pending.Instance, pending.CleanupErrors);
+                allErrors.AddRange(pending.CleanupErrors);
+            }
+        }
+        finally
+        {
+            _contentMutationInProgress = false;
+        }
+
+        if (allErrors.Count > 0)
+            throw new AggregateException(
+                "One or more deferred additive content unloads failed.",
+                allErrors);
+    }
+
+    private void PrepareContentInstancesForSceneCleanup(List<Exception> cleanupErrors)
+    {
+        foreach (var instance in _contentInstances)
+        {
+            instance.BeginUnload();
+            InvalidateTiledContent(instance, cleanupErrors);
+            DisableAndSuspendOwnedEntities(instance);
+        }
+
+        foreach (var pending in _pendingContentUnloads)
+            cleanupErrors.AddRange(pending.CleanupErrors);
+    }
+
+    private void CompleteContentInstancesAfterSceneCleanup(List<Exception> cleanupErrors)
+    {
+        foreach (var instance in _contentInstances)
+            TryContentCleanup(cleanupErrors, instance.CompleteUnload);
+
+        _pendingContentUnloads.Clear();
+        _contentInstancesById.Clear();
+        _contentInstances.Clear();
+        _activeContentOwner = null;
+        _activeNetworkContentCoordinator = null;
+        _contentMutationInProgress = false;
+    }
+
+    private enum ContentRepositoryWork : byte
+    {
+        Tick,
+        FlushStructuralChanges,
+        PhysicsTick
+    }
+
+    /// <summary>
+    /// Immediately releases a newly materialized runtime hierarchy. This is a narrow rollback
+    /// seam for transactions that fail before the hierarchy can become observable on a later tick.
+    /// </summary>
+    internal void DestroyEntityHierarchyImmediately(Entity root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        if (!ReferenceEquals(root.OwningScene, this))
+            throw new InvalidOperationException("Cannot roll back an Entity owned by another Scene.");
+
+        var hierarchy = root.GetChildren();
+        hierarchy.Insert(0, root);
+        var cleanupErrors = new List<Exception>();
+        for (var index = hierarchy.Count - 1; index >= 0; index--)
+        {
+            var entity = hierarchy[index];
+            try
+            {
+                entity.Parent = null;
+            }
+            catch (Exception exception)
+            {
+                cleanupErrors.Add(exception);
+            }
+            try
+            {
+                Entities.DestroyEntityImmediately(entity);
+            }
+            catch (Exception exception)
+            {
+                cleanupErrors.Add(exception);
+            }
+        }
+
+        if (cleanupErrors.Count != 0)
+            throw new AggregateException(
+                "One or more Entities failed during immediate hierarchy rollback.",
+                cleanupErrors);
     }
 
     /// <summary>Sets AlwaysUpdate on a specific entity.</summary>

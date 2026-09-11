@@ -11,7 +11,7 @@ namespace Dreambit.Editor.UI;
 
 /// <summary>
 /// Authoritative move, rotate, and scale interaction for every editor-hosted scene
-/// document. Transactions keep live state, undo, LDtk overrides, and Blueprint source
+/// document. Transactions keep live state, undo, imported-map overrides, and Blueprint source
 /// synchronization on the same mutation path.
 /// </summary>
 internal sealed class EditorTransformGizmo : IDisposable

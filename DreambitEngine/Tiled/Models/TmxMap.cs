@@ -472,6 +472,10 @@ public abstract class TmxLayer
     [DefaultValue(true)]
     public bool Visible { get; set; } = true;
 
+    [XmlAttribute("locked")]
+    [DefaultValue(false)]
+    public bool Locked { get; set; }
+
     [XmlAttribute("tintcolor")]
     public string? TintColor { get; set; }
 

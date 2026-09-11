@@ -1,6 +1,8 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Dreambit.ECS;
 using Dreambit.Editor.Compilation;
+using Dreambit.EditorApi;
 
 namespace Dreambit.Editor.Inspection;
 
@@ -54,6 +56,7 @@ internal sealed class EditorTypeRegistry : IDisposable
         var gameTypes = _assemblies.Current?.Types;
         ComponentTypes = GetLoadableTypes(typeof(Component).Assembly)
             .Where(IsConcreteComponent)
+            .Where(IsComponentViewableInEditor)
             .Concat(gameTypes?.ComponentTypes ?? [])
             .Distinct()
             .OrderBy(type => type.Name)
@@ -71,6 +74,14 @@ internal sealed class EditorTypeRegistry : IDisposable
     {
         return typeof(Component).IsAssignableFrom(type) && !type.IsAbstract && !type.IsGenericType &&
                type.GetConstructor(Type.EmptyTypes) is not null;
+    }
+
+    private static bool IsComponentViewableInEditor(Type type)
+    {
+        return !Attribute.IsDefined(
+            type,
+            typeof(HideComponentInEditorAttribute),
+            inherit: false);
     }
 
     private static bool IsConcreteAsset(Type type)

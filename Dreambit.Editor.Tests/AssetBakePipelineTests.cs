@@ -1,7 +1,10 @@
 using Dreambit;
 using Dreambit.Editor.Assets;
 using Dreambit.Editor.Projects;
+using Dreambit.UI;
+using DreambitEngine.AssetBaker.Abstractions;
 using DreambitEngine.AssetBaker.Pipeline;
+using DreambitEngine.AssetBaker.Pipeline.Docs;
 using DreambitEngine.AssetBaker.Pipeline.Textures;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
@@ -19,6 +22,236 @@ public sealed class AssetBakePipelineTests : IDisposable
     public AssetBakePipelineTests()
     {
         Directory.CreateDirectory(_root);
+    }
+
+    [Fact]
+    public async Task BlobBakesWaitForTheCurrentCacheWriterBeforeReadingSources()
+    {
+        var assets = Path.Combine(_root, "LeaseAssets");
+        var cache = Path.Combine(_root, "LeaseCache");
+        Directory.CreateDirectory(assets);
+        Directory.CreateDirectory(cache);
+        File.WriteAllText(Path.Combine(assets, "settings.json"), "{\"version\":1}");
+
+        var waiting = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var progress = new InlineProgress<AssetBakeProgress>(value =>
+        {
+            if (value.Stage == "Wait")
+                waiting.TrySetResult();
+        });
+        var leasePath = Path.Combine(cache, "bake.lock");
+        var lease = new FileStream(
+            leasePath,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None);
+        Task<AssetBlobBakeResult>? bake = null;
+        try
+        {
+            bake = new AssetBakePipeline().BakeBlobsAsync(
+                new AssetBlobBakeRequest(assets, cache),
+                progress);
+            await waiting.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(bake.IsCompleted);
+        }
+        finally
+        {
+            lease.Dispose();
+        }
+
+        var result = await bake!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, result.BakedCount);
+        Assert.True(File.Exists(result.ManifestPath));
+    }
+
+    [Fact]
+    public void DebugRuntimeSnapshotPublishesRapidSameSizeBlobChanges()
+    {
+        var assets = Path.Combine(_root, "RuntimeSnapshotAssets");
+        var cache = Path.Combine(_root, "RuntimeSnapshotCache");
+        var output = Path.Combine(_root, "RuntimeSnapshotOutput");
+        Directory.CreateDirectory(assets);
+        var source = Path.Combine(assets, "settings.json");
+        var request = new AssetBlobBakeRequest(
+            assets,
+            cache)
+        {
+            RuntimeOutputDirectory = output
+        };
+        var pipeline = new AssetBakePipeline();
+
+        File.WriteAllText(source, "{\"version\":1}");
+        pipeline.BakeBlobs(request);
+        Assert.Equal(1, ReadBakedJsonVersion(output));
+
+        // Both sources serialize to the same length. The old MSBuild copy could treat the blob
+        // as unchanged when this happened inside the filesystem's timestamp resolution window.
+        File.WriteAllText(source, "{\"version\":2}");
+        pipeline.BakeBlobs(request);
+
+        Assert.Equal(2, ReadBakedJsonVersion(output));
+        Assert.Equal(
+            File.ReadAllText(Path.Combine(cache, BlobContentManifest.FingerprintFileName)),
+            File.ReadAllText(Path.Combine(output, BlobContentManifest.FingerprintFileName)));
+    }
+
+    private static int ReadBakedJsonVersion(string contentDirectory)
+    {
+        var reader = new BlobContentReader(contentDirectory);
+        using var stream = reader.Open("settings.jsonb");
+        return JObject.Parse(JsnbLoader.GetJsonString(stream)).Value<int>("version");
+    }
+
+    [Fact]
+    public void CssBakerProducesVersionedRuntimeLoadableText()
+    {
+        var assets = Path.Combine(_root, "CssAssets");
+        var output = Path.Combine(_root, "CssBlobs");
+        Directory.CreateDirectory(Path.Combine(assets, "Ui"));
+        const string css = "/* Grüße */ Text { text: \"Crème brûlée\"; color: #FFFFFF; width: 100px; }";
+        File.WriteAllText(Path.Combine(assets, "Ui", "master.ucss"), css);
+
+        var result = new AssetBakePipeline().BakeBlobs(new AssetBlobBakeRequest(
+            assets,
+            output,
+            RebuildAll: true));
+
+        Assert.Equal(1, result.BakedCount);
+        var reader = new BlobContentReader(output);
+        using var stream = reader.Open("ui/master.cssb");
+        Assert.Equal(css, CssbLoader.GetStylesheet(stream));
+
+        var second = new AssetBakePipeline().BakeBlobs(new AssetBlobBakeRequest(
+            assets,
+            output));
+        Assert.Equal(0, second.BakedCount);
+        Assert.Equal(1, second.CacheHitCount);
+    }
+
+    [Fact]
+    public void CssBakerRejectsMalformedStylesheetBeforePublishing()
+    {
+        var assets = Path.Combine(_root, "BadCssAssets");
+        var output = Path.Combine(_root, "BadCssBlobs");
+        Directory.CreateDirectory(assets);
+        File.WriteAllText(Path.Combine(assets, "bad.ucss"), "Text { width: 100; }");
+
+        var exception = Assert.Throws<UiStylesheetException>(() =>
+            new AssetBakePipeline().BakeBlobs(new AssetBlobBakeRequest(
+                assets,
+                output,
+                RebuildAll: true)));
+
+        Assert.Contains("width", exception.Message);
+        Assert.False(File.Exists(Path.Combine(output, BlobContentManifest.FileName)));
+    }
+
+    [Theory]
+    [InlineData("width", "-100px")]
+    [InlineData("height", "-50%")]
+    [InlineData("font-size", "-24px")]
+    public void CssBakerRejectsNegativeSizesBeforePublishing(
+        string property,
+        string value)
+    {
+        var assets = Path.Combine(_root, "NegativeCssAssets", property);
+        var output = Path.Combine(_root, "NegativeCssBlobs", property);
+        Directory.CreateDirectory(assets);
+        File.WriteAllText(
+            Path.Combine(assets, "bad.ucss"),
+            $"Text {{ {property}: {value}; }}");
+
+        var exception = Assert.Throws<UiStylesheetException>(() =>
+            new AssetBakePipeline().BakeBlobs(new AssetBlobBakeRequest(
+                assets,
+                output,
+                RebuildAll: true)));
+
+        Assert.Contains(property, exception.Message);
+        Assert.False(File.Exists(Path.Combine(output, BlobContentManifest.FileName)));
+    }
+
+    [Fact]
+    public void SameStemXmlAndCssDoNotCollideInRuntimeRegistry()
+    {
+        var assets = Path.Combine(_root, "RegistryCssAssets");
+        var output = Path.Combine(_root, "RegistryCssContent", "content.pak");
+        var registry = Path.Combine(_root, "RegistryCss", "assets.json");
+        Directory.CreateDirectory(Path.Combine(assets, "Ui"));
+        Directory.CreateDirectory(Path.GetDirectoryName(registry)!);
+        File.WriteAllText(Path.Combine(assets, "Ui", "main.uxml"), "<Ui />");
+        File.WriteAllText(Path.Combine(assets, "Ui", "main.ucss"), "Text { width: 10px; }");
+        var xmlId = Guid.NewGuid();
+        var cssId = Guid.NewGuid();
+        File.WriteAllText(
+            registry,
+            $$"""
+              {
+                "schemaVersion": 2,
+                "assets": [
+                  { "id": "{{xmlId:D}}", "path": "Ui/main.uxml" },
+                  { "id": "{{cssId:D}}", "path": "Ui/main.ucss" }
+                ]
+              }
+              """);
+
+        new AssetBakePipeline().BakePak(new AssetBakeRequest(
+            assets,
+            output,
+            registry,
+            RebuildAll: true));
+
+        using var pak = new PakReader(output);
+        using (var xml = pak.Open("ui/main.xmlb"))
+            Assert.Contains("<Ui", XmlbLoader.GetXmlString(xml));
+        using (var css = pak.Open("ui/main.cssb"))
+            Assert.Contains("width", CssbLoader.GetStylesheet(css));
+        using var registryStream = pak.Open(RuntimeAssetRegistry.LogicalPath);
+        var runtimeRegistry = RuntimeAssetRegistry.Load(registryStream);
+        Assert.True(runtimeRegistry.TryResolveAssetName(new AssetId(xmlId), out var xmlName));
+        Assert.Equal("Ui/main", xmlName);
+        Assert.False(runtimeRegistry.TryResolveAssetName(new AssetId(cssId), out _));
+    }
+
+    [Fact]
+    public void RuntimeRegistryIgnoresDeletedSourceTombstones()
+    {
+        var assets = Path.Combine(_root, "RegistryTombstoneAssets");
+        var output = Path.Combine(_root, "RegistryTombstoneContent", "content.pak");
+        var registry = Path.Combine(_root, "RegistryTombstone", "assets.json");
+        Directory.CreateDirectory(Path.Combine(assets, "Ui"));
+        Directory.CreateDirectory(Path.GetDirectoryName(registry)!);
+        File.WriteAllText(Path.Combine(assets, "Ui", "main-title.uxml"), "<Ui />");
+        var deletedXmlId = Guid.NewGuid();
+        var deletedUxmlId = Guid.NewGuid();
+        var currentId = Guid.NewGuid();
+        File.WriteAllText(
+            registry,
+            $$"""
+              {
+                "schemaVersion": 2,
+                "assets": [
+                  { "id": "{{deletedXmlId:D}}", "path": "Ui/main-menu.xml" },
+                  { "id": "{{deletedUxmlId:D}}", "path": "Ui/main-menu.uxml" },
+                  { "id": "{{currentId:D}}", "path": "Ui/main-title.uxml" }
+                ]
+              }
+              """);
+
+        new AssetBakePipeline().BakePak(new AssetBakeRequest(
+            assets,
+            output,
+            registry,
+            RebuildAll: true));
+
+        using var pak = new PakReader(output);
+        using var registryStream = pak.Open(RuntimeAssetRegistry.LogicalPath);
+        var runtimeRegistry = RuntimeAssetRegistry.Load(registryStream);
+        Assert.True(runtimeRegistry.TryResolveAssetName(new AssetId(currentId), out var logicalName));
+        Assert.Equal("Ui/main-title", logicalName);
+        Assert.False(runtimeRegistry.TryResolveAssetName(new AssetId(deletedXmlId), out _));
+        Assert.False(runtimeRegistry.TryResolveAssetName(new AssetId(deletedUxmlId), out _));
     }
 
     [Fact]
@@ -395,6 +628,127 @@ public sealed class AssetBakePipelineTests : IDisposable
     }
 
     [Fact]
+    public void NormalMapBakeIsLinearUnpremultipliedAndRenormalizesEveryMip()
+    {
+        var assets = Path.Combine(_root, "NormalMapAssets");
+        Directory.CreateDirectory(assets);
+        var source = Path.Combine(assets, "surface.png");
+        using (var image = new Image<Rgba32>(2, 1))
+        {
+            image[0, 0] = new Rgba32(255, 128, 128, 64);
+            image[1, 0] = new Rgba32(128, 255, 128, 192);
+            image.SaveAsPng(source);
+        }
+
+        var blob = new TextureBaker().BakeToBytes(new BakeContext
+        {
+            InputPath = source,
+            OutputPath = string.Empty,
+            LogicalRoot = assets,
+            GenerateMips = true,
+            PremultiplyAlpha = true,
+            MarkSRgb = true,
+            ImportSettings = NormalMapImportSettings()
+        });
+
+        Assert.Equal((uint)TexbFlags.NormalMap, BitConverter.ToUInt32(blob.Data, 12));
+        Assert.Equal(2, BitConverter.ToUInt16(blob.Data, 10));
+        Assert.Equal((byte)64, blob.Data[23]);
+        Assert.Equal((byte)192, blob.Data[27]);
+
+        var offset = 16;
+        for (var mip = 0; mip < 2; mip++)
+        {
+            var byteCount = BitConverter.ToInt32(blob.Data, offset);
+            offset += sizeof(uint);
+            for (var pixel = 0; pixel < byteCount; pixel += 4)
+            {
+                var normalX = blob.Data[offset + pixel] / 255f * 2f - 1f;
+                var normalY = blob.Data[offset + pixel + 1] / 255f * 2f - 1f;
+                var normalZ = blob.Data[offset + pixel + 2] / 255f * 2f - 1f;
+                var length = MathF.Sqrt(
+                    normalX * normalX + normalY * normalY + normalZ * normalZ);
+                Assert.InRange(length, 0.99f, 1.01f);
+            }
+            offset += byteCount;
+        }
+    }
+
+    [Fact]
+    public void ChangingOnlyOneTextureSemanticRebakesOnlyThatTexture()
+    {
+        var assets = Path.Combine(_root, "SemanticCacheAssets");
+        var cache = Path.Combine(_root, "SemanticCache");
+        var output = Path.Combine(_root, "SemanticCacheOutput", "content.pak");
+        var registry = Path.Combine(_root, ".dreambit", "semantic-assets.json");
+        Directory.CreateDirectory(assets);
+        Directory.CreateDirectory(Path.GetDirectoryName(registry)!);
+        WritePng(Path.Combine(assets, "first.png"), new Rgba32(255, 128, 128, 128));
+        WritePng(Path.Combine(assets, "second.png"), new Rgba32(200, 100, 50, 128));
+        var firstId = Guid.NewGuid();
+        var secondId = Guid.NewGuid();
+        WriteTextureRegistry(registry, firstId, secondId, normalMapFirst: false);
+
+        var pipeline = new AssetBakePipeline();
+        var request = new AssetBakeRequest(assets, output, registry, cache);
+        var first = pipeline.BakePak(request);
+        var cached = pipeline.BakePak(request);
+        WriteTextureRegistry(registry, firstId, secondId, normalMapFirst: true);
+        var changed = pipeline.BakePak(request);
+
+        Assert.Equal(2, first.BakedCount);
+        Assert.Equal(2, cached.CacheHitCount);
+        Assert.Equal(1, changed.BakedCount);
+        Assert.Equal(1, changed.CacheHitCount);
+        using var pak = new PakReader(output);
+        using var firstTexture = pak.Open("first.texb");
+        using var secondTexture = pak.Open("second.texb");
+        Assert.Equal(TexbFlags.NormalMap, ReadTexbFlags(firstTexture));
+        Assert.Equal(TexbFlags.Premultiplied | TexbFlags.Srgb, ReadTexbFlags(secondTexture));
+    }
+
+    private static AssetImportSettings NormalMapImportSettings() => new()
+    {
+        Texture = new TextureImportSettings { Semantic = TextureSemantic.NormalMap }
+    };
+
+    private static void WritePng(string path, Rgba32 pixel)
+    {
+        using var image = new Image<Rgba32>(1, 1);
+        image[0, 0] = pixel;
+        image.SaveAsPng(path);
+    }
+
+    private static void WriteTextureRegistry(
+        string path,
+        Guid firstId,
+        Guid secondId,
+        bool normalMapFirst)
+    {
+        var importSettings = normalMapFirst
+            ? "\"importSettings\": { \"texture\": { \"semantic\": \"NormalMap\" } },"
+            : string.Empty;
+        File.WriteAllText(
+            path,
+            $$"""
+              {
+                "schemaVersion": 2,
+                "assets": [
+                  { "id": "{{firstId:D}}", "path": "first.png", "kind": "Texture", {{importSettings}} "length": 0 },
+                  { "id": "{{secondId:D}}", "path": "second.png", "kind": "Texture", "length": 0 }
+                ]
+              }
+              """);
+    }
+
+    private static TexbFlags ReadTexbFlags(Stream stream)
+    {
+        Span<byte> header = stackalloc byte[16];
+        stream.ReadExactly(header);
+        return (TexbFlags)BitConverter.ToUInt32(header[12..16]);
+    }
+
+    [Fact]
     public void BuiltInEffectsAndFontAreCompiledIntoThePak()
     {
         var assets = Path.Combine(_root, "EmptyAssets");
@@ -442,5 +796,10 @@ public sealed class AssetBakePipelineTests : IDisposable
     {
         if (Directory.Exists(_root))
             Directory.Delete(_root, true);
+    }
+
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 }

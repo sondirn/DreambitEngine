@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Dreambit.Networking;
 
 namespace Dreambit.ECS;
 
@@ -13,6 +15,8 @@ public abstract class Component : IDisposable
     private bool _isDisposed;
     private readonly HashSet<string> _editorSerializationFailures =
         new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly List<CoroutineHandle> _coroutineHandles = [];
 
     protected Component()
     {
@@ -65,8 +69,17 @@ public abstract class Component : IDisposable
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (this is SceneServiceComponent sceneService)
+            Scene?.Services.EnsureCanRemove(sceneService);
+
+        try
+        {
+            Dispose(true);
+        }
+        finally
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
     ~Component()
@@ -86,15 +99,20 @@ public abstract class Component : IDisposable
         return this;
     }
 
-    internal static Component BpFromType(Type type, Entity entity, bool enabled = true)
+    internal static Component BpFromType(
+        Type type,
+        Entity entity,
+        bool enabled = true)
     {
         if (!type.IsSubclassOf(typeof(Component)))
         {
-            Core.Logger.Warn("{0} is not a valid component type on deserialization", type.FullName);
+            Core.Logger.Warn(
+                "{0} is not a valid component type on deserialization",
+                type.FullName);
+
             return null;
         }
 
-        // check if already created, if not create a new one
         var component =
             entity.GetComponent(type) ??
             (Component)Activator.CreateInstance(type);
@@ -102,23 +120,18 @@ public abstract class Component : IDisposable
         if (component is null)
             return null;
 
-        component.Entity = entity;
-        component._enabled = enabled;
-        component._requiredComponentTypes = component.GetRequiredComponents();
-
-
-        return component;
+        return component.SetUpAndCreateChildren(
+            entity,
+            enabled);
     }
 
     private IReadOnlyList<Type> GetRequiredComponents()
     {
         var list = new List<Type>();
 
-        var attributes = Attribute.GetCustomAttributes(GetType());
-        foreach (var attribute in attributes)
+        var attributes = GetType().GetCustomAttributes<RequireAttribute>(inherit: true);
+        foreach (var requireAttribute in attributes)
         {
-            if (attribute is not RequireAttribute requireAttribute) continue;
-
             foreach (var requiredType in requireAttribute.RequiredTypes)
             {
                 var hasRequired = Entity.HasComponentOfType(requiredType);
@@ -189,6 +202,41 @@ public abstract class Component : IDisposable
     ///     Gets called immediately when the component is instantiated and serialized.
     /// </summary>
     public virtual void OnCreated()
+    {
+    }
+
+    /// <summary>
+    /// Called once after this Component's network Entity has received all initial authoritative
+    /// state and has a registered network identity and owner.
+    /// </summary>
+    /// <param name="context">Identity, ownership, role, Scene, and server-tick information.</param>
+    /// <remarks>
+    /// On a server or host, this runs after authoritative spawn initialization and initial state
+    /// capture. On a remote client, it runs after every initial replicated Component payload has
+    /// been applied and before gameplay updates resume. Unlike <see cref="OnCreated"/>, this callback
+    /// may safely read runtime values established by <see cref="NetworkService.Spawn(
+    /// EntityBlueprint, Action{Entity}, NetworkSpawnOptions?)"/>. It is also called for replicated
+    /// Components and presentation Components on descendants of the network Entity root.
+    /// </remarks>
+    public virtual void OnNetworkSpawnReady(NetworkSpawnReadyContext context)
+    {
+    }
+
+    /// <summary>
+    /// Called on a replicated Component after one complete authoritative payload has been applied
+    /// to it on a remote client.
+    /// </summary>
+    /// <param name="context">The applied Component identity, synchronization kind, Scene, and tick.</param>
+    /// <remarks>
+    /// All <see cref="Networking.Replication.ReplicatedAttribute"/> members on this Component have
+    /// been decoded before the callback runs. During initial synchronization, other replicated
+    /// Components on the Entity may still be pending; use <see cref="OnNetworkSpawnReady"/> for work
+    /// that requires the entire Entity to be initialized. Direct authoritative assignments on a
+    /// server or host do not invoke this callback. Full snapshots may invoke this callback even when
+    /// the decoded values equal the Component's existing values, so expensive presentation work
+    /// should cache and compare the state relevant to it.
+    /// </remarks>
+    public virtual void OnNetworkStateApplied(NetworkStateAppliedContext context)
     {
     }
 
@@ -277,6 +325,27 @@ public abstract class Component : IDisposable
     {
     }
 
+    public CoroutineHandle StartCoroutine(IEnumerator routine)
+    {
+        var handle = CoroutineService.StartCoroutine(routine);
+        _coroutineHandles.Add(handle);
+
+        return handle;
+    }
+
+    public void StopCoroutine(CoroutineHandle handle)
+    {
+        CoroutineService.StopCoroutine(handle);
+    }
+
+    public void StopAllCoroutines()
+    {
+        foreach(var handle in _coroutineHandles)
+        {
+            CoroutineService.StopCoroutine(handle);
+        }
+    }
+
     internal void BeforeDeserialize()
     {
         if (IsFaulted() || Scene?.ExecutionMode == SceneExecutionMode.Editor) return;
@@ -319,6 +388,34 @@ public abstract class Component : IDisposable
         catch (Exception exception)
         {
             HandleCallbackException(nameof(OnCreated), exception);
+        }
+    }
+
+    internal void NetworkSpawnReady(NetworkSpawnReadyContext context)
+    {
+        if (IsDestroyed || IsFaulted() || Scene?.ExecutionMode == SceneExecutionMode.Editor) return;
+
+        try
+        {
+            OnNetworkSpawnReady(context);
+        }
+        catch (Exception exception)
+        {
+            HandleCallbackException(nameof(OnNetworkSpawnReady), exception);
+        }
+    }
+
+    internal void NetworkStateApplied(NetworkStateAppliedContext context)
+    {
+        if (IsDestroyed || IsFaulted() || Scene?.ExecutionMode == SceneExecutionMode.Editor) return;
+
+        try
+        {
+            OnNetworkStateApplied(context);
+        }
+        catch (Exception exception)
+        {
+            HandleCallbackException(nameof(OnNetworkStateApplied), exception);
         }
     }
 
@@ -397,7 +494,8 @@ public abstract class Component : IDisposable
 
     internal void RemoveFromEntity()
     {
-        if (IsFaulted() || Scene?.ExecutionMode == SceneExecutionMode.Editor) return;
+        if (Scene?.ExecutionMode == SceneExecutionMode.Editor)
+            return;
 
         try
         {
@@ -439,18 +537,24 @@ public abstract class Component : IDisposable
 
     internal void Destroy()
     {
-        if (IsFaulted()) return;
+        if (IsDestroyed) return;
+        
+        StopAllCoroutines();
 
         try
         {
-            if (Scene?.ExecutionMode == SceneExecutionMode.Editor)
+            if(Scene?.ExecutionMode == SceneExecutionMode.Editor)
                 OnEditorDestroyed();
             else
                 OnDestroyed();
         }
         catch (Exception exception)
         {
-            HandleCallbackException(nameof(OnDestroyed), exception);
+            HandleCallbackException(
+                Scene?.ExecutionMode == SceneExecutionMode.Editor
+                    ? nameof(OnEditorDestroyed)
+                    : nameof(OnDestroyed),
+                exception);
         }
     }
 
@@ -532,11 +636,18 @@ public abstract class Component : IDisposable
     private void Dispose(bool disposing)
     {
         if (_isDisposed) return;
-        if (disposing) OnDisposing();
 
-        IsDestroyed = true;
-        _isDisposed = true;
-        Entity = null;
+        try
+        {
+            if(disposing)
+                OnDisposing();
+        }
+        finally
+        {
+            IsDestroyed = true;
+            _isDisposed = true;
+            Entity = null;
+        }
     }
 }
 
@@ -549,6 +660,12 @@ public class SingletonComponent<T> : Component where T : SingletonComponent<T>
 
     internal override Component SetUpAndCreateChildren(Entity entity, bool enabled = true)
     {
+        // Editor previews can coexist briefly while SceneRuntime builds a replacement before
+        // disposing the outgoing scene. They never run gameplay callbacks, so they must not
+        // participate in the process-wide runtime singleton registry.
+        if (entity.Scene?.ExecutionMode == SceneExecutionMode.Editor)
+            return base.SetUpAndCreateChildren(entity, enabled);
+
         if (!IsNull(Instance) && !ReferenceEquals(Instance, this))
             throw new InvalidOperationException(
                 $"A singleton component of type '{typeof(T).FullName}' " +

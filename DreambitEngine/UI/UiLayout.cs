@@ -203,7 +203,7 @@ public class UiLayout
 
         var previous = PointerCapturedElement;
         PointerCapturedElement = element;
-        previous?.OnPointerCaptureLost();
+        previous?.RaisePointerCaptureLost();
         return true;
     }
 
@@ -215,7 +215,7 @@ public class UiLayout
             return;
 
         PointerCapturedElement = null;
-        element.OnPointerCaptureLost();
+        element.RaisePointerCaptureLost();
     }
 
     internal void ValidateInteractionState()
@@ -286,7 +286,8 @@ public class UiLayout
                     _lastPointerPosition != input.PointerPosition;
 
         if (moved && target is not null)
-            RoutePointerEvent(target, input.PointerPosition, PointerEventKind.Moved);
+            RoutePointerEvent(target, input.PointerPosition, PointerEventKind.Moved,
+                shiftDown: input.ShiftDown, primaryHeld: input.PrimaryHeld);
 
         if (input.PrimaryPressed)
         {
@@ -305,23 +306,27 @@ public class UiLayout
                 RoutePointerEvent(
                     target,
                     input.PointerPosition,
-                    PointerEventKind.Pressed);
+                    PointerEventKind.Pressed, shiftDown: input.ShiftDown, primaryHeld: input.PrimaryHeld);
             }
         }
+
+        if (input.SecondaryPressed && target is not null)
+            RoutePointerEvent(target, input.PointerPosition, PointerEventKind.SecondaryPressed,
+                shiftDown: input.ShiftDown, primaryHeld: input.PrimaryHeld);
 
         if (input.ScrollDelta != 0 && target is not null)
             RoutePointerEvent(
                 target,
                 input.PointerPosition,
                 PointerEventKind.Wheel,
-                input.ScrollDelta);
+                input.ScrollDelta, input.ShiftDown, input.PrimaryHeld);
 
         if (input.PrimaryReleased && target is not null)
         {
             RoutePointerEvent(
                 target,
                 input.PointerPosition,
-                PointerEventKind.Released);
+                PointerEventKind.Released, shiftDown: input.ShiftDown, primaryHeld: input.PrimaryHeld);
 
             if (PointerCapturedElement is not null)
                 ReleasePointerCapture(PointerCapturedElement);
@@ -490,13 +495,15 @@ public class UiLayout
         UiElement source,
         Vector2 position,
         PointerEventKind kind,
-        int wheelDelta = 0)
+        int wheelDelta = 0,
+        bool shiftDown = false,
+        bool primaryHeld = false)
     {
         var args = new UiPointerEventArgs(
             this,
             source,
             position,
-            wheelDelta);
+            wheelDelta, shiftDown, primaryHeld);
 
         RouteToAncestors(source, element =>
         {
@@ -506,6 +513,9 @@ public class UiLayout
             {
                 case PointerEventKind.Pressed:
                     element.RaisePointerPressed(args);
+                    break;
+                case PointerEventKind.SecondaryPressed:
+                    element.RaiseSecondaryPointerPressed(args);
                     break;
                 case PointerEventKind.Released:
                     element.RaisePointerReleased(args);
@@ -794,6 +804,7 @@ public class UiLayout
     private enum PointerEventKind
     {
         Pressed,
+        SecondaryPressed,
         Released,
         Moved,
         Wheel

@@ -74,10 +74,7 @@ public sealed class UiViewbox : UiContentControl
     public override void Parse(XmlNode node)
     {
         base.Parse(node);
-        var stretch = UiXmlParser.ParseString(node, "stretch", "Uniform");
-        Stretch = Enum.TryParse(stretch, true, out UiStretch parsed)
-            ? parsed
-            : UiStretch.Uniform;
+        Stretch = UiXmlParser.ParseEnum(node, "stretch", UiStretch.Uniform);
     }
 
     private static Point Scale(Point size, float scale)

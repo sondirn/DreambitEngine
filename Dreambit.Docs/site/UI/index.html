@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Overview - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Overview";
+        var mkdocs_page_input_path = "UI\\README.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Overview</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#how-the-pieces-fit-together">How the pieces fit together</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#build-a-working-hud">Build a working HUD</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-declare-the-layout">1. Declare the layout</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-style-the-authored-elements">2. Style the authored elements</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#3-load-and-wire-the-layout">3. Load and wire the layout</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#change-the-ui-at-runtime">Change the UI at runtime</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#listen-to-controls">Listen to controls</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fill-a-list-from-game-data">Fill a list from game data</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#build-an-interactive-list">Build an interactive list</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#choose-the-right-collection-control">Choose the right collection control</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#reuse-styled-uxml-components">Reuse styled UXML components</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#reloading-and-object-lifetime">Reloading and object lifetime</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#important-conventions">Important conventions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#api-reference">API reference</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#elements">Elements</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#brushes">Brushes</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="Stylesheets/">Stylesheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../networking/">Networking</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tiled</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../tiled/">Overview and quick start</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User interface</li>
+      <li class="breadcrumb-item active">Overview</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="user-interface">User interface<a class="headerlink" href="#user-interface" title="Permanent link">&para;</a></h1>
+<p>Dreambit UI is a retained-mode interface system for game HUDs, menus, forms,
+and overlays. Define the initial visual tree in UXML, apply presentation with
+UCSS, then look up the created elements and change their C# properties as the
+game runs.</p>
+<p>The normal workflow is:</p>
+<ol>
+<li>Author a <code>*.uxml</code> layout under the game's <code>Assets</code> directory.</li>
+<li>Optionally add a sibling <code>*.ucss</code> stylesheet and a shared global stylesheet.</li>
+<li>Load the layout through an ECS <a href="../ecs/components/ui-frame/"><code>UiFrame</code></a>.</li>
+<li>Use element IDs to get typed references, subscribe to events, and display
+   game state.</li>
+</ol>
+<p>UXML and UCSS create the starting tree. They are not a data-binding layer.
+Runtime behavior lives in C#.</p>
+<h2 id="how-the-pieces-fit-together">How the pieces fit together<a class="headerlink" href="#how-the-pieces-fit-together" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Responsibility</th>
+<th>When it is evaluated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UiFrame</code></td>
+<td>Owns the layout, routes input, and draws through the scene's UI camera</td>
+<td>Every frame</td>
+</tr>
+<tr>
+<td><code>UiLayout</code></td>
+<td>Holds the retained element tree and provides ID lookup and focus APIs</td>
+<td>For the life of the loaded layout</td>
+</tr>
+<tr>
+<td>UXML</td>
+<td>Declares elements, hierarchy, initial values, and reusable components</td>
+<td>When the layout is loaded</td>
+</tr>
+<tr>
+<td>UCSS</td>
+<td>Applies construction-time styles to UXML-created elements</td>
+<td>When the layout is loaded</td>
+</tr>
+<tr>
+<td>C#</td>
+<td>Wires events, changes live properties, and creates dynamic content</td>
+<td>Whenever the game needs it</td>
+</tr>
+</tbody>
+</table>
+<p>Most property changes do not require a reload or a manual layout call. Elements
+such as <code>UiText</code>, <code>UiTexture</code>, and <code>UiElement</code> invalidate their cached layout or
+asset dependencies when a relevant property changes. <code>UiFrame</code> resolves those
+changes during its normal update.</p>
+<h2 id="build-a-working-hud">Build a working HUD<a class="headerlink" href="#build-a-working-hud" title="Permanent link">&para;</a></h2>
+<p>Suppose the content project contains:</p>
+<pre><code class="language-text">Assets/
+└── Ui/
+    ├── master.ucss
+    └── Hud/
+        ├── hud.uxml
+        └── hud.ucss
+</code></pre>
+<p>The runtime paths omit <code>Assets/</code>. The Asset Baker converts the source UXML and
+UCSS files to Dreambit's baked content formats.</p>
+<h3 id="1-declare-the-layout">1. Declare the layout<a class="headerlink" href="#1-declare-the-layout" title="Permanent link">&para;</a></h3>
+<p><code>Assets/Ui/Hud/hud.uxml</code>:</p>
+<pre><code class="language-xml">&lt;Ui&gt;
+  &lt;Border class=&quot;hud-card&quot;
+          x=&quot;24&quot; y=&quot;24&quot;
+          width=&quot;360&quot; height=&quot;280&quot;&gt;
+    &lt;VerticalStackPanel width=&quot;100%&quot; height=&quot;100%&quot; spacing=&quot;12&quot;&gt;
+      &lt;Text class=&quot;heading&quot; text=&quot;Mission status&quot; /&gt;
+      &lt;Text id=&quot;score&quot; text=&quot;Score: 0&quot; /&gt;
+      &lt;ProgressBar id=&quot;health&quot;
+                   width=&quot;100%&quot; height=&quot;20&quot;
+                   minimum=&quot;0&quot; maximum=&quot;100&quot; value=&quot;100&quot; /&gt;
+      &lt;ItemsControl id=&quot;objective-list&quot;
+                    width=&quot;100%&quot; height=&quot;*&quot;
+                    spacing=&quot;6&quot; /&gt;
+      &lt;Button id=&quot;pause-button&quot;
+              class=&quot;primary&quot;
+              width=&quot;100%&quot; height=&quot;44&quot;&gt;
+        &lt;Text text=&quot;Pause&quot; /&gt;
+      &lt;/Button&gt;
+    &lt;/VerticalStackPanel&gt;
+  &lt;/Border&gt;
+&lt;/Ui&gt;
+</code></pre>
+<p>Concrete C# type names become UXML tags by removing the <code>Ui</code> prefix, so
+<code>UiProgressBar</code> is <code>&lt;ProgressBar&gt;</code> and <code>UiVerticalStackPanel</code> is
+<code>&lt;VerticalStackPanel&gt;</code>. IDs are case-sensitive.</p>
+<h3 id="2-style-the-authored-elements">2. Style the authored elements<a class="headerlink" href="#2-style-the-authored-elements" title="Permanent link">&para;</a></h3>
+<p><code>Assets/Ui/master.ucss</code> can hold shared defaults:</p>
+<pre><code class="language-css">Text {
+    font-family: monogram;
+    font-size: 18px;
+    color: #FFFFFF;
+}
+
+.heading {
+    font-size: 26px;
+}
+</code></pre>
+<p><code>Assets/Ui/Hud/hud.ucss</code> is discovered automatically as the layout's sibling
+stylesheet:</p>
+<pre><code class="language-css">.hud-card {
+    padding: 18px;
+    background-color: #151B24E8;
+}
+
+ProgressBar {
+    track-tint: #343946;
+    fill-tint: #50BE78;
+}
+
+Button.primary {
+    padding: 8px 16px;
+    background-color: #355E3B;
+    hover-tint: #477C50;
+    pressed-tint: #29482E;
+}
+</code></pre>
+<p>See <a href="Stylesheets/">UI stylesheets</a> for selector scope, cascade order, value
+syntax, component styles, and the supported CSS subset.</p>
+<h3 id="3-load-and-wire-the-layout">3. Load and wire the layout<a class="headerlink" href="#3-load-and-wire-the-layout" title="Permanent link">&para;</a></h3>
+<p>During scene setup, create the frame and keep typed references to the elements
+the game will update:</p>
+<pre><code class="language-csharp">using Dreambit.ECS;
+using Dreambit.UI;
+
+UiFrame hud = CreateEntity(&quot;hud&quot;)
+    .AttachComponent&lt;UiFrame&gt;()
+    .WithCss(&quot;Ui/master.ucss&quot;)
+    .WithLayout(&quot;Ui/Hud/hud.uxml&quot;);
+
+UiLayout layout = hud.Layout;
+UiText scoreText = layout.GetRequired&lt;UiText&gt;(&quot;score&quot;);
+UiProgressBar healthBar = layout.GetRequired&lt;UiProgressBar&gt;(&quot;health&quot;);
+UiItemsControl objectiveList =
+    layout.GetRequired&lt;UiItemsControl&gt;(&quot;objective-list&quot;);
+UiButton pauseButton = layout.GetRequired&lt;UiButton&gt;(&quot;pause-button&quot;);
+
+pauseButton.Clicked += _ =&gt; TogglePause();
+</code></pre>
+<p><code>GetRequired&lt;T&gt;</code> is best for required authored elements: it fails immediately
+when the ID is missing or has the wrong type. Use <code>Find</code> for genuinely optional
+elements:</p>
+<pre><code class="language-csharp">if (layout.Find(&quot;tutorial-hint&quot;) is UiText tutorialHint)
+    tutorialHint.Text = &quot;Press E to interact&quot;;
+</code></pre>
+<h2 id="change-the-ui-at-runtime">Change the UI at runtime<a class="headerlink" href="#change-the-ui-at-runtime" title="Permanent link">&para;</a></h2>
+<p>The references returned by <code>GetRequired&lt;T&gt;</code> are the live objects being updated
+and drawn. Assign their properties when game state changes:</p>
+<pre><code class="language-csharp">scoreText.Text = $&quot;Score: {score:N0}&quot;;
+healthBar.Value = player.Health;
+
+pauseButton.IsEnabled = !isLoading;
+objectiveList.IsVisible = objectives.Count &gt; 0;
+</code></pre>
+<p>Common runtime operations include:</p>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Change text</td>
+<td><code>UiText.Text</code>, <code>UiTextBox.Text</code></td>
+</tr>
+<tr>
+<td>Change a range</td>
+<td><code>UiProgressBar.Value</code>, <code>UiSlider.Value</code>, <code>UiScrollBar.Value</code></td>
+</tr>
+<tr>
+<td>Show or hide a subtree</td>
+<td><code>UiElement.IsVisible</code></td>
+</tr>
+<tr>
+<td>Enable or disable input for a subtree</td>
+<td><code>UiElement.IsEnabled</code></td>
+</tr>
+<tr>
+<td>Replace an image</td>
+<td><code>UiTexture.SpritePath</code> or <code>UiTexture.Sprite</code></td>
+</tr>
+<tr>
+<td>Move or resize an element</td>
+<td><code>X</code>, <code>Y</code>, <code>Width</code>, <code>Height</code>, <code>Anchor</code>, and <code>Origin</code></td>
+</tr>
+<tr>
+<td>Replace one control's content</td>
+<td><code>UiContentControl.SetContent(...)</code></td>
+</tr>
+<tr>
+<td>Add or remove children</td>
+<td><code>UiContainer.AddChild</code>, <code>RemoveChild</code>, and <code>ClearChildren</code></td>
+</tr>
+<tr>
+<td>Move keyboard/controller focus</td>
+<td><code>UiElement.Focus()</code> or <code>UiLayout.Focus(...)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Use the container methods instead of editing <code>Children</code> directly. They maintain
+parent ownership, layout attachment, ID validation, and interaction state.</p>
+<h3 id="listen-to-controls">Listen to controls<a class="headerlink" href="#listen-to-controls" title="Permanent link">&para;</a></h3>
+<p>Controls expose events rather than requiring per-frame polling:</p>
+<pre><code class="language-csharp">UiSlider music = layout.GetRequired&lt;UiSlider&gt;(&quot;music-volume&quot;);
+music.ValueChanged += (_, value) =&gt; SetMusicVolume(value / 100f);
+
+UiTextBox playerName = layout.GetRequired&lt;UiTextBox&gt;(&quot;player-name&quot;);
+playerName.TextChanged += (_, value) =&gt; profile.Name = value;
+
+UiComboBox resolution = layout.GetRequired&lt;UiComboBox&gt;(&quot;resolution&quot;);
+resolution.SelectionChanged += (_, index, value) =&gt;
+    ApplyResolution(index, value);
+</code></pre>
+<p>Button activation, selection, text input, sliders, and other controls use the
+same routed input path for the supported pointer, keyboard, and controller
+interactions described on their reference pages.</p>
+<h2 id="fill-a-list-from-game-data">Fill a list from game data<a class="headerlink" href="#fill-a-list-from-game-data" title="Permanent link">&para;</a></h2>
+<p>Use an <code>ItemsControl</code> when each data value should produce one arbitrary UI
+element. Keep an empty host in UXML:</p>
+<pre><code class="language-xml">&lt;ItemsControl id=&quot;objective-list&quot;
+              width=&quot;100%&quot; height=&quot;*&quot;
+              spacing=&quot;6&quot; /&gt;
+</code></pre>
+<p>Then materialize the current game data in C#:</p>
+<pre><code class="language-csharp">void RefreshObjectives(IEnumerable&lt;string&gt; objectives)
+{
+    objectiveList.SetItems(objectives, objective =&gt; new UiText
+    {
+        Width = UiLength.Percent(1f),
+        Height = UiLength.Auto(),
+        Text = $&quot;• {objective}&quot;,
+        FontPath = &quot;monogram&quot;,
+        FontSize = 18f,
+        HorizontalAlignment = HorizontalAlignment.Left
+    });
+}
+</code></pre>
+<p><code>SetItems</code> clears the existing children and invokes the template once for every
+value. It is explicit refresh, not observable data binding. Call it when the
+source collection changes.</p>
+<p>For incremental changes, retain the created row and use:</p>
+<pre><code class="language-csharp">UiText row = new() { Text = &quot;Find the observatory&quot; };
+objectiveList.AddItem(row);
+
+// Later:
+objectiveList.RemoveItem(row);
+</code></pre>
+<p>Use <code>AddItem</code>, <code>RemoveItem</code>, and updates to existing row properties when a list
+changes frequently. Rebuilding is convenient for small and medium collections;
+there is no recycling or virtualization for very large lists.</p>
+<h3 id="build-an-interactive-list">Build an interactive list<a class="headerlink" href="#build-an-interactive-list" title="Permanent link">&para;</a></h3>
+<p><code>UiListBox</code> adds single selection and pointer/keyboard/controller navigation.
+Return a <code>UiControl</code>, such as a button, when the row should show selected-state
+visuals:</p>
+<pre><code class="language-csharp">using Microsoft.Xna.Framework;
+
+UiListBox saves = layout.GetRequired&lt;UiListBox&gt;(&quot;save-list&quot;);
+
+saves.SetItems(saveSlotNames, slotName =&gt;
+{
+    var row = new UiButton
+    {
+        Width = UiLength.Percent(1f),
+        Height = UiLength.Pixels(40),
+        Background = new SolidColorBrush(),
+        BackgroundTint = new Color(36, 39, 48),
+        SelectedTint = new Color(53, 94, 130)
+    };
+
+    row.SetContent(new UiText
+    {
+        Width = UiLength.Percent(1f),
+        Text = slotName,
+        FontPath = &quot;monogram&quot;,
+        FontSize = 18f,
+        HorizontalAlignment = HorizontalAlignment.Left
+    });
+
+    return row;
+});
+
+saves.SelectionChanged += (_, args) =&gt;
+    ShowSaveDetails(args.NewIndex);
+</code></pre>
+<p>UCSS is applied while UXML is constructed; it is not automatically applied to
+elements created with <code>new</code>. Set presentation in the C# factory, or create rows
+from a styled UXML component.</p>
+<h3 id="choose-the-right-collection-control">Choose the right collection control<a class="headerlink" href="#choose-the-right-collection-control" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Use it for</th>
+<th>Runtime API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="Elements/UiItemsControl/"><code>UiItemsControl</code></a></td>
+<td>A generated stack of arbitrary elements</td>
+<td><code>SetItems</code>, <code>AddItem</code>, <code>RemoveItem</code>, <code>ClearItems</code></td>
+</tr>
+<tr>
+<td><a href="Elements/UiListBox/"><code>UiListBox</code></a></td>
+<td>An arbitrary-element list with one selected row</td>
+<td>The item APIs plus <code>SelectedIndex</code> and <code>SelectionChanged</code></td>
+</tr>
+<tr>
+<td><a href="Elements/UiComboBox/"><code>UiComboBox</code></a></td>
+<td>A compact popup selector for strings</td>
+<td><code>SetItems(IEnumerable&lt;string&gt;)</code> and <code>SelectionChanged</code></td>
+</tr>
+<tr>
+<td><a href="Elements/UiContainer/"><code>UiContainer</code></a></td>
+<td>Fully manual dynamic child ownership</td>
+<td><code>AddChild</code>, <code>RemoveChild</code>, <code>ClearChildren</code></td>
+</tr>
+</tbody>
+</table>
+<p>Prefer <code>UiComboBox.SetItems(...)</code> over mutating its <code>Items</code> collection directly,
+because <code>SetItems</code> also rebuilds an existing popup.</p>
+<h2 id="reuse-styled-uxml-components">Reuse styled UXML components<a class="headerlink" href="#reuse-styled-uxml-components" title="Permanent link">&para;</a></h2>
+<p>Components are useful when dynamic rows need more structure or should inherit
+UCSS styling. A component contains exactly one visual root.</p>
+<p><code>Assets/Ui/Components/objective-row.uxml</code>:</p>
+<pre><code class="language-xml">&lt;UiComponent&gt;
+  &lt;Border id=&quot;row&quot; class=&quot;objective-row&quot;
+          width=&quot;100%&quot; height=&quot;40&quot;&gt;
+    &lt;Text id=&quot;label&quot;
+          width=&quot;100%&quot;
+          horizontal-alignment=&quot;Left&quot; /&gt;
+  &lt;/Border&gt;
+&lt;/UiComponent&gt;
+</code></pre>
+<p>An optional <code>objective-row.ucss</code> beside it styles every instance. Create each
+instance with a unique ID prefix, fill its data, and attach it:</p>
+<pre><code class="language-csharp">void RefreshObjectiveRows(IReadOnlyList&lt;string&gt; objectives)
+{
+    objectiveList.ClearItems();
+
+    for (int i = 0; i &lt; objectives.Count; i++)
+    {
+        string prefix = $&quot;objective-{i}&quot;;
+        UiElement row = hud.CreateComponent(
+            &quot;Ui/Components/objective-row.uxml&quot;,
+            prefix);
+
+        row.GetRequired&lt;UiText&gt;(prefix, &quot;label&quot;).Text = objectives[i];
+        objectiveList.AddItem(row);
+    }
+}
+</code></pre>
+<p>The prefix <code>objective-0</code> produces IDs such as <code>objective-0.row</code> and
+<code>objective-0.label</code>, preventing collisions when the component is repeated.
+<code>CreateComponent</code> returns a detached element; adding it to an items control or
+container attaches it to the layout. See <a href="../ecs/components/ui-frame/"><code>UiFrame</code></a>
+and <a href="Stylesheets/#runtime-created-components">runtime-created components</a> for
+the overload that adds another construction-time stylesheet.</p>
+<p>Layouts can also declare and instantiate components directly in UXML:</p>
+<pre><code class="language-xml">&lt;Ui&gt;
+  &lt;Ui.Components&gt;
+    &lt;Component name=&quot;MenuButton&quot;
+               source=&quot;~/Ui/Components/menu-button.uxml&quot; /&gt;
+  &lt;/Ui.Components&gt;
+
+  &lt;MenuButton id-prefix=&quot;play&quot; /&gt;
+&lt;/Ui&gt;
+</code></pre>
+<h2 id="reloading-and-object-lifetime">Reloading and object lifetime<a class="headerlink" href="#reloading-and-object-lifetime" title="Permanent link">&para;</a></h2>
+<p>Changing <code>UiFrame.LayoutPath</code>, calling <code>LoadLayout</code>, or changing <code>CssPath</code> on a
+loaded frame constructs a new retained tree. Existing element references and
+event subscriptions belong to the old tree. After a reload, run the lookup and
+wiring step again.</p>
+<p>Use reloads for replacing a whole screen or rebuilding construction-time
+styles. Use normal property assignment for scores, health, visibility,
+selection, inventory contents, and other live game data.</p>
+<h2 id="important-conventions">Important conventions<a class="headerlink" href="#important-conventions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>UXML element width and height default to <code>100%</code>; C#-constructed base elements
+  default to zero pixels unless their constructor changes a dimension.</li>
+<li>UXML dimensions accept pixels, percentages, or <code>*</code> for automatic content
+  size. C# uses <code>UiLength.Pixels</code>, <code>UiLength.Percent</code>, and <code>UiLength.Auto</code>.</li>
+<li>Grid track definitions use <code>*</code> for weighted remaining space.</li>
+<li>Colors accept <code>#RRGGBB</code> and <code>#RRGGBBAA</code>.</li>
+<li>Thickness accepts one integer or <code>left,top,right,bottom</code> in UXML. UCSS uses
+  CSS top/right/bottom/left shorthand.</li>
+<li>Brush properties use property-element syntax, such as
+  <code>&lt;Button.Background&gt;...&lt;/Button.Background&gt;</code>.</li>
+<li>An element can have only one parent. Remove or detach it before attaching it
+  somewhere else.</li>
+</ul>
+<h2 id="api-reference">API reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<p>Start with the types that define the system's common behavior:</p>
+<ul>
+<li><a href="../ecs/components/ui-frame/"><code>UiFrame</code></a> — load, own, update, and draw a layout.</li>
+<li><a href="Elements/UiElement/"><code>UiElement</code></a> — geometry, visibility, input, focus, and lookup.</li>
+<li><a href="Elements/UiContainer/"><code>UiContainer</code></a> — dynamic child ownership.</li>
+<li><a href="Elements/UiControl/"><code>UiControl</code></a> — interactive visual states and templates.</li>
+<li><a href="Elements/UiItemsControl/"><code>UiItemsControl</code></a> — collections generated from game data.</li>
+<li><a href="Stylesheets/">UI stylesheets</a> — construction-time styling and cascade rules.</li>
+</ul>
+<h3 id="elements">Elements<a class="headerlink" href="#elements" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Layout and composition:
+  <a href="Elements/UiPanel/"><code>UiPanel</code></a>,
+  <a href="Elements/UiCanvas/"><code>UiCanvas</code></a>,
+  <a href="Elements/UiBorder/"><code>UiBorder</code></a>,
+  <a href="Elements/UiGrid/"><code>UiGrid</code></a>,
+  <a href="Elements/UiStackPanel/"><code>UiStackPanel</code></a>,
+  <a href="Elements/UiVerticalStackPanel/"><code>UiVerticalStackPanel</code></a>,
+  <a href="Elements/UiHorizontalStackPanel/"><code>UiHorizontalStackPanel</code></a>,
+  <a href="Elements/UiUniformGrid/"><code>UiUniformGrid</code></a>,
+  <a href="Elements/UiWrapPanel/"><code>UiWrapPanel</code></a>,
+  <a href="Elements/UiViewbox/"><code>UiViewbox</code></a>, and
+  <a href="Elements/UiSpacer/"><code>UiSpacer</code></a>.</li>
+<li>Content:
+  <a href="Elements/UiText/"><code>UiText</code></a>,
+  <a href="Elements/UiTexture/"><code>UiTexture</code></a>,
+  <a href="Elements/UiContentControl/"><code>UiContentControl</code></a>, and
+  <a href="Elements/UiOverlay/"><code>UiOverlay</code></a>.</li>
+<li>Interaction:
+  <a href="Elements/UiButton/"><code>UiButton</code></a>,
+  <a href="Elements/UiToggleButton/"><code>UiToggleButton</code></a>,
+  <a href="Elements/UiCheckBox/"><code>UiCheckBox</code></a>,
+  <a href="Elements/UiRadioButton/"><code>UiRadioButton</code></a>,
+  <a href="Elements/UiTextBox/"><code>UiTextBox</code></a>,
+  <a href="Elements/UiSlider/"><code>UiSlider</code></a>,
+  <a href="Elements/UiScrollBar/"><code>UiScrollBar</code></a>, and
+  <a href="Elements/UiComboBox/"><code>UiComboBox</code></a>.</li>
+<li>Collections and selection:
+  <a href="Elements/UiItemsControl/"><code>UiItemsControl</code></a>,
+  <a href="Elements/UiSelector/"><code>UiSelector</code></a>, and
+  <a href="Elements/UiListBox/"><code>UiListBox</code></a>.</li>
+<li>Feedback and popup surfaces:
+  <a href="Elements/UiProgressBar/"><code>UiProgressBar</code></a>,
+  <a href="Elements/UiPopup/"><code>UiPopup</code></a>, and
+  <a href="Elements/UiTooltip/"><code>UiTooltip</code></a>.</li>
+<li>Base types:
+  <a href="Elements/UiElement/"><code>UiElement</code></a>,
+  <a href="Elements/UiContainer/"><code>UiContainer</code></a>,
+  <a href="Elements/UiContentControl/"><code>UiContentControl</code></a>,
+  <a href="Elements/UiControl/"><code>UiControl</code></a>,
+  <a href="Elements/UiStackPanelBase/"><code>UiStackPanelBase</code></a>, and
+  <a href="Elements/UiRangeBase/"><code>UiRangeBase</code></a>.</li>
+</ul>
+<h3 id="brushes">Brushes<a class="headerlink" href="#brushes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="Brushes/IUiBrush/"><code>IUiBrush</code></a> and <a href="Brushes/UiBrush/"><code>UiBrush</code></a></li>
+<li><a href="Brushes/SolidColorBrush/"><code>SolidColorBrush</code></a></li>
+<li><a href="Brushes/SpriteBrush/"><code>SpriteBrush</code></a></li>
+<li><a href="Brushes/NineSliceBrush/"><code>NineSliceBrush</code></a></li>
+<li><a href="Brushes/TiledSpriteBrush/"><code>TiledSpriteBrush</code></a></li>
+<li><a href="Brushes/OutlineBrush/"><code>OutlineBrush</code></a></li>
+<li><a href="Brushes/LayeredBrush/"><code>LayeredBrush</code></a></li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../ecs/components/fsm/" class="btn btn-neutral float-left" title="FSM"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="Stylesheets/" class="btn btn-neutral float-right" title="Stylesheets">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../ecs/components/fsm/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="Stylesheets/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

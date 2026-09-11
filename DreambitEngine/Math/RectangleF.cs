@@ -140,6 +140,14 @@ public struct RectangleF : IEquatable<RectangleF>
         Height = size.Y;
     }
 
+    public RectangleF(Vector2 location, float size)
+    {
+        X = location.X;
+        Y = location.Y;
+        Width = size;
+        Height = size;
+    }
+
     /// <summary>
     ///     Compares whether two <see cref="T:Microsoft.Xna.Framework.Rectangle" /> instances are equal.
     /// </summary>

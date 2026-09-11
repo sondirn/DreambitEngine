@@ -18,7 +18,11 @@ public static class DreambitAssetFileExtensions
     public const string SoundCue = ".soundcue";
     public const string Sprite = ".sprite";
     public const string SpriteSheet = ".spritesheet";
-    public const string SpriteSheetAnimation = ".spriteanimation";
+    public const string SpriteAnimation = ".spriteanimation";
+
+    [Obsolete("Use SpriteAnimation.")]
+    public const string SpriteSheetAnimation = SpriteAnimation;
+
     public const string Tileset = ".tileset";
 
     private static readonly HashSet<string> SerializedExtensions = new(
@@ -32,7 +36,7 @@ public static class DreambitAssetFileExtensions
         SoundCue,
         Sprite,
         SpriteSheet,
-        SpriteSheetAnimation,
+        SpriteAnimation,
         Tileset
     };
 

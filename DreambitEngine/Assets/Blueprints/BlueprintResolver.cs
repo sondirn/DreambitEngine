@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using Dreambit.ECS;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -187,13 +188,26 @@ public class BlueprintResolver : Singleton<BlueprintResolver>
 
     public static void RebuildComponentTypeRegistry()
     {
-        lock (ComponentRegistryLock)
-        {
-            ComponentTypesById.Clear();
-            _componentRegistryBuilt = false;
-        }
+        ReplaceComponentTypeRegistry(
+            AppDomain.CurrentDomain.GetAssemblies()
+                // Collectible hosts own their active-generation lifecycle and use the explicit
+                // overload below. Ignoring collectible contexts here prevents an unloaded-but-not-
+                // yet-collected generation from being rediscovered by a fallback scan.
+                .Where(assembly =>
+                    AssemblyLoadContext.GetLoadContext(assembly)?.IsCollectible != true)
+                .SelectMany(GetLoadableTypes));
+    }
 
-        EnsureComponentTypeRegistry();
+    /// <summary>
+    /// Rebuilds the registry from engine components and a known set of additional component types.
+    /// Editors use this overload so an unloading collectible assembly is never rediscovered.
+    /// </summary>
+    public static void RebuildComponentTypeRegistry(IEnumerable<Type> additionalComponentTypes)
+    {
+        ArgumentNullException.ThrowIfNull(additionalComponentTypes);
+        ReplaceComponentTypeRegistry(
+            GetLoadableTypes(typeof(Component).Assembly)
+                .Concat(additionalComponentTypes));
     }
 
     internal static void ReleaseAssembly(Assembly assembly)
@@ -220,8 +234,16 @@ public class BlueprintResolver : Singleton<BlueprintResolver>
             if (_componentRegistryBuilt)
                 return;
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            foreach (var type in GetLoadableTypes(assembly))
+            RebuildComponentTypeRegistry();
+        }
+    }
+
+    private static void ReplaceComponentTypeRegistry(IEnumerable<Type> componentTypes)
+    {
+        lock (ComponentRegistryLock)
+        {
+            var replacement = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+            foreach (var type in componentTypes)
             {
                 if (!IsValidComponentType(type))
                     continue;
@@ -233,25 +255,37 @@ public class BlueprintResolver : Singleton<BlueprintResolver>
                 var blueprintType = type.GetCustomAttribute<BlueprintTypeAttribute>();
 
                 if (blueprintType is not null)
-                    RegisterComponentTypeKey(blueprintType.Id, type, true);
+                {
+                    RegisterComponentTypeKey(replacement, blueprintType.Id, type, true);
+                    foreach (var formerId in blueprintType.FormerIds)
+                        RegisterComponentTypeKey(replacement, formerId, type, true);
+                }
 
                 if (!string.IsNullOrWhiteSpace(componentName))
-                    RegisterComponentTypeKey($"{assemblyName}.{componentName}", type, false);
+                    RegisterComponentTypeKey(
+                        replacement,
+                        $"{assemblyName}.{componentName}",
+                        type,
+                        true);
 
                 var registeredName = blueprintType?.Id ?? $"{assemblyName}.{componentName}";
                 logger.Trace($"registered: {registeredName}");
             }
 
+            ComponentTypesById.Clear();
+            foreach (var pair in replacement)
+                ComponentTypesById.Add(pair.Key, pair.Value);
             _componentRegistryBuilt = true;
         }
     }
 
     private static void RegisterComponentTypeKey(
+        IDictionary<string, Type> componentTypesById,
         string key,
         Type type,
         bool throwOnDuplicate)
     {
-        if (ComponentTypesById.TryGetValue(key, out var existingType) && existingType != type)
+        if (componentTypesById.TryGetValue(key, out var existingType) && existingType != type)
         {
             if (throwOnDuplicate)
                 throw new InvalidOperationException(
@@ -261,7 +295,7 @@ public class BlueprintResolver : Singleton<BlueprintResolver>
             return;
         }
 
-        ComponentTypesById[key] = type;
+        componentTypesById[key] = type;
     }
 
     private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)

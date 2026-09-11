@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using Dreambit.ECS;
+using Dreambit.Editor.Assets;
 using Dreambit.Editor.Graphics;
 using Dreambit.Editor.Scenes;
 using Dreambit.Tiled;
@@ -17,6 +18,141 @@ public sealed class TiledImportTests : IDisposable
         Guid.NewGuid().ToString("N"));
 
     public TiledImportTests() => Directory.CreateDirectory(_root);
+
+    [Fact]
+    public void PlainSceneRejectsTiledLinkedBlueprintBeforeResolvingOrMaterializing()
+    {
+        using var scene = new PlainRuntimeScene();
+        var resolverCalled = false;
+        var blueprint = new SceneBlueprint
+        {
+            Name = "Tiled World",
+            Tiled = new TiledSceneReference { AssetName = "maps/world" },
+            Entities = [new EntityBlueprint { Name = "Must Not Materialize" }]
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => scene.LoadIntoSelf(
+            blueprint,
+            new SceneBlueprintLoadOptions
+            {
+                TiledMapResolver = _ =>
+                {
+                    resolverCalled = true;
+                    return CreateEmptyRuntimeMap();
+                }
+            }));
+
+        Assert.False(resolverCalled);
+        Assert.Contains("must derive from TiledScene", exception.Message);
+        Assert.DoesNotContain(
+            scene.GetAllEntities(),
+            entity => entity.Name == "Must Not Materialize");
+    }
+
+    [Fact]
+    public void TiledSceneHostsAuthoredBlueprintRuntimeMapAndOwnsItsLifetime()
+    {
+        var map = CreateEmptyRuntimeMap();
+        var blueprint = new SceneBlueprint
+        {
+            Name = "Tiled World",
+            Tiled = new TiledSceneReference
+            {
+                AssetName = "maps/world",
+                ImportOptions = new TiledImportOptions
+                {
+                    PixelsPerUnit = 2f,
+                    AutomappingSeed = 42
+                }
+            },
+            Entities = [new EntityBlueprint { Name = "Authored Gameplay" }]
+        };
+
+        var scene = new BlueprintBackedTiledScene();
+        scene.LoadIntoSelf(
+            blueprint,
+            new SceneBlueprintLoadOptions { TiledMapResolver = _ => map });
+        scene.FlushStructuralChanges();
+
+        Assert.Same(map, scene.Map);
+        Assert.Null(scene.MapInstance);
+        Assert.NotNull(scene.FindEntity("Authored Gameplay"));
+
+        var instance = scene.LoadMap();
+        var ground = instance.GetRuntimeTileLayer("Ground");
+        using (instance.BeginTileEdit())
+            ground.ClearTile(-33, 0);
+
+        Assert.Same(instance, scene.MapInstance);
+        Assert.Equal(2f, instance.PixelsPerUnit);
+        Assert.Equal(42, instance.ImportOptions.AutomappingSeed);
+        Assert.Equal(1, scene.LoadedCount);
+
+        scene.Dispose();
+
+        Assert.True(instance.IsUnloaded);
+        Assert.Throws<ObjectDisposedException>(() => ground.GetTile(0, 0));
+    }
+
+    [Fact]
+    public void TiledSceneRejectsConstructorAndBlueprintMapConflictBeforeResolving()
+    {
+        using var scene = new DirectMapTiledScene();
+        var resolverCalled = false;
+        var exception = Assert.Throws<InvalidOperationException>(() => scene.LoadIntoSelf(
+            new SceneBlueprint
+            {
+                Name = "Conflicting",
+                Tiled = new TiledSceneReference { AssetName = "maps/from-blueprint" }
+            },
+            new SceneBlueprintLoadOptions
+            {
+                TiledMapResolver = _ =>
+                {
+                    resolverCalled = true;
+                    return CreateEmptyRuntimeMap();
+                }
+            }));
+
+        Assert.False(resolverCalled);
+        Assert.Contains("either the constructor map or the scene blueprint link", exception.Message);
+    }
+
+    [Fact]
+    public void TiledSceneRejectsASecondLinkedBlueprintBeforeResolvingOrMaterializing()
+    {
+        using var scene = new BlueprintBackedTiledScene();
+        scene.LoadIntoSelf(
+            new SceneBlueprint
+            {
+                Name = "First",
+                Tiled = new TiledSceneReference { AssetName = "maps/first" }
+            },
+            new SceneBlueprintLoadOptions { TiledMapResolver = _ => CreateEmptyRuntimeMap() });
+
+        var secondResolverCalled = false;
+        var exception = Assert.Throws<InvalidOperationException>(() => scene.LoadIntoSelf(
+            new SceneBlueprint
+            {
+                Name = "Second",
+                Tiled = new TiledSceneReference { AssetName = "maps/second" },
+                Entities = [new EntityBlueprint { Name = "Must Not Materialize" }]
+            },
+            new SceneBlueprintLoadOptions
+            {
+                TiledMapResolver = _ =>
+                {
+                    secondResolverCalled = true;
+                    return CreateEmptyRuntimeMap();
+                }
+            }));
+
+        Assert.False(secondResolverCalled);
+        Assert.Contains("already has a linked map configuration", exception.Message);
+        Assert.DoesNotContain(
+            scene.GetAllEntities(),
+            entity => entity.Name == "Must Not Materialize");
+    }
 
     [Fact]
     public void SceneLinkSurvivesCaptureAndReadsLegacyPixelsPerUnit()
@@ -406,6 +542,392 @@ public sealed class TiledImportTests : IDisposable
     }
 
     [Fact]
+    public void TilemapLayerReplacementPreservesUntouchedChunkIdentity()
+    {
+        var first = CreateRenderTile(new Point(0, 0));
+        var second = CreateRenderTile(new Point(40, 0));
+        var layer = new TilemapLayerData(
+            64,
+            1,
+            Vector2.One,
+            [first, second],
+            TilemapRenderOrder.RightDown,
+            allowCellsOutsideGrid: true);
+        var originalFirstChunk = Assert.Single(layer.Chunks, chunk => chunk.Coordinate == Point.Zero);
+        var untouchedChunk = Assert.Single(layer.Chunks, chunk => chunk.Coordinate == new Point(1, 0));
+        TilemapChunkChangedEventArgs? change = null;
+        layer.ChunkChanged += (_, args) => change = args;
+
+        var replacement = CreateRenderTile(new Point(1, 0));
+        layer.ReplaceChunk(Point.Zero, [replacement]);
+
+        Assert.NotNull(change);
+        Assert.Same(originalFirstChunk, change.PreviousChunk);
+        Assert.NotSame(originalFirstChunk, change.CurrentChunk);
+        Assert.Same(
+            untouchedChunk,
+            Assert.Single(layer.Chunks, chunk => chunk.Coordinate == new Point(1, 0)));
+        Assert.Equal(replacement, Assert.Single(layer.GetTiles(1, 0)));
+        Assert.Empty(layer.GetTiles(0, 0));
+    }
+
+    [Fact]
+    public void RuntimeTileEditsBatchNegativeCellsAndRebuildOnlyDirtyChunks()
+    {
+        using var scene = new TestScene();
+        using var instance = CreateRuntimeMap(scene, automappingCatalog: null, out var layers);
+        var ground = layers["collision-source"];
+        var terrain = instance.GetTileset("TILESETS\\WORLD");
+        var tile = terrain.GetTile(0, TmxTileFlipFlags.Horizontal);
+        var changedChunks = new List<Point>();
+        ground.RendererData.ChunkChanged += (_, args) => changedChunks.Add(args.Coordinate);
+
+        using (instance.BeginTileEdit())
+        {
+            ground.SetTile(-1, -1, tile);
+            ground.SetTile(-2, -1, tile);
+            ground.ClearTile(-2, -1);
+            ground.SetTile(31, 0, tile);
+            ground.SetTile(32, 0, tile);
+            Assert.Empty(changedChunks);
+        }
+
+        Assert.Equal(3, ground.TileCount);
+        Assert.Equal(tile, ground.GetTile(-1, -1));
+        Assert.Null(ground.GetTile(-2, -1));
+        Assert.Equal(tile, ground.GetTile(31, 0));
+        Assert.Equal(tile, ground.GetTile(32, 0));
+        Assert.Equal(
+            [new Point(-1, -1), new Point(0, 0), new Point(1, 0)],
+            changedChunks.OrderBy(point => point.Y).ThenBy(point => point.X));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ground.SetTile(
+            0,
+            0,
+            new TiledTileReference("tilesets/world", 99)));
+    }
+
+    [Fact]
+    public void RuntimeAutomappingAddsAndRetractsOwnedOutputIncrementally()
+    {
+        using var scene = new TestScene();
+        var terrain0 = new TiledTileReference("tilesets/world", 0);
+        var terrain1 = new TiledTileReference("tilesets/world", 1);
+        var catalog = CreateAutomappingCatalog(terrain0, terrain1);
+        using var instance = CreateRuntimeMap(scene, catalog, out var layers);
+        var ground = layers["collision-source"];
+        var detail = layers["generated-ground"];
+        var groundChunks = new List<Point>();
+        var detailChunks = new List<Point>();
+        ground.RendererData.ChunkChanged += (_, args) => groundChunks.Add(args.Coordinate);
+        detail.RendererData.ChunkChanged += (_, args) => detailChunks.Add(args.Coordinate);
+
+        Assert.Null(detail.GetTile(-32, 4));
+
+        ground.SetTile(-33, 4, terrain0);
+
+        Assert.True(instance.HasAutomappingRules);
+        Assert.Equal(terrain1, detail.GetTile(-32, 4));
+        Assert.Equal([new Point(-2, 0)], groundChunks);
+        Assert.Equal([new Point(-1, 0)], detailChunks);
+        Assert.NotEmpty(detail.RendererData.Chunks);
+        Assert.Equal(
+            terrain1.TileId,
+            Assert.Single(Assert.Single(detail.RendererData.Chunks).AnimatedTiles).SourceRectangle.X);
+
+        ground.ClearTile(-33, 4);
+
+        Assert.Null(detail.GetTile(-32, 4));
+        Assert.Empty(detail.RendererData.Chunks);
+    }
+
+    [Fact]
+    public void AutomappingRetractionRestoresAuthoredOutputInsteadOfErasingIt()
+    {
+        using var scene = new TestScene();
+        var terrain0 = new TiledTileReference("tilesets/world", 0);
+        var terrain1 = new TiledTileReference("tilesets/world", 1);
+        var terrain2 = new TiledTileReference("tilesets/world", 2);
+        var source = new Dictionary<string, Dictionary<Point, TiledTileReference>>
+        {
+            ["generated-ground"] = new() { [new Point(8, 3)] = terrain2 }
+        };
+        using var instance = CreateRuntimeMap(
+            scene,
+            CreateAutomappingCatalog(terrain0, terrain1),
+            out var layers,
+            source);
+
+        layers["collision-source"].SetTile(7, 3, terrain0);
+        Assert.Equal(terrain1, layers["generated-ground"].GetTile(8, 3));
+
+        layers["collision-source"].ClearTile(7, 3);
+        Assert.Equal(terrain2, layers["generated-ground"].GetTile(8, 3));
+    }
+
+    [Fact]
+    public void RuntimeMutationsDoNotPersistAndReloadStartsFromSourceState()
+    {
+        var sourceDirectory = Path.Combine(_root, "RuntimeOnlySource");
+        Directory.CreateDirectory(sourceDirectory);
+        var sourcePaths = new[]
+        {
+            Path.Combine(sourceDirectory, "world.tmx"),
+            Path.Combine(sourceDirectory, "world.tsx"),
+            Path.Combine(sourceDirectory, "rules.txt"),
+            Path.Combine(sourceDirectory, "project.tiled-project"),
+            Path.Combine(sourceDirectory, "content.pak"),
+            Path.Combine(sourceDirectory, "bake.cache")
+        };
+        for (var index = 0; index < sourcePaths.Length; index++)
+            File.WriteAllText(sourcePaths[index], $"source-{index}");
+        var snapshots = sourcePaths.ToDictionary(
+            path => path,
+            path => (Contents: File.ReadAllText(path), Timestamp: File.GetLastWriteTimeUtc(path)));
+        var authoredTile = new TiledTileReference("tilesets/world", 2);
+        var authored = new Dictionary<string, Dictionary<Point, TiledTileReference>>
+        {
+            ["collision-source"] = new() { [Point.Zero] = authoredTile }
+        };
+
+        TiledRuntimeTileLayer releasedLayer;
+        using (var scene = new TestScene())
+        using (var instance = CreateRuntimeMap(scene, null, out var layers, authored))
+        {
+            releasedLayer = layers["collision-source"];
+            releasedLayer.SetTile(18, -7, instance.GetTileset("tilesets/world").GetTile(1));
+            releasedLayer.ClearTile(0, 0);
+            Assert.Null(releasedLayer.GetTile(0, 0));
+        }
+
+        Assert.Throws<ObjectDisposedException>(() => releasedLayer.GetTile(18, -7));
+        using (var reloadedScene = new TestScene())
+        using (var reloaded = CreateRuntimeMap(reloadedScene, null, out var reloadedLayers, authored))
+        {
+            Assert.Equal(authoredTile, reloadedLayers["collision-source"].GetTile(0, 0));
+            Assert.Null(reloadedLayers["collision-source"].GetTile(18, -7));
+        }
+
+        foreach (var pair in snapshots)
+        {
+            Assert.Equal(pair.Value.Contents, File.ReadAllText(pair.Key));
+            Assert.Equal(pair.Value.Timestamp, File.GetLastWriteTimeUtc(pair.Key));
+        }
+    }
+
+    [Fact]
+    public void AssetBakeCompilesTiledProjectAutomappingRulesIntoRuntimeCatalog()
+    {
+        var projectRoot = Path.Combine(_root, "AutomappingProject");
+        var assets = Path.Combine(projectRoot, "Assets");
+        var maps = Path.Combine(assets, "maps");
+        var localMaps = Path.Combine(assets, "local");
+        var tiles = Path.Combine(assets, "tiles");
+        var nestedRules = Path.Combine(projectRoot, "nested");
+        var output = Path.Combine(projectRoot, "Content", "content.pak");
+        Directory.CreateDirectory(maps);
+        Directory.CreateDirectory(localMaps);
+        Directory.CreateDirectory(tiles);
+        Directory.CreateDirectory(nestedRules);
+        File.WriteAllText(Path.Combine(projectRoot, "project.tiled-project"), """
+        {
+          "folders": ["Assets"],
+          "automappingRulesFile": "rules.txt"
+        }
+        """);
+        File.WriteAllText(Path.Combine(projectRoot, "rules.txt"), "nested/rules.txt");
+        File.WriteAllText(Path.Combine(nestedRules, "rules.txt"), "../Assets/rules.tmx");
+        File.WriteAllText(Path.Combine(tiles, "terrain.tsx"), """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <tileset version="1.10" tiledversion="1.12.2" name="Terrain" tilewidth="16" tileheight="16" tilecount="3" columns="3">
+          <image source="terrain.png" width="48" height="16"/>
+        </tileset>
+        """);
+        File.WriteAllText(Path.Combine(maps, "world.tmx"), """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="4" height="1" tilewidth="16" tileheight="16" infinite="0">
+          <tileset firstgid="1" source="../tiles/terrain.tsx"/>
+          <layer id="1" name="Ground" width="4" height="1"><data encoding="csv">0,0,0,0</data></layer>
+          <layer id="2" name="Detail" width="4" height="1"><data encoding="csv">0,0,0,0</data></layer>
+        </map>
+        """);
+        File.WriteAllText(Path.Combine(assets, "rules.tmx"), """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="2" height="1" tilewidth="16" tileheight="16" infinite="0">
+          <tileset firstgid="6" source="tiles/terrain.tsx"/>
+          <layer id="1" name="input_Ground" width="2" height="1"><data encoding="csv">6,0</data></layer>
+          <layer id="2" name="output_Detail" width="2" height="1"><data encoding="csv">0,7</data></layer>
+        </map>
+        """);
+        File.WriteAllText(Path.Combine(localMaps, "local.tmx"), """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="4" height="1" tilewidth="16" tileheight="16" infinite="0">
+          <tileset firstgid="1" source="../tiles/terrain.tsx"/>
+          <layer id="1" name="Ground" width="4" height="1"><data encoding="csv">0,0,0,0</data></layer>
+          <layer id="2" name="Detail" width="4" height="1"><data encoding="csv">0,0,0,0</data></layer>
+        </map>
+        """);
+        File.WriteAllText(Path.Combine(localMaps, "rules.txt"), "local-rule.tmx");
+        File.WriteAllText(Path.Combine(localMaps, "local-rule.tmx"), """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="2" height="1" tilewidth="16" tileheight="16" infinite="0">
+          <tileset firstgid="10" source="../tiles/terrain.tsx"/>
+          <layer id="1" name="input_Ground" width="2" height="1"><data encoding="csv">10,0</data></layer>
+          <layer id="2" name="output_Detail" width="2" height="1"><data encoding="csv">0,12</data></layer>
+        </map>
+        """);
+
+        new AssetBakePipeline().BakePak(new AssetBakeRequest(assets, output, RebuildAll: true)
+        {
+            ProjectRoot = projectRoot
+        });
+
+        using var pak = new PakReader(output);
+        using var catalogStream = pak.Open(TiledAutomappingCatalog.LogicalAssetName + ".jsonb");
+        var catalog = JsnbLoader.Deserialize<TiledAutomappingCatalog>(catalogStream);
+        Assert.True(catalog.TryGetMapRules("maps/world", out var mapRules));
+        var ruleMap = Assert.Single(mapRules.RuleMaps);
+        var rule = Assert.Single(ruleMap.Rules);
+        var inputCell = Assert.Single(Assert.Single(rule.InputSets).Cells);
+        Assert.Equal("Ground", inputCell.LayerName);
+        Assert.Equal(
+            new TiledTileReference("tiles/terrain", 0),
+            Assert.Single(inputCell.Positive).Tile);
+        var outputOperation = Assert.Single(rule.UnconditionalOutputs);
+        Assert.Equal("Detail", outputOperation.LayerName);
+        Assert.Equal(1, outputOperation.X);
+        Assert.Equal(new TiledTileReference("tiles/terrain", 1), outputOperation.Tile);
+        Assert.True(catalog.TryGetMapRules("local/local", out var localMapRules));
+        var localRuleMap = Assert.Single(localMapRules.RuleMaps);
+        Assert.Equal("local/local-rule", localRuleMap.SourceAssetName);
+        Assert.Equal(
+            new TiledTileReference("tiles/terrain", 2),
+            Assert.Single(Assert.Single(localRuleMap.Rules).UnconditionalOutputs).Tile);
+    }
+
+    [Fact]
+    public void RemovedMapExtensionsAreUnknownAndGenericJsonStillBakes()
+    {
+        var assets = Path.Combine(_root, "RemovedMapFormats");
+        var output = Path.Combine(_root, "RemovedMapFormatsContent", "content.pak");
+        Directory.CreateDirectory(assets);
+        File.WriteAllText(Path.Combine(assets, "legacy.ldtk"), "{}");
+        File.WriteAllText(Path.Combine(assets, "level.ldtkl"), "{}");
+        File.WriteAllText(Path.Combine(assets, "settings.json"), "{\"enabled\":true}");
+
+        var result = new AssetBakePipeline().BakePak(
+            new AssetBakeRequest(assets, output, RebuildAll: true));
+
+        Assert.Equal(AssetKind.Unknown, AssetTypeClassifier.Classify("legacy.ldtk").Kind);
+        Assert.Equal(AssetKind.Unknown, AssetTypeClassifier.Classify("level.ldtkl").Kind);
+        Assert.Equal(AssetKind.Json, AssetTypeClassifier.Classify("settings.json").Kind);
+        Assert.Equal(17, (int)AssetKind.TiledMap);
+        Assert.Equal(1, result.BakedCount);
+        using var pak = new PakReader(output);
+        Assert.False(pak.TryOpen("legacy.jsonb", out _, out _));
+        Assert.False(pak.TryOpen("level.jsonb", out _, out _));
+        Assert.True(pak.TryOpen("settings.jsonb", out var settings, out _));
+        settings.Dispose();
+    }
+
+    [Fact]
+    public void RuleCompilerTurnsSpecialAutomapTilesIntoSemanticPredicates()
+    {
+        var specialTileset = new TmxTileset
+        {
+            AssetName = "qrc:/automap-tiles",
+            FirstGid = 100,
+            Name = "Automapping",
+            Tiles =
+            [
+                CreateMatchTypeTile(0, "Empty"),
+                CreateMatchTypeTile(1, "Ignore"),
+                CreateMatchTypeTile(2, "NonEmpty"),
+                CreateMatchTypeTile(3, "Other"),
+                CreateMatchTypeTile(4, "Negate")
+            ]
+        };
+        var ruleMap = new TmxMap
+        {
+            AssetName = "rules/special",
+            Orientation = "orthogonal",
+            Width = 8,
+            Height = 1,
+            TileWidth = 16,
+            TileHeight = 16,
+            Tilesets =
+            [
+                new TmxTileset
+                {
+                    AssetName = "tilesets/world",
+                    FirstGid = 1,
+                    Name = "World",
+                    TileCount = 3,
+                    Columns = 3
+                },
+                specialTileset
+            ],
+            Layers =
+            [
+                CreateRuleLayer("input_collision-source", "100,101,102,103,0,0,1,0", 8),
+                CreateRuleLayer("input_collision-source", "0,0,0,0,0,0,104,0", 8),
+                CreateRuleLayer("output_generated-ground", "0,0,0,0,2,0,0,2", 8),
+                CreateRuleLayer("output_collision-source", "0,0,0,0,0,100,0,0", 8)
+            ]
+        };
+
+        var compiled = TiledAutomappingRuleCompiler.Compile(ruleMap, "rules/special", 0);
+
+        var rule = Assert.Single(compiled.Rules);
+        var cells = Assert.Single(rule.InputSets).Cells;
+        Assert.Contains(cells, cell => cell.X == 0 &&
+            Assert.Single(cell.Positive).MatchType == TiledAutomappingMatchType.Empty);
+        Assert.DoesNotContain(cells, cell => cell.X == 1);
+        Assert.Contains(cells, cell => cell.X == 2 &&
+            Assert.Single(cell.Positive).MatchType == TiledAutomappingMatchType.NonEmpty);
+        Assert.Contains(cells, cell => cell.X == 3 &&
+            Assert.Single(cell.Positive).MatchType == TiledAutomappingMatchType.Other &&
+            cell.Positive[0].OtherExcludesEmpty);
+        var negated = Assert.Single(cells, cell => cell.X == 6);
+        Assert.Empty(negated.Positive);
+        Assert.Equal(
+            new TiledTileReference("tilesets/world", 0),
+            Assert.Single(negated.Negative).Tile);
+        Assert.Equal(3, rule.UnconditionalOutputs.Count);
+        Assert.Contains(rule.UnconditionalOutputs, operation =>
+            operation.Operation == TiledAutomappingOutputOperationType.ClearTile &&
+            operation.LayerName == "collision-source");
+        Assert.DoesNotContain(
+            cells.SelectMany(cell => cell.Positive.Concat(cell.Negative)),
+            predicate => predicate.Tile?.TilesetAssetName.StartsWith("qrc:", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void RuleSourceLoaderSynthesizesTiledBuiltInAutomappingTileset()
+    {
+        var path = Path.Combine(_root, "qrc-rule.tmx");
+        File.WriteAllText(path, """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="2" height="1" tilewidth="16" tileheight="16" infinite="0">
+          <tileset firstgid="1" name="World" tilewidth="16" tileheight="16" tilecount="1" columns="1"/>
+          <tileset firstgid="100" source="qrc:/automap-tiles.tsx"/>
+          <layer id="1" name="input_collision-source" width="2" height="1"><data encoding="csv">103,0</data></layer>
+          <layer id="2" name="output_generated-ground" width="2" height="1"><data encoding="csv">0,1</data></layer>
+        </map>
+        """);
+
+        var map = TmxMap.FromContentFile(path, "rules/qrc", _root);
+        var builtIn = map.Tilesets[1].EffectiveTileset;
+        var compiled = TiledAutomappingRuleCompiler.Compile(map, "rules/qrc", 0);
+
+        Assert.Equal("__tiled/automap-tiles", builtIn.AssetName);
+        Assert.Equal(5, builtIn.Tiles.Count);
+        Assert.Equal(
+            TiledAutomappingMatchType.Empty,
+            Assert.Single(Assert.Single(Assert.Single(compiled.Rules).InputSets).Cells)
+                .Positive.Single().MatchType);
+    }
+
+    [Fact]
     public void ImporterBuildsTileOnlyHierarchyWithDrawLayerAndInfiniteBoundsOptions()
     {
         using var scene = new TestScene();
@@ -596,20 +1118,30 @@ public sealed class TiledImportTests : IDisposable
             null,
             new SelectionService(),
             tiledMapResolver: ResolveMap);
+        Assert.IsType<TiledEditorScene>(document.Scene);
         var generated = document.Scene!.GetAllEntities()
-            .Where(entity => entity.IsEditorOnly)
+            .Where(entity => entity.IsImportedMapGenerated)
             .ToArray();
         Assert.Equal(3, generated.Length);
         Assert.All(generated, entity => Assert.True(entity.IsTiledGenerated));
         Assert.DoesNotContain(generated, entity => entity.Name.Contains("Objects"));
         var background = Assert.Single(
-            generated.SelectMany(entity => entity.GetAllComponents()).OfType<FilledRectDrawer>());
-        Assert.True(SceneViewportRenderer.ShouldPickDrawable(background));
-        Assert.True(SceneViewportRenderer.ShouldDeferImportedMapPick(background));
-        Assert.All(
-            generated.SelectMany(entity => entity.GetAllComponents()).OfType<TilemapRenderer>(),
-            renderer => Assert.True(SceneViewportRenderer.ShouldDeferImportedMapPick(renderer)));
+            generated
+                .SelectMany(entity => entity.GetAllComponents())
+                .OfType<FilledRectDrawer>());
 
+        Assert.False(
+            SceneViewportRenderer.ShouldPickDrawable(
+                background));
+
+        Assert.All(
+            generated
+                .SelectMany(entity => entity.GetAllComponents())
+                .OfType<TilemapRenderer>(),
+            renderer =>
+                Assert.False(
+                    SceneViewportRenderer.ShouldPickDrawable(
+                        renderer)));
         var placed = document.CreateEmpty("Dreambit Placed");
         var placedId = placed.Id;
         document.Apply("Move Dreambit Entity", _ =>
@@ -683,6 +1215,209 @@ public sealed class TiledImportTests : IDisposable
             roundTripped.Tiled.EntityOverrides.Values,
             item => item.Tags?.Contains("editor-override") == true);
     }
+
+    private static TiledMapInstance CreateRuntimeMap(
+        Scene scene,
+        TiledAutomappingCatalog? automappingCatalog,
+        out Dictionary<string, TiledRuntimeTileLayer> layers,
+        Dictionary<string, Dictionary<Point, TiledTileReference>>? sourceTiles = null)
+    {
+        var sourceLayers = new List<TmxLayer>();
+        var runtimeLayers = new List<TiledRuntimeTileLayer>();
+        layers = new Dictionary<string, TiledRuntimeTileLayer>(StringComparer.Ordinal);
+        var drawLayers = new Dictionary<int, int>();
+        var layerId = 0;
+        foreach (var name in new[] { "collision-source", "generated-ground" })
+        {
+            var sourceLayer = new TmxTileLayer
+            {
+                Id = ++layerId,
+                Name = name,
+                Width = 1,
+                Height = 1,
+                Data = new TmxData { Encoding = "csv", Value = "0" }
+            };
+            var authored = sourceTiles?.GetValueOrDefault(name) ?? [];
+            var renderTiles = authored.Select(pair => CreateRenderTile(pair.Key)).ToArray();
+            var rendererData = new TilemapLayerData(
+                1,
+                1,
+                Vector2.One,
+                renderTiles,
+                TilemapRenderOrder.RightDown,
+                allowCellsOutsideGrid: true);
+            var runtimeLayer = new TiledRuntimeTileLayer(
+                sourceLayer,
+                new Dictionary<Point, TiledTileReference>(authored),
+                rendererData,
+                static (cell, tile) => CreateRenderTile(cell, animated: tile.TileId == 1),
+                renderer: null);
+            sourceLayers.Add(sourceLayer);
+            runtimeLayers.Add(runtimeLayer);
+            layers.Add(name, runtimeLayer);
+            drawLayers.Add(sourceLayer.Id, sourceLayer.Id);
+        }
+
+        var map = new TmxMap
+        {
+            AssetName = "maps/runtime",
+            Orientation = "orthogonal",
+            Infinite = true,
+            TileWidth = 16,
+            TileHeight = 16,
+            Layers = sourceLayers,
+            Tilesets =
+            [
+                new TmxTileset
+                {
+                    AssetName = "tilesets/world",
+                    FirstGid = 1,
+                    Name = "Terrain",
+                    TileWidth = 16,
+                    TileHeight = 16,
+                    TileCount = 3,
+                    Columns = 3,
+                    Image = new TmxImage { Source = "terrain.png", Width = 48, Height = 16 }
+                }
+            ]
+        };
+        var root = scene.CreateEntity("Runtime Tiled Map");
+        return new TiledMapInstance(
+            scene,
+            map,
+            new TiledImportOptions(),
+            root,
+            [root],
+            [],
+            runtimeLayers,
+            drawLayers,
+            automappingCatalog);
+    }
+
+    private static TmxMap CreateEmptyRuntimeMap() => new()
+    {
+        AssetName = "maps/world",
+        Orientation = "orthogonal",
+        RenderOrder = "right-down",
+        Width = 1,
+        Height = 1,
+        TileWidth = 16,
+        TileHeight = 16,
+        Layers =
+        [
+            new TmxTileLayer
+            {
+                Id = 1,
+                Name = "Ground",
+                Width = 1,
+                Height = 1,
+                Data = new TmxData { Encoding = "csv", Value = "0" }
+            }
+        ]
+    };
+
+    private sealed class BlueprintBackedTiledScene : TiledScene
+    {
+        public int LoadedCount { get; private set; }
+
+        protected override void OnTiledMapLoaded(TiledMapInstance map) => LoadedCount++;
+    }
+
+    private sealed class PlainRuntimeScene : Scene
+    {
+    }
+
+    private sealed class DirectMapTiledScene : TiledScene
+    {
+        public DirectMapTiledScene() : base("maps/direct")
+        {
+        }
+    }
+
+    private static TiledAutomappingCatalog CreateAutomappingCatalog(
+        TiledTileReference input,
+        TiledTileReference output) => new()
+    {
+        Maps =
+        [
+            new TiledAutomappingMapRules
+            {
+                MapAssetName = "maps/runtime",
+                RuleMaps =
+                [
+                    new TiledAutomappingRuleMap
+                    {
+                        SourceAssetName = "rules/runtime",
+                        Rules =
+                        [
+                            new TiledAutomappingRule
+                            {
+                                InputSets =
+                                [
+                                    new TiledAutomappingInputSet
+                                    {
+                                        Cells =
+                                        [
+                                            new TiledAutomappingInputCell
+                                            {
+                                                LayerName = "collision-source",
+                                                Positive =
+                                                [
+                                                    new TiledAutomappingPredicate
+                                                    {
+                                                        MatchType = TiledAutomappingMatchType.Tile,
+                                                        Tile = input
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ],
+                                UnconditionalOutputs =
+                                [
+                                    new TiledAutomappingOutputOperation
+                                    {
+                                        LayerName = "generated-ground",
+                                        X = 1,
+                                        Operation = TiledAutomappingOutputOperationType.SetTile,
+                                        Tile = output
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+
+    private static TmxTilesetTile CreateMatchTypeTile(int id, string matchType) => new()
+    {
+        Id = id,
+        Properties = new TmxProperties
+        {
+            Items = [new TmxProperty { Name = "MatchType", Value = matchType }]
+        }
+    };
+
+    private static TmxTileLayer CreateRuleLayer(string name, string csv, int width) => new()
+    {
+        Name = name,
+        Width = width,
+        Height = 1,
+        Data = new TmxData { Encoding = "csv", Value = csv }
+    };
+
+    private static TilemapTile CreateRenderTile(Point cell, bool animated = false) => new(
+        cell.ToVector2(),
+        Vector2.One,
+        new Rectangle(animated ? 1 : 0, 0, 1, 1),
+        Color.White,
+        Animation: animated
+            ? new TilemapAnimation([new TilemapAnimationFrame(new Rectangle(1, 0, 1, 1), 100)])
+            : null,
+        Cell: cell,
+        Chunk: TiledRuntimeTileLayer.GetRenderChunk(cell));
 
     private static string EncodeBase64(IReadOnlyList<uint> values, string? compression)
     {

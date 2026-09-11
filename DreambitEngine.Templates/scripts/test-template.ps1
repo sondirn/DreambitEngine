@@ -58,6 +58,7 @@ try {
         ".gitignore",
         "Directory.Packages.props",
         "$testName.sln",
+        "scripts/update-dreambit.ps1",
         "src/Directory.Build.props",
         "src/$testName/$testName.csproj",
         "src/$testName.Content/$testName.Content.csproj",
@@ -70,7 +71,7 @@ try {
         }
     }
 
-    foreach ($removedPath in @("external", "scripts", "build")) {
+    foreach ($removedPath in @("external", "build")) {
         if (Test-Path -LiteralPath (Join-Path $generated $removedPath)) {
             throw "Generated package-based project unexpectedly contains '$removedPath'."
         }
@@ -125,6 +126,13 @@ try {
     }
     Invoke-DotNet -Arguments @(
         "build", $solutionPath, "--no-restore", "--nologo")
+
+    $editorApiAssembly = Join-Path `
+        $generated `
+        "src/$testName.VK/Build/Debug/Dreambit.Editor.Abstractions.dll"
+    if (-not (Test-Path -LiteralPath $editorApiAssembly -PathType Leaf)) {
+        throw "The launcher output is missing Dreambit.Editor.Abstractions.dll."
+    }
 
     if ($KeepOutput) {
         Write-Host "Template smoke test passed: $generated" -ForegroundColor Green

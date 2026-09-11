@@ -81,13 +81,10 @@ public sealed class UiProgressBar : UiRangeBase
     public override void Parse(XmlNode node)
     {
         base.Parse(node);
-        var orientation = UiXmlParser.ParseString(node, "orientation", "Horizontal");
-        Orientation = Enum.TryParse(
-            orientation,
-            true,
-            out StackOrientation parsedOrientation)
-            ? parsedOrientation
-            : StackOrientation.Horizontal;
+        Orientation = UiXmlParser.ParseEnum(
+            node,
+            "orientation",
+            StackOrientation.Horizontal);
         if (node.Attributes?["track-tint"] is not null)
             TrackTint = UiXmlParser.ParseColor(node, "track-tint");
         if (node.Attributes?["fill-tint"] is not null)

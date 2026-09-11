@@ -1,12 +1,11 @@
+using System.Runtime.CompilerServices;
 using Dreambit.ECS;
 using Dreambit.Editor.Graphics;
 using Dreambit.Editor.Scenes;
 using Dreambit.Editor.UI;
 using Dreambit.Editor.UI.Viewport;
-using Dreambit.LDtk;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json.Linq;
-using System.Runtime.CompilerServices;
 
 namespace Dreambit.Editor.Tests;
 
@@ -17,7 +16,22 @@ public sealed class SceneDocumentTests : IDisposable
         "Dreambit.Editor.SceneDocumentTests",
         Guid.NewGuid().ToString("N"));
 
-    public SceneDocumentTests() => Directory.CreateDirectory(_root);
+    public SceneDocumentTests()
+    {
+        Directory.CreateDirectory(_root);
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_root))
+                Directory.Delete(_root, true);
+        }
+        catch (IOException)
+        {
+        }
+    }
 
     [Fact]
     public void SingleRootDocumentCapturesBlueprintHierarchyEdits()
@@ -47,6 +61,81 @@ public sealed class SceneDocumentTests : IDisposable
 
         Assert.Equal(1, changed);
         Assert.Equal(new[] { "Leaves", "Shadow" }, captured.Children.Select(child => child.Name));
+    }
+
+    [Fact]
+    public void InstantiateBlueprintPreservesLiveSceneSettings()
+    {
+        using var document = new SceneDocument(
+            new SceneBlueprint
+            {
+                Name = "Lighting",
+                Entities = [],
+                Settings = new SceneSettings
+                {
+                    AmbientLightIntensity = 0.35f,
+                    AmbientLightColor = Color.CornflowerBlue,
+                    Exposure = 1.75f,
+                    PostProcessing = new PostProcessSettings
+                    {
+                        HueShift = 0.15f,
+                        Saturation = 0.6f,
+                        TintColor = Color.OrangeRed
+                    }
+                }
+            },
+            null,
+            new SelectionService());
+
+        document.InstantiateBlueprint(
+            new EntityBlueprint
+            {
+                Name = "Dropped Blueprint",
+                Guid = Guid.NewGuid()
+            });
+
+        Assert.Equal(0.35f, document.Scene!.Settings.AmbientLightIntensity);
+        Assert.Equal(Color.CornflowerBlue, document.Scene.Settings.AmbientLightColor);
+        Assert.Equal(1.75f, document.Scene.Settings.Exposure);
+        Assert.Equal(0.15f, document.Scene.Settings.PostProcessing.HueShift);
+        Assert.Equal(0.6f, document.Scene.Settings.PostProcessing.Saturation);
+        Assert.Equal(Color.OrangeRed, document.Scene.Settings.PostProcessing.TintColor);
+    }
+
+    [Fact]
+    public void DuplicatePreservesLiveSceneSettings()
+    {
+        var entityId = Guid.NewGuid();
+
+        using var document = new SceneDocument(
+            new SceneBlueprint
+            {
+                Name = "Lighting",
+                Settings = new SceneSettings
+                {
+                    AmbientLightIntensity = 0.25f,
+                    AmbientLightColor = Color.CornflowerBlue,
+                    Exposure = 1.4f
+                },
+                Entities =
+                [
+                    new EntityBlueprint
+                    {
+                        Name = "Original",
+                        Guid = entityId
+                    }
+                ]
+            },
+            null,
+            new SelectionService());
+
+        var entity = document.Scene!.FindEntity(entityId)!;
+
+        document.Duplicate(entity);
+
+        Assert.Equal(0.25f, document.Scene.Settings.AmbientLightIntensity);
+        Assert.Equal(Color.CornflowerBlue, document.Scene.Settings.AmbientLightColor);
+        Assert.Equal(1.4f, document.Scene.Settings.Exposure);
     }
 
     [Fact]
@@ -84,9 +173,116 @@ public sealed class SceneDocumentTests : IDisposable
         var duplicate = SceneDocumentSerializer.CloneAndRemap(root);
         var component = Assert.Single(Assert.Single(duplicate.Children).Components);
 
-        Assert.Equal(duplicate.Guid.ToString(), component.Properties[nameof(EditorReloadSafetyComponent.Target)]!.Value<string>());
-        Assert.Equal(referencedId.ToString(), component.Properties[nameof(EditorReloadSafetyComponent.StableGuid)]!.Value<string>());
-        Assert.Equal(referencedId.ToString(), component.Properties[nameof(EditorReloadSafetyComponent.Label)]!.Value<string>());
+        Assert.Equal(duplicate.Guid.ToString(),
+            component.Properties[nameof(EditorReloadSafetyComponent.Target)]!.Value<string>());
+        Assert.Equal(referencedId.ToString(),
+            component.Properties[nameof(EditorReloadSafetyComponent.StableGuid)]!.Value<string>());
+        Assert.Equal(referencedId.ToString(),
+            component.Properties[nameof(EditorReloadSafetyComponent.Label)]!.Value<string>());
+    }
+
+    [Fact]
+    public void SettingEntityReferenceInBlueprintPreviewStoresTheTargetGuid()
+    {
+        var rootId = Guid.NewGuid();
+        var childId = Guid.NewGuid();
+        using var document = new SceneDocument(
+            new SceneBlueprint
+            {
+                Name = "Entity Reference",
+                Entities =
+                [
+                    new EntityBlueprint
+                    {
+                        Name = "Root",
+                        Guid = rootId,
+                        Children =
+                        [
+                            new EntityBlueprint
+                            {
+                                Name = "Reference Holder",
+                                Guid = childId,
+                                Components =
+                                [
+                                    new ComponentBlueprint
+                                    {
+                                        Type = $"{typeof(EditorReloadSafetyComponent).Assembly.GetName().Name}." +
+                                               nameof(EditorReloadSafetyComponent)
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            null,
+            new SelectionService());
+        var root = document.Scene!.FindEntity(rootId)!;
+        var component = document.Scene.FindEntity(childId)!
+            .GetComponent<EditorReloadSafetyComponent>()!;
+
+        document.SetComponentMember(
+            "Set anchor",
+            [component],
+            nameof(EditorReloadSafetyComponent.Target),
+            typeof(Entity),
+            root,
+            (target, value) => ((EditorReloadSafetyComponent)target).Target = (Entity)value!);
+
+        var captured = document.CaptureSingleRoot();
+        var properties = Assert.Single(Assert.Single(captured.Children).Components).Properties;
+        Assert.Equal(rootId.ToString(), properties[nameof(EditorReloadSafetyComponent.Target)]!.Value<string>());
+    }
+
+    [Fact]
+    public void VirtualCameraEntityTargetRoundTripsThroughEditorSceneData()
+    {
+        var targetId = Guid.NewGuid();
+        var cameraId = Guid.NewGuid();
+        var root = new EntityBlueprint
+        {
+            Name = "Target",
+            Guid = targetId,
+            Children =
+            [
+                new EntityBlueprint
+                {
+                    Name = "Camera",
+                    Guid = cameraId,
+                    Components =
+                    [
+                        new ComponentBlueprint
+                        {
+                            Type = nameof(VirtualCamera),
+                            Properties = new Dictionary<string, JToken>
+                            {
+                                [nameof(VirtualCamera.EntityToFollow)] = targetId.ToString()
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        using var document = new SceneDocument(
+            new SceneBlueprint { Name = "Virtual Camera", Entities = [root] },
+            null,
+            new SelectionService());
+
+        var target = document.Scene!.FindEntity(targetId)!;
+        var cameraEntity = document.Scene.FindEntity(cameraId)!;
+        var virtualCamera = cameraEntity.GetComponent<VirtualCamera>()!;
+
+        Assert.Same(target, virtualCamera.EntityToFollow);
+        Assert.NotNull(cameraEntity.GetComponent<Camera2D>());
+
+        var capturedCamera = Assert.Single(document.CaptureSingleRoot().Children);
+        var capturedVirtualCamera = Assert.Single(
+            capturedCamera.Components,
+            component => component.Type == nameof(VirtualCamera));
+        Assert.Equal(
+            targetId.ToString(),
+            capturedVirtualCamera.Properties[nameof(VirtualCamera.EntityToFollow)]!.Value<string>());
     }
 
     [Fact]
@@ -105,7 +301,7 @@ public sealed class SceneDocumentTests : IDisposable
 
         var entity = Assert.Single(document.Scene!.GetAllEntities());
         var drawer = Assert.IsType<SpriteDrawer>(entity.GetComponent<SpriteDrawer>());
-        Assert.Equal(Microsoft.Xna.Framework.Color.White, drawer.Tint);
+        Assert.Equal(Color.White, drawer.Tint);
         Assert.Equal(1f, drawer.Opacity);
 
         var serialized = Assert.Single(document.CaptureSingleRoot().Components).Properties;
@@ -148,7 +344,7 @@ public sealed class SceneDocumentTests : IDisposable
     }
 
     [Fact]
-    public void SpriteDrawerMembersWithNonPublicSettersRoundTripThroughBlueprints()
+    public void SpriteDrawerDoesNotCaptureSpriteOwnedPivotMembers()
     {
         var root = new EntityBlueprint
         {
@@ -158,12 +354,7 @@ public sealed class SceneDocumentTests : IDisposable
             [
                 new ComponentBlueprint
                 {
-                    Type = nameof(SpriteDrawer),
-                    Properties = new Dictionary<string, JToken>
-                    {
-                        [nameof(SpriteDrawer.Pivot)] = new JArray(24f, 41f),
-                        [nameof(SpriteDrawer.PivotType)] = (int)PivotType.Custom
-                    }
+                    Type = nameof(SpriteDrawer)
                 }
             ]
         };
@@ -174,12 +365,15 @@ public sealed class SceneDocumentTests : IDisposable
 
         var entity = Assert.Single(document.Scene!.GetAllEntities());
         var drawer = Assert.IsType<SpriteDrawer>(entity.GetComponent<SpriteDrawer>());
-        Assert.Equal(new Microsoft.Xna.Framework.Vector2(24f, 41f), drawer.Pivot);
-        Assert.Equal(PivotType.Custom, drawer.PivotType);
+        drawer.Sprite = new Sprite
+        {
+            Pivot = new Vector2(24f, 41f),
+            PivotType = PivotType.Custom
+        };
 
         var serialized = Assert.Single(document.CaptureSingleRoot().Components).Properties;
-        Assert.Equal(new[] { 24f, 41f }, serialized[nameof(SpriteDrawer.Pivot)]!.Values<float>());
-        Assert.Equal((int)PivotType.Custom, serialized[nameof(SpriteDrawer.PivotType)]!.Value<int>());
+        Assert.DoesNotContain(nameof(Sprite.Pivot), serialized.Keys);
+        Assert.DoesNotContain(nameof(Sprite.PivotType), serialized.Keys);
     }
 
     [Fact]
@@ -314,12 +508,12 @@ public sealed class SceneDocumentTests : IDisposable
     public void ReparentCanPreserveWorldTransformAndRejectsCycles()
     {
         using var scene = new TestEditorScene();
-        var parent = scene.CreateEntity("parent", createAt: new Microsoft.Xna.Framework.Vector3(10, 20, 0));
-        var child = scene.CreateEntity("child", createAt: new Microsoft.Xna.Framework.Vector3(3, 4, 0));
+        var parent = scene.CreateEntity("parent", createAt: new Vector3(10, 20, 0));
+        var child = scene.CreateEntity("child", createAt: new Vector3(3, 4, 0));
         scene.FlushStructuralChanges();
         var before = child.Transform.WorldPosition;
 
-        child.SetParent(parent, preserveWorldTransform: true);
+        child.SetParent(parent, true);
 
         Assert.Equal(before, child.Transform.WorldPosition);
         Assert.Throws<InvalidOperationException>(() => parent.SetParent(child, true));
@@ -339,8 +533,7 @@ public sealed class SceneDocumentTests : IDisposable
         Assert.Equal(1, EditorLifecycleTestComponent.GizmosDrawn);
         Assert.Equal(1, EditorLifecycleTestComponent.SelectedGizmosDrawn);
     }
-    
-    
+
 
     [Fact]
     public void TransformSelectionExcludesDescendantsWhoseAncestorIsSelected()
@@ -366,7 +559,7 @@ public sealed class SceneDocumentTests : IDisposable
         var parent = document.Scene!.FindEntity(parentId)!;
         var child = document.Scene.FindEntity(childId)!;
         document.Selection.Set(child);
-        document.Selection.Set(parent, additive: true);
+        document.Selection.Set(parent, true);
 
         var states = EditorTransformGizmo.CaptureEditableSelection(document);
 
@@ -380,9 +573,9 @@ public sealed class SceneDocumentTests : IDisposable
         using var scene = new TestEditorScene();
         var root = scene.CreateEntity("Root");
         var parent = scene.CreateEntity("Parent");
-        parent.SetParent(root, preserveWorldTransform: false);
+        parent.SetParent(root, false);
         var child = scene.CreateEntity("Child");
-        child.SetParent(parent, preserveWorldTransform: false);
+        child.SetParent(parent, false);
         scene.FlushStructuralChanges();
 
         var anchor = EditorTransformGizmo.ResolveManipulationAnchor(
@@ -458,7 +651,7 @@ public sealed class SceneDocumentTests : IDisposable
                             {
                                 Name = "Child",
                                 Guid = childId,
-                                Position = new Microsoft.Xna.Framework.Vector3(2f, 0f, 0f)
+                                Position = new Vector3(2f, 0f, 0f)
                             }
                         ]
                     }
@@ -469,21 +662,21 @@ public sealed class SceneDocumentTests : IDisposable
         var parent = document.Scene!.FindEntity(parentId)!;
         var child = document.Scene.FindEntity(childId)!;
         document.Selection.Set(child);
-        document.Selection.Set(parent, additive: true);
+        document.Selection.Set(parent, true);
         var states = EditorTransformGizmo.CaptureEditableSelection(document);
 
         EditorTransformGizmo.ApplyMove(
             document,
             document.Scene,
             states,
-            new Microsoft.Xna.Framework.Vector2(3f, 0f));
+            new Vector2(3f, 0f));
 
         Assert.Equal(3f, parent.Transform.WorldPosition.X);
         Assert.Equal(5f, child.Transform.WorldPosition.X);
     }
 
     [Fact]
-    public void SceneDocumentUndoAndSavePreserveMissingComponentPayload()
+    public void SaveValidationRejectsUnknownComponentAndPreservesExistingFile()
     {
         var scenePath = Path.Combine(_root, "level.scene.json");
         var entityId = Guid.NewGuid();
@@ -521,15 +714,19 @@ public sealed class SceneDocumentTests : IDisposable
         Assert.Equal("Original", document.Scene.FindEntity(entityId)!.Name);
         Assert.True(document.Undo.Redo());
 
-        document.Save();
+        var exception = Assert.Throws<InvalidOperationException>(() => document.Save());
+        Assert.Contains("Removed.GameComponent", exception.Message, StringComparison.Ordinal);
+
         var saved = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
-        var missing = Assert.Single(Assert.Single(saved.Entities).Components);
+        var savedEntity = Assert.Single(saved.Entities);
+        Assert.Equal("Original", savedEntity.Name);
+        var missing = Assert.Single(savedEntity.Components);
         Assert.Equal("Removed.GameComponent", missing.Type);
         Assert.Equal(42, missing.Properties["UnrecoverableData"]!["answer"]!.Value<int>());
     }
 
     [Fact]
-    public void EditorPreservesInvalidKnownComponentMembersUntilDeliberatelyChanged()
+    public void SaveRepairsInvalidKnownComponentMembers()
     {
         var scenePath = Path.Combine(_root, "reload-safe.scene.json");
         var entityId = Guid.NewGuid();
@@ -570,8 +767,18 @@ public sealed class SceneDocumentTests : IDisposable
         Assert.Contains(nameof(EditorReloadSafetyComponent.Target), component.EditorSerializationFailures);
         Assert.Contains("RetiredMember", component.EditorSerializationFailures);
 
+        document.Save();
+
+        var saved = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
+        var properties = Assert.Single(Assert.Single(saved.Entities).Components).Properties;
+        Assert.Equal(0, properties[nameof(EditorReloadSafetyComponent.Count)]!.Value<int>());
+        Assert.Equal(
+            JTokenType.Null,
+            properties[nameof(EditorReloadSafetyComponent.Target)]!.Type);
+        Assert.DoesNotContain("RetiredMember", properties.Keys);
+
         document.SetComponentMember(
-            "Replace invalid count",
+            "Set repaired count",
             [component],
             nameof(EditorReloadSafetyComponent.Count),
             typeof(int),
@@ -579,27 +786,49 @@ public sealed class SceneDocumentTests : IDisposable
             (target, value) => ((EditorReloadSafetyComponent)target).Count = (int)value!);
         document.Save();
 
-        var saved = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
-        var properties = Assert.Single(Assert.Single(saved.Entities).Components).Properties;
-        Assert.Equal(7, properties[nameof(EditorReloadSafetyComponent.Count)]!.Value<int>());
-        Assert.Equal(missingTarget.ToString(), properties[nameof(EditorReloadSafetyComponent.Target)]!.Value<string>());
-        Assert.True(properties["RetiredMember"]!["stillHere"]!.Value<bool>());
-
-        document.SetComponentMember(
-            "Clear invalid target",
-            [component],
-            nameof(EditorReloadSafetyComponent.Target),
-            typeof(Entity),
-            null,
-            (target, value) => ((EditorReloadSafetyComponent)target).Target = (Entity?)value);
-        document.Save();
-
         saved = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
         properties = Assert.Single(Assert.Single(saved.Entities).Components).Properties;
-        Assert.Equal(
-            JTokenType.Null,
-            properties[nameof(EditorReloadSafetyComponent.Target)]!.Type);
-        Assert.True(properties["RetiredMember"]!["stillHere"]!.Value<bool>());
+        Assert.Equal(7, properties[nameof(EditorReloadSafetyComponent.Count)]!.Value<int>());
+        Assert.DoesNotContain("RetiredMember", properties.Keys);
+    }
+
+    [Fact]
+    public void SaveDropsRetiredComponentsOwnedByTheActiveGameAssembly()
+    {
+        var scenePath = Path.Combine(_root, "retired-component.scene.json");
+        File.WriteAllText(scenePath, DreambitJson.Serialize(new SceneBlueprint
+        {
+            Name = "Retired Component",
+            Entities =
+            [
+                new EntityBlueprint
+                {
+                    Name = "Services",
+                    Guid = Guid.NewGuid(),
+                    Components =
+                    [
+                        new ComponentBlueprint
+                        {
+                            Type = "Game.RetiredService",
+                            Properties = new Dictionary<string, JToken>
+                            {
+                                ["OldSetting"] = new JValue(42)
+                            }
+                        }
+                    ]
+                }
+            ]
+        }));
+
+        using var document = SceneDocument.Open(
+            scenePath,
+            new SelectionService(),
+            activeGameAssemblyNameProvider: static () => "Game");
+
+        document.Save();
+
+        var saved = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
+        Assert.Empty(Assert.Single(saved.Entities).Components);
     }
 
     [Fact]
@@ -771,7 +1000,7 @@ public sealed class SceneDocumentTests : IDisposable
             AssetName = "actors/hero.blueprint",
             Name = "Hero",
             Guid = Guid.NewGuid(),
-            Position = new Microsoft.Xna.Framework.Vector3(2, 3, 0)
+            Position = new Vector3(2, 3, 0)
         };
         var selection = new SelectionService();
         using var document = SceneDocument.CreateNew(
@@ -781,10 +1010,10 @@ public sealed class SceneDocumentTests : IDisposable
 
         var instance = document.InstantiateBlueprint(
             source,
-            new Microsoft.Xna.Framework.Vector3(20, 30, 0));
+            new Vector3(20, 30, 0));
         var instanceId = instance.Id;
         Assert.True(document.IsBlueprintInstanceRoot(instance));
-        Assert.Equal(new Microsoft.Xna.Framework.Vector3(20, 30, 0), instance.Transform.WorldPosition);
+        Assert.Equal(new Vector3(20, 30, 0), instance.Transform.WorldPosition);
 
         var scenePath = Path.Combine(_root, "boxed.scene.json");
         document.Save(scenePath);
@@ -811,7 +1040,7 @@ public sealed class SceneDocumentTests : IDisposable
         var refreshed = document.Scene!.FindEntity(instanceId)!;
         var childId = Assert.Single(refreshed.Children).Id;
         Assert.Equal("Hero Updated", refreshed.Name);
-        Assert.Equal(new Microsoft.Xna.Framework.Vector3(20, 30, 0), refreshed.Transform.WorldPosition);
+        Assert.Equal(new Vector3(20, 30, 0), refreshed.Transform.WorldPosition);
 
         document.BeforeAssemblyReload();
         document.AfterAssemblyReload();
@@ -1028,22 +1257,20 @@ public sealed class SceneDocumentTests : IDisposable
             new SelectionService());
 
         foreach (var x in new[] { 1f, 2f, 3f })
-        {
             document.Apply(
                 "Change Position",
                 scene => scene.FindEntity(entityId)!.Transform.Position =
-                    new Microsoft.Xna.Framework.Vector3(x, 0f, 0f),
+                    new Vector3(x, 0f, 0f),
                 "Transform.Position");
-        }
 
         Assert.True(document.Undo.Undo());
         Assert.Equal(
-            Microsoft.Xna.Framework.Vector3.Zero,
+            Vector3.Zero,
             document.Scene!.FindEntity(entityId)!.Transform.Position);
         Assert.False(document.Undo.CanUndo);
         Assert.True(document.Undo.Redo());
         Assert.Equal(
-            new Microsoft.Xna.Framework.Vector3(3f, 0f, 0f),
+            new Vector3(3f, 0f, 0f),
             document.Scene!.FindEntity(entityId)!.Transform.Position);
     }
 
@@ -1108,7 +1335,7 @@ public sealed class SceneDocumentTests : IDisposable
                 : linked);
         document.Apply("Move Instance", scene =>
             scene.FindEntity(instanceId)!.Transform.Position =
-                new Microsoft.Xna.Framework.Vector3(4, 5, 0));
+                new Vector3(4, 5, 0));
         var workingScene = document.Scene;
         failResolution = true;
 
@@ -1116,7 +1343,7 @@ public sealed class SceneDocumentTests : IDisposable
 
         Assert.Same(workingScene, document.Scene);
         Assert.Equal(
-            new Microsoft.Xna.Framework.Vector3(4, 5, 0),
+            new Vector3(4, 5, 0),
             document.Scene!.FindEntity(instanceId)!.Transform.Position);
         Assert.True(document.Undo.CanUndo);
         Assert.False(document.Undo.CanRedo);
@@ -1179,257 +1406,6 @@ public sealed class SceneDocumentTests : IDisposable
             authored.FlattenedHierarchy().Select(entity => entity.Guid).Distinct().Count());
     }
 
-    [Fact]
-    public void LDtkSceneLinkSurvivesCaptureWhileGeneratedEntitiesStayOutOfTheSceneFile()
-    {
-        var assetId = Guid.NewGuid();
-        var worldId = Guid.NewGuid();
-        var source = new SceneBlueprint
-        {
-            Name = "LDtk World",
-            LDtk = new LDtkSceneReference
-            {
-                AssetId = assetId,
-                AssetName = "maps/world",
-                WorldIid = worldId,
-                PixelsPerUnit = 16f
-            }
-        };
-        using var scene = new TestEditorScene();
-        scene.EnsureEditorCamera();
-        scene.CreateEntity("Dreambit Placed");
-
-        var captured = SceneDocumentSerializer.Capture(scene, source, source.Name);
-        var restored = SceneDocumentSerializer.Deserialize(SceneDocumentSerializer.Serialize(captured));
-
-        Assert.NotNull(restored.LDtk);
-        Assert.Equal(assetId, restored.LDtk.AssetId);
-        Assert.Equal("maps/world", restored.LDtk.AssetName);
-        Assert.Equal(worldId, restored.LDtk.WorldIid);
-        Assert.Equal(16f, restored.LDtk.PixelsPerUnit);
-        Assert.Equal("Dreambit Placed", Assert.Single(restored.Entities).Name);
-
-        var legacy = SceneDocumentSerializer.Deserialize("""
-        {
-          "name": "Legacy LDtk",
-          "entities": [],
-          "ldtk": {
-            "asset": "maps/world",
-            "pixels_per_unit": 24
-          }
-        }
-        """);
-        Assert.Equal(24f, legacy.LDtk!.ImportOptions.PixelsPerUnit);
-    }
-
-    [Fact]
-    public void LDtkSourceLoaderProducesRuntimeLogicalAssetNames()
-    {
-        var contentRoot = Path.Combine(_root, "Assets");
-        var maps = Path.Combine(contentRoot, "maps");
-        Directory.CreateDirectory(maps);
-        var path = Path.Combine(maps, "world.ldtk");
-        File.WriteAllText(path, "{\"jsonVersion\":\"1.5.3\",\"levels\":[]}");
-
-        var project = LDtkFile.FromContentFile(path, "maps/world", contentRoot);
-
-        Assert.Equal("maps/world", project.SourcePath);
-        Assert.Equal("textures/tiles", project.ResolveAssetName("../textures/tiles.png"));
-        Assert.Empty(project.LoadWorld().Levels);
-    }
-
-    [Fact]
-    public void LDtkSceneLoadsExternalLevelFilesAndRendersTheirTransientDrawables()
-    {
-        var contentRoot = Path.Combine(_root, "Assets");
-        var maps = Path.Combine(contentRoot, "maps");
-        var levels = Path.Combine(maps, "Levels");
-        Directory.CreateDirectory(levels);
-        var worldId = Guid.NewGuid();
-        var levelId = Guid.NewGuid();
-        var layerId = Guid.NewGuid();
-        var projectPath = Path.Combine(maps, "world.ldtk");
-        var levelPath = Path.Combine(levels, "Forest.ldtkl");
-        File.WriteAllText(projectPath, $$"""
-        {
-          "jsonVersion": "1.5.3",
-          "externalLevels": true,
-          "worlds": [{
-            "identifier": "ForestWorld",
-            "iid": "{{worldId}}",
-            "worldLayout": "Free",
-            "worldGridWidth": 32,
-            "worldGridHeight": 32,
-            "levels": [{
-              "__bgColor": "#123456",
-              "identifier": "Forest",
-              "iid": "{{levelId}}",
-              "uid": 1,
-              "pxWid": 32,
-              "pxHei": 32,
-              "worldX": 0,
-              "worldY": 0,
-              "worldDepth": 0,
-              "externalRelPath": "Levels/Forest.ldtkl",
-              "fieldInstances": [],
-              "__neighbours": [],
-              "layerInstances": null
-            }]
-          }]
-        }
-        """);
-        File.WriteAllText(levelPath, $$"""
-        {
-          "__bgColor": "#123456",
-          "identifier": "Forest",
-          "iid": "{{levelId}}",
-          "uid": 1,
-          "pxWid": 32,
-          "pxHei": 32,
-          "worldX": 0,
-          "worldY": 0,
-          "worldDepth": 0,
-          "externalRelPath": "Levels/Forest.ldtkl",
-          "fieldInstances": [],
-          "__neighbours": [],
-          "layerInstances": [{
-            "__identifier": "GameplayMarkers",
-            "iid": "{{layerId}}",
-            "__cHei": 1,
-            "__cWid": 1,
-            "__gridSize": 16,
-            "__opacity": 1,
-            "__pxTotalOffsetX": 0,
-            "__pxTotalOffsetY": 0,
-            "__tilesetDefUid": null,
-            "__tilesetRelPath": null,
-            "__type": "Entities",
-            "autoLayerTiles": [],
-            "entityInstances": [],
-            "gridTiles": [],
-            "intGridCsv": [],
-            "layerDefUid": 1,
-            "levelId": 1,
-            "pxOffsetX": 0,
-            "pxOffsetY": 0,
-            "visible": true
-          }]
-        }
-        """);
-
-        var selection = new SelectionService();
-        using var document = SceneDocument.CreateNew(
-            "External LDtk",
-            selection,
-            ldtkProjectResolver: _ => LDtkFile.FromContentFile(
-                projectPath,
-                "maps/world",
-                contentRoot),
-            ldtk: new LDtkSceneReference
-            {
-                AssetName = "maps/world",
-                WorldIid = worldId
-            });
-
-        var generated = document.Scene!.GetAllEntities()
-            .Where(entity => entity.IsEditorOnly)
-            .ToArray();
-        Assert.Contains(generated, entity => entity.Name == "LDtk Level: Forest");
-        Assert.Contains(generated, entity => entity.Name.Contains("GameplayMarkers"));
-        var background = Assert.Single(
-            generated.SelectMany(entity => entity.GetAllComponents()).OfType<FilledRectDrawer>());
-        Assert.True(SceneViewportRenderer.ShouldPickDrawable(background));
-        Assert.All(generated, entity => Assert.True(entity.IsLDtkGenerated));
-
-        var placed = document.CreateEmpty("Dreambit Placed");
-        var placedId = placed.Id;
-        document.Apply("Move Dreambit Entity", _ =>
-            placed.Transform.Position = new Microsoft.Xna.Framework.Vector3(12, 34, 0));
-        document.Apply("Override LDtk Background", _ =>
-        {
-            background.Entity.Transform.Position = new Microsoft.Xna.Framework.Vector3(5, 7, 0);
-            background.Entity.Tags.Clear();
-            background.Entity.Tags.Add("editor-override");
-            background.Width = 99f;
-            document.RecordLDtkPosition(background.Entity);
-            document.RecordLDtkEntityTags(background.Entity);
-            document.RecordLDtkComponentMember(background, nameof(FilledRectDrawer.Width), background.Width);
-        });
-
-        File.WriteAllText(levelPath, File.ReadAllText(levelPath)
-            .Replace("\"identifier\": \"Forest\"", "\"identifier\": \"Forest Updated\"")
-            .Replace("\"pxWid\": 32", "\"pxWid\": 64"));
-        document.ReimportLDtk();
-
-        var preserved = document.Scene!.FindEntity(placedId);
-        Assert.NotNull(preserved);
-        Assert.Equal(
-            new Microsoft.Xna.Framework.Vector3(12, 34, 0),
-            preserved.Transform.Position);
-        Assert.Contains(
-            document.Scene.GetAllEntities(),
-            entity => entity.Name == "LDtk Level: Forest Updated");
-        var reimportedBackground = Assert.Single(
-            document.Scene.GetAllEntities()
-                .SelectMany(entity => entity.GetAllComponents())
-                .OfType<FilledRectDrawer>());
-        Assert.Equal(new Microsoft.Xna.Framework.Vector3(5, 7, 0), reimportedBackground.Entity.Transform.Position);
-        Assert.Contains("editor-override", reimportedBackground.Entity.Tags);
-        Assert.Equal(99f, reimportedBackground.Width);
-
-        document.UpdateLDtkImportOptions("Disable LDtk Background", options =>
-        {
-            options.PixelsPerUnit = 16f;
-            options.RenderLevelBackgroundColor = false;
-        });
-        Assert.Equal(16f, document.LDtkReference!.ImportOptions.PixelsPerUnit);
-        Assert.Empty(document.Scene.GetAllEntities()
-            .SelectMany(entity => entity.GetAllComponents())
-            .OfType<FilledRectDrawer>());
-        Assert.NotNull(document.Scene.FindEntity(placedId));
-
-        var validExternalLevel = File.ReadAllText(levelPath);
-        var workingScene = document.Scene;
-        File.WriteAllText(levelPath, "{ incomplete LDtk save");
-        Assert.ThrowsAny<Exception>(() => document.ReimportLDtk());
-        Assert.Same(workingScene, document.Scene);
-        Assert.NotNull(document.Scene.FindEntity(placedId));
-        File.WriteAllText(levelPath, validExternalLevel);
-        document.ReimportLDtk();
-
-        var captured = SceneDocumentSerializer.Capture(
-            document.Scene,
-            new SceneBlueprint
-            {
-                Name = "External LDtk",
-                LDtk = document.LDtkReference
-            },
-            "External LDtk");
-        Assert.Single(captured.Entities);
-        Assert.Equal("Dreambit Placed", captured.Entities[0].Name);
-        Assert.NotEmpty(captured.LDtk!.EntityOverrides);
-        var roundTripped = SceneDocumentSerializer.Deserialize(SceneDocumentSerializer.Serialize(captured));
-        Assert.Equal(16f, roundTripped.LDtk!.ImportOptions.PixelsPerUnit);
-        Assert.Contains(
-            roundTripped.LDtk.EntityOverrides.Values,
-            item => item.Position == new Microsoft.Xna.Framework.Vector3(5, 7, 0));
-        Assert.Contains(
-            roundTripped.LDtk.EntityOverrides.Values,
-            item => item.Tags?.Contains("editor-override") == true);
-    }
-
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(_root))
-                Directory.Delete(_root, true);
-        }
-        catch (IOException)
-        {
-        }
-    }
-
     private sealed class TestEditorScene : Scene
     {
         public TestEditorScene() : base(SceneExecutionMode.Editor)
@@ -1442,25 +1418,38 @@ public sealed class SceneDocumentTests : IDisposable
         public int CircleCount { get; private set; }
         public float LastCircleRadius { get; private set; }
 
-        public void Line(Microsoft.Xna.Framework.Vector2 from, Microsoft.Xna.Framework.Vector2 to, Microsoft.Xna.Framework.Color color, float thickness = 1) { }
-        public void Circle(Microsoft.Xna.Framework.Vector2 center, float radius, Microsoft.Xna.Framework.Color color, float thickness = 1)
+        public void Line(Vector2 from, Vector2 to, Color color, float thickness = 1)
+        {
+        }
+
+        public void Circle(Vector2 center, float radius, Color color, float thickness = 1)
         {
             CircleCount++;
             LastCircleRadius = radius;
         }
-        public void Rectangle(RectangleF rectangle, Microsoft.Xna.Framework.Color color, float thickness = 1) { }
-        public void Label(Microsoft.Xna.Framework.Vector2 position, string text, Microsoft.Xna.Framework.Color color) { }
-        public void ShowIcon(string icon, Vector2 position, Color color, float size = 24)
+
+        public void Rectangle(RectangleF rectangle, Color color, float thickness = 1)
         {
-            
         }
 
-        public void RadiusHandle(Component component, string memberName, Vector2 center, Color color, float thickness = 1)
+        public void Label(Vector2 position, string text, Color color)
         {
-            
+        }
+
+        public void ShowIcon(string icon, Vector2 position, Color color, float size = 24)
+        {
+        }
+
+        public void RadiusHandle(Component component, string memberName, Vector2 center, Color color,
+            float thickness = 1)
+        {
         }
 
         public void BoxHandle(Component component, string memberName, Color color, float thickness = 1)
+        {
+        }
+
+        public void PolygonHandle(Component component, string memberName, Color color, float thickness = 1)
         {
             
         }
@@ -1479,47 +1468,79 @@ public sealed class EditorLifecycleTestComponent : Component
     public static int GizmosDrawn { get; private set; }
     public static int SelectedGizmosDrawn { get; private set; }
 
-    public static void Reset() =>
+    public static void Reset()
+    {
         (GameCreated, GameAdded, GameUpdated, GameDestroyed,
             EditorCreated, EditorUpdated, EditorDestroyed,
             GizmosDrawn, SelectedGizmosDrawn) = (0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
 
-    public override void OnCreated() => GameCreated++;
-    public override void OnAddedToEntity() => GameAdded++;
-    public override void OnUpdate() => GameUpdated++;
-    public override void OnDestroyed() => GameDestroyed++;
-    public override void OnEditorCreated() => EditorCreated++;
-    public override void OnEditorUpdate() => EditorUpdated++;
-    public override void OnEditorDestroyed() => EditorDestroyed++;
-    public override void OnEditorDrawGizmos(IEditorGizmoContext context) => GizmosDrawn++;
-    public override void OnEditorDrawGizmosSelected(IEditorGizmoContext context) => SelectedGizmosDrawn++;
+    public override void OnCreated()
+    {
+        GameCreated++;
+    }
+
+    public override void OnAddedToEntity()
+    {
+        GameAdded++;
+    }
+
+    public override void OnUpdate()
+    {
+        GameUpdated++;
+    }
+
+    public override void OnDestroyed()
+    {
+        GameDestroyed++;
+    }
+
+    public override void OnEditorCreated()
+    {
+        EditorCreated++;
+    }
+
+    public override void OnEditorUpdate()
+    {
+        EditorUpdated++;
+    }
+
+    public override void OnEditorDestroyed()
+    {
+        EditorDestroyed++;
+    }
+
+    public override void OnEditorDrawGizmos(IEditorGizmoContext context)
+    {
+        GizmosDrawn++;
+    }
+
+    public override void OnEditorDrawGizmosSelected(IEditorGizmoContext context)
+    {
+        SelectedGizmosDrawn++;
+    }
 }
 
 public sealed class EditorReloadSafetyComponent : Component
 {
-    [DreambitSerialize]
-    public int Count { get; set; }
+    [DreambitSerialize] public int Count { get; set; }
 
-    [DreambitSerialize]
-    public Entity? Target { get; set; }
+    [DreambitSerialize] public Entity? Target { get; set; }
 
-    [DreambitSerialize]
-    public Guid StableGuid { get; set; }
+    [DreambitSerialize] public Guid StableGuid { get; set; }
 
-    [DreambitSerialize]
-    public string Label { get; set; } = string.Empty;
+    [DreambitSerialize] public string Label { get; set; } = string.Empty;
 }
 
 public sealed class EditorConstructionFailureComponent : Component
 {
-    public static bool FailConstruction { get; set; }
-
     public EditorConstructionFailureComponent()
     {
         if (FailConstruction)
             throw new InvalidOperationException("Intentional editor construction failure.");
     }
 
-    [DreambitSerialize]
-    public int Value { get; set; }
+    public static bool FailConstruction { get; set; }
+
+    [DreambitSerialize] public int Value { get; set; }
 }

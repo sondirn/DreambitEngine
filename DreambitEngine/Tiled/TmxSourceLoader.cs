@@ -45,6 +45,11 @@ internal static class TmxSourceLoader
             }
 
             var source = tilesetReference.Source!;
+            if (IsBuiltInAutomappingTileset(source))
+            {
+                tilesetReference.ResolvedTileset = CreateBuiltInAutomappingTileset();
+                continue;
+            }
             var tilesetPath = ResolvePhysicalPath(fullPath, source, fullContentRoot);
             var tilesetAssetName = ResolveAssetName(assetName, source, tilesetPath, logicalAssetName is not null);
             var resolvedTileset = Deserialize<TmxTileset>(tilesetPath, "TSX tileset");
@@ -127,6 +132,8 @@ internal static class TmxSourceLoader
     {
         if (image is null || string.IsNullOrWhiteSpace(image.Source))
             return;
+        if (IsQtResourcePath(image.Source))
+            return;
 
         var imagePath = ResolvePhysicalPath(ownerPath, image.Source, contentRoot);
         image.ResolvedAssetName = ResolveAssetName(
@@ -179,4 +186,42 @@ internal static class TmxSourceLoader
 
     private static string NormalizeAssetName(string value)
         => value.Replace('\\', '/').Trim().TrimStart('/');
+
+    private static bool IsBuiltInAutomappingTileset(string source)
+    {
+        var normalized = source.Replace('\\', '/').Trim();
+        return IsQtResourcePath(normalized) &&
+               normalized.EndsWith("/automap-tiles.tsx", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsQtResourcePath(string source) =>
+        source.StartsWith("qrc:/", StringComparison.OrdinalIgnoreCase) ||
+        source.StartsWith(":/", StringComparison.Ordinal);
+
+    private static TmxTileset CreateBuiltInAutomappingTileset() => new()
+    {
+        AssetName = "__tiled/automap-tiles",
+        Name = "Automapping Rules Tileset",
+        TileWidth = 32,
+        TileHeight = 32,
+        TileCount = 5,
+        Columns = 5,
+        Tiles =
+        [
+            CreateMatchTypeTile(0, "Negate"),
+            CreateMatchTypeTile(1, "Ignore"),
+            CreateMatchTypeTile(2, "NonEmpty"),
+            CreateMatchTypeTile(3, "Empty"),
+            CreateMatchTypeTile(4, "Other")
+        ]
+    };
+
+    private static TmxTilesetTile CreateMatchTypeTile(int id, string matchType) => new()
+    {
+        Id = id,
+        Properties = new TmxProperties
+        {
+            Items = [new TmxProperty { Name = "MatchType", Value = matchType }]
+        }
+    };
 }

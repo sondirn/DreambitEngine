@@ -15,6 +15,7 @@
     <DreambitBlobManifest>$(DreambitAssetCache)/content.blobs.json</DreambitBlobManifest>
     <DreambitBlobFingerprint>$(DreambitAssetCache)/content.blobs.fingerprint</DreambitBlobFingerprint>
     <DreambitPakFingerprint>$(DreambitContentPak).fingerprint</DreambitPakFingerprint>
+    <DreambitBlobRuntimeOutputArgument Condition="'$(Configuration)' == 'Debug'"> --runtime-output &quot;$(DreambitRuntimeContent)&quot;</DreambitBlobRuntimeOutputArgument>
     <DreambitAssetRegistry Condition="'$(DreambitAssetRegistry)' == ''">$([System.IO.Path]::GetFullPath('$(DreambitProjectRoot)/.dreambit/assets.json'))</DreambitAssetRegistry>
     <DreambitContentBuildStamp>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)DreambitContent/build.stamp'))</DreambitContentBuildStamp>
     <DreambitUserContentIntermediate>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)DreambitUserContent'))</DreambitUserContentIntermediate>
@@ -28,6 +29,12 @@
     <_DreambitSourceContentInput Include="$([System.IO.Path]::GetDirectoryName('$(DreambitContentProject)'))/Builder/**/*.cs" />
     <_DreambitSourceContentInput Include="$([System.IO.Path]::GetDirectoryName('$(DreambitEngineContentProject)'))/Builder/**/*.cs" />
     <UpToDateCheckInput Include="@(_DreambitSourceContentInput)" />
+    <!-- The blob fingerprint is the authoritative editor-save handoff. Watching it prevents
+         IDE fast up-to-date checks from skipping the content copy after an editor bake. -->
+    <UpToDateCheckInput Include="$(DreambitBlobFingerprint)"
+                        Condition="Exists('$(DreambitBlobFingerprint)')" />
+    <UpToDateCheckOutput Include="$(DreambitRuntimeContent)/content.blobs.fingerprint"
+                         Condition="'$(Configuration)' == 'Debug'" />
   </ItemGroup>
 
   <Target Name="ValidateDreambitSourceContent"
@@ -69,9 +76,9 @@
           DependsOnTargets="BuildDreambitSourceContent"
           Condition="'$(DreambitContentBuildEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(DreambitContentCacheRoot);$(DreambitAssetCache)" />
-    <Exec Command="dotnet run --project &quot;$(DreambitAssetBakerProject)&quot; --configuration &quot;$(Configuration)&quot; --no-build --no-restore -- bake-blobs &quot;$(DreambitContentRoot)&quot; &quot;$(DreambitAssetCache)&quot; --registry &quot;$(DreambitAssetRegistry)&quot; --platform &quot;$(MonoGamePlatform)&quot; --premul --srgb"
+    <Exec Command="dotnet run --project &quot;$(DreambitAssetBakerProject)&quot; --configuration &quot;$(Configuration)&quot; --no-build --no-restore -- bake-blobs &quot;$(DreambitContentRoot)&quot; &quot;$(DreambitAssetCache)&quot; --registry &quot;$(DreambitAssetRegistry)&quot; --platform &quot;$(MonoGamePlatform)&quot; --premul --srgb$(DreambitBlobRuntimeOutputArgument)"
           Condition="Exists('$(DreambitAssetRegistry)')" />
-    <Exec Command="dotnet run --project &quot;$(DreambitAssetBakerProject)&quot; --configuration &quot;$(Configuration)&quot; --no-build --no-restore -- bake-blobs &quot;$(DreambitContentRoot)&quot; &quot;$(DreambitAssetCache)&quot; --platform &quot;$(MonoGamePlatform)&quot; --premul --srgb"
+    <Exec Command="dotnet run --project &quot;$(DreambitAssetBakerProject)&quot; --configuration &quot;$(Configuration)&quot; --no-build --no-restore -- bake-blobs &quot;$(DreambitContentRoot)&quot; &quot;$(DreambitAssetCache)&quot; --platform &quot;$(MonoGamePlatform)&quot; --premul --srgb$(DreambitBlobRuntimeOutputArgument)"
           Condition="!Exists('$(DreambitAssetRegistry)')" />
   </Target>
 
@@ -105,17 +112,8 @@
           DependsOnTargets="BuildDreambitSourceBlobs"
           Condition="'$(DreambitContentBuildEnabled)' == 'true' and '$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(DreambitRuntimeContent)" />
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-      <_DreambitRuntimeBlob Include="$(DreambitAssetCache)/blobs/**/*" />
-    </ItemGroup>
-    <Copy SourceFiles="$(DreambitBlobManifest);$(DreambitBlobFingerprint)"
-          DestinationFolder="$(DreambitRuntimeContent)"
-          SkipUnchangedFiles="true"
-          Condition="'$(Configuration)' == 'Debug'" />
-    <Copy SourceFiles="@(_DreambitRuntimeBlob)"
-          DestinationFiles="@(_DreambitRuntimeBlob->'$(DreambitRuntimeContent)/blobs/%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'$(Configuration)' == 'Debug'" />
+    <!-- Debug blobs are published while the baker still owns the shared-cache writer lease.
+         Keeping the copy inside that transaction prevents editor/build snapshot races. -->
     <Delete Files="$(DreambitRuntimeContent)/content.pak;$(DreambitRuntimeContent)/content.pak.fingerprint"
             Condition="'$(Configuration)' == 'Debug'" />
     <Copy SourceFiles="$(DreambitContentPak)"

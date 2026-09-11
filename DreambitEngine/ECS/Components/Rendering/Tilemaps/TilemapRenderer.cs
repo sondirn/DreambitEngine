@@ -71,6 +71,9 @@ public sealed class TilemapRenderer : DrawableComponent<TilemapRenderer>
     public int CachedChunkCount => _chunkCaches.Count;
     public long CachedChunkBytes => _cachedBytes;
 
+    /// <summary>Chunk caches invalidated by targeted runtime layer changes.</summary>
+    public int ChunkCacheInvalidationCount { get; private set; }
+
     public override RectangleF Bounds
     {
         get
@@ -204,6 +207,8 @@ public sealed class TilemapRenderer : DrawableComponent<TilemapRenderer>
 
     public override void OnDestroyed()
     {
+        if (Layer is not null)
+            Layer.ChunkChanged -= OnLayerChunkChanged;
         DisposeChunkCaches();
         Texture = null;
         Layer = null;
@@ -214,13 +219,34 @@ public sealed class TilemapRenderer : DrawableComponent<TilemapRenderer>
         LastCandidateTileCount = 0;
         LastSpriteSubmissionCount = 0;
         FrameSpriteSubmissionCount = 0;
+        ChunkCacheInvalidationCount = 0;
     }
 
     private void ConfigureLayer(TilemapLayerData layer)
     {
         ArgumentNullException.ThrowIfNull(layer);
+        if (Layer is not null)
+            Layer.ChunkChanged -= OnLayerChunkChanged;
         DisposeChunkCaches();
         Layer = layer;
+        Layer.ChunkChanged += OnLayerChunkChanged;
+        _visibleChunkFrame = ulong.MaxValue;
+    }
+
+    private void OnLayerChunkChanged(object? sender, TilemapChunkChangedEventArgs args)
+    {
+        if (!ReferenceEquals(sender, Layer))
+            return;
+
+        if (args.PreviousChunk is { } previous &&
+            _chunkCaches.TryGetValue(previous, out var cache))
+        {
+            RemoveCache(previous, cache);
+            ChunkCacheInvalidationCount++;
+        }
+
+        // The visible set may contain the replaced chunk object. Force it to be
+        // repopulated before either cache building or drawing visits the layer.
         _visibleChunkFrame = ulong.MaxValue;
     }
 

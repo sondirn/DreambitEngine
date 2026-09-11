@@ -8,6 +8,12 @@ public sealed class DreambitCustomEditorAttribute(Type targetType) : Attribute
     public bool IncludeDerivedTypes { get; init; }
 }
 
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public sealed class HideComponentInEditorAttribute() : Attribute
+{
+    
+}
+
 public enum EditorExtensionLogLevel
 {
     Information,

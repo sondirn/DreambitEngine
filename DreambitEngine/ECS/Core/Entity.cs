@@ -19,7 +19,7 @@ public class Entity : IDisposable
     private bool _isDestroyed;
     private bool _isDisposed;
 
-    private Entity _parent;
+    private Entity? _parent;
 
     internal Entity(Guid id, string name, HashSet<string> tags, bool enabled, Scene scene)
     {
@@ -58,7 +58,13 @@ public class Entity : IDisposable
     public HashSet<string> Tags { get; } = [];
     internal Scene Scene { get; private set; }
 
-    public Entity Parent
+    /// <summary>
+    /// Runtime-only additive lifetime owner. Source Blueprints and editor serialization never
+    /// read or write this field.
+    /// </summary>
+    internal SceneContentInstance? ContentOwner { get; set; }
+
+    public Entity? Parent
     {
         get => _parent;
         set
@@ -81,21 +87,19 @@ public class Entity : IDisposable
     public bool IsEditorOnly { get; internal set; }
 
     /// <summary>
-    /// Stable source identity for entities regenerated from an LDtk project. Editor hosts use it
-    /// to show and override imported visualization nodes without serializing duplicate entities.
-    /// </summary>
-    public string LDtkSourceKey { get; internal set; }
-
-    public bool IsLDtkGenerated => !string.IsNullOrWhiteSpace(LDtkSourceKey);
-
-    /// <summary>
     /// Stable source identity for entities regenerated from a Tiled TMX map.
     /// </summary>
     public string TiledSourceKey { get; internal set; }
 
     public bool IsTiledGenerated => !string.IsNullOrWhiteSpace(TiledSourceKey);
 
-    public bool IsImportedMapGenerated => IsLDtkGenerated || IsTiledGenerated;
+    /// <summary>
+    /// Runtime-only gate used while an owning subsystem completes transactional initialization.
+    /// It is deliberately not serialized and does not change the entity's authored enabled state.
+    /// </summary>
+    internal bool UpdatesSuspended { get; set; }
+
+    public bool IsImportedMapGenerated => IsTiledGenerated;
 
     public bool AlwaysUpdate
     {
@@ -140,6 +144,8 @@ public class Entity : IDisposable
 
     public void Dispose()
     {
+        Scene?.Services.EnsureCanRemove(this);
+
         Dispose(true);
         GC.SuppressFinalize(this);
     }
@@ -236,15 +242,21 @@ public class Entity : IDisposable
 
     public static void Destroy(Entity entity)
     {
-        if (entity == null || entity._isDestroyed) return;
+        if (entity is null || entity._isDead || entity._isDestroyed)
+            return;
 
-        Core.Instance.CurrentScene.DestroyEntity(entity);
+        entity.Scene?.Services.EnsureCanRemove(entity);
+
         entity._isDead = true;
 
-        if (entity._children.Count <= 0) return;
+        var children = new Entity[entity._children.Count];
 
-        foreach (var child in entity._children)
-            Destroy(child);
+        entity._children.CopyTo(children);
+
+        for (var i = 0; i < children.Length; i++)
+            Destroy(children[i]);
+
+        entity.Scene?.DestroyEntity(entity);
     }
 
     public static bool IsDestroyed(Entity entity)
@@ -280,7 +292,7 @@ public class Entity : IDisposable
 
     internal void Update()
     {
-        if (_isDestroyed) return;
+        if (_isDestroyed || UpdatesSuspended) return;
 
         ComponentRepository.UpdateLists();
         ComponentRepository.UpdateComponents();
@@ -300,8 +312,13 @@ public class Entity : IDisposable
 
     internal void PhysicsUpdate()
     {
-        if (_isDestroyed) return;
+        if (_isDestroyed || UpdatesSuspended) return;
         ComponentRepository.PhysicsUpdateComponents();
+    }
+
+    internal void MarkDeadForImmediateDestruction()
+    {
+        _isDead = true;
     }
 
     /// <summary>
@@ -314,6 +331,8 @@ public class Entity : IDisposable
     {
         var component = ComponentRepository.GetComponent<T>();
         if (component != null) return component;
+
+        Scene?.ValidateContentComponentAttachment(this, typeof(T));
 
         component = (T)Activator.CreateInstance<T>().SetUpAndCreateChildren(this);
 
@@ -339,6 +358,8 @@ public class Entity : IDisposable
 
         if (type is null || !type.IsSubclassOf(typeof(Component)))
             return null;
+
+        Scene?.ValidateContentComponentAttachment(this, type);
 
         component = (Component)Activator.CreateInstance(type);
         if (component == null) return null;
@@ -400,6 +421,9 @@ public class Entity : IDisposable
                 exception);
             return;
         }
+
+        foreach (var componentType in creationOrder)
+            Scene?.ValidateContentComponentAttachment(this, componentType);
 
         foreach (var componentType in creationOrder)
         {
@@ -541,6 +565,37 @@ public class Entity : IDisposable
         ComponentRepository.DetachComponent(componentToRemove);
     }
 
+    internal bool ContainsSceneService()
+    {
+        foreach (var component in
+                 ComponentRepository.GetAllComponents())
+        {
+            if (component is SceneServiceComponent)
+                return true;
+        }
+
+        return false;
+    }
+
+    internal bool ContainsSceneServiceInHierarchy()
+    {
+        if (ContainsSceneService())
+            return true;
+
+        for (var i = 0;
+             i < _children.Count;
+             i++)
+        {
+            if (_children[i]
+                .ContainsSceneServiceInHierarchy())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     ///     Detaches a component from the entity and cleans it up
     ///     only if it exists in the entities internal component list.
@@ -638,7 +693,7 @@ public class Entity : IDisposable
         //Todo: Implement on call back for components
     }
 
-    public void SetParent(Entity parentEntity, bool preserveWorldTransform)
+    public void SetParent(Entity? parentEntity, bool preserveWorldTransform)
     {
         if (ReferenceEquals(parentEntity, this))
             throw new InvalidOperationException("An entity cannot be parented to itself.");
@@ -674,12 +729,12 @@ public class Entity : IDisposable
         }
     }
 
-    private void SetParent(Entity parentEntity)
+    private void SetParent(Entity? parentEntity)
     {
         SetParent(parentEntity, false);
     }
 
-    private void SetParentInternal(Entity parentEntity)
+    private void SetParentInternal(Entity? parentEntity)
     {
         if (_parent != null)
             _parent._children.Remove(this);
@@ -692,10 +747,50 @@ public class Entity : IDisposable
 
     internal void Destroy()
     {
+        if (_isDestroyed)
+            return;
+
         _isDestroyed = true;
-        ComponentRepository.DestroyAllComponentsNow();
-        ComponentRepository.ClearLists();
-        Scene = null;
+        _isDead = true;
+
+        try
+        {
+            ComponentRepository.DestroyAllComponentsNow();
+        }
+        finally
+        {
+            var owningScene = Scene;
+
+            // Never allow component cleanup failure to leave repository state alive.
+            ComponentRepository.ClearLists();
+
+            // Sever the upward hierarchy reference.
+            if (_parent != null)
+            {
+                _parent._children.Remove(this);
+                _parent = null;
+            }
+
+            // Scene.DestroyEntity(entity) historically destroys only that entity.
+            // Therefore, surviving children become roots rather than being implicitly
+            // destroyed here. Public Entity.Destroy() performs recursive destruction.
+            for (var i = 0; i < _children.Count; i++)
+            {
+                var child = _children[i];
+
+                if (ReferenceEquals(
+                        child._parent,
+                        this))
+                {
+                    child._parent = null;
+                }
+            }
+
+            _children.Clear();
+
+            owningScene?.NotifyContentEntityDestroyed(this);
+            Scene = null;
+        }
     }
 
     internal void Quarantine(Component source, string callback, Exception exception)

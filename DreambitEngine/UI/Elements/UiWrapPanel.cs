@@ -30,30 +30,18 @@ public class UiWrapPanel : UiContainer
     /// <inheritdoc />
     public override void Parse(XmlNode node)
     {
-        var orientation = UiXmlParser.ParseString(
+        Orientation = UiXmlParser.ParseEnum(
             node,
             "orientation",
-            "Horizontal");
-        Orientation = Enum.TryParse(
-            orientation,
-            true,
-            out StackOrientation parsedOrientation)
-            ? parsedOrientation
-            : StackOrientation.Horizontal;
+            StackOrientation.Horizontal);
         Spacing = Math.Max(0, UiXmlParser.ParseInt(node, "spacing"));
         LineSpacing = Math.Max(
             0,
             UiXmlParser.ParseInt(node, "line-spacing", Spacing));
-        var alignment = UiXmlParser.ParseString(
+        CrossAlignment = UiXmlParser.ParseEnum(
             node,
             "cross-alignment",
-            "Start");
-        CrossAlignment = Enum.TryParse(
-            alignment,
-            true,
-            out StackCrossAlignment parsedAlignment)
-            ? parsedAlignment
-            : StackCrossAlignment.Start;
+            StackCrossAlignment.Start);
         Padding = UiXmlParser.ParseThickness(
             UiXmlParser.ParseString(node, "padding", "0"),
             "Wrap-panel padding");

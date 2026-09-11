@@ -25,25 +25,53 @@ public sealed class RenderPipeline(Scene scene) : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
+
+        var cleanupErrors =
+            new List<Exception>();
 
         foreach (var renderer in _renderers)
-            renderer?.Dispose();
+        {
+            if (renderer is null)
+                continue;
+
+            TryCleanup(
+                cleanupErrors,
+                renderer.Dispose);
+        }
 
         _renderers.Clear();
-        SceneRenderTarget?.Dispose();
+
+        var sceneRenderTarget =
+            SceneRenderTarget;
+
         SceneRenderTarget = null;
 
-        // Effects returned by Resources are shared cache entries. Multiple scenes can
-        // render concurrently in editor hosts, so disposing one pipeline must not
-        // unload an effect that another live pipeline still references.
+        if (sceneRenderTarget is not null)
+        {
+            TryCleanup(
+                cleanupErrors,
+                sceneRenderTarget.Dispose);
+        }
+
+        // Effects are owned by Resources.
         _presentEffect = null;
 
         ActiveCamera = null;
+        ViewportSize = Point.Zero;
+
         _initialized = false;
         _disposed = true;
 
         GC.SuppressFinalize(this);
+
+        if (cleanupErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "One or more render pipeline resources failed to dispose.",
+                cleanupErrors);
+        }
     }
 
     public void Initialize()
@@ -51,19 +79,63 @@ public sealed class RenderPipeline(Scene scene) : IDisposable
         Initialize(new Point(Window.Width, Window.Height));
     }
 
-    internal void Initialize(Point viewportSize)
+    internal void Initialize(
+        Point viewportSize)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(
+            _disposed,
+            this);
+
         if (_initialized)
         {
             EnsureViewportSize(viewportSize);
             return;
         }
 
-        ViewportSize = NormalizeViewportSize(viewportSize);
-        SceneRenderTarget = CreateRenderTarget(ViewportSize);
-        _presentEffect = Resources.LoadAsset<Effect>("Effects/Present");
-        _initialized = true;
+        var normalizedSize =
+            NormalizeViewportSize(viewportSize);
+
+        var renderTarget =
+            CreateRenderTarget(normalizedSize);
+
+        try
+        {
+            var presentEffect =
+                Resources.LoadAsset<Effect>(
+                    "Effects/Present")
+                ?? throw new InvalidOperationException(
+                    "Could not load the presentation effect 'Effects/Present'.");
+
+            ViewportSize =
+                normalizedSize;
+
+            SceneRenderTarget =
+                renderTarget;
+
+            _presentEffect =
+                presentEffect;
+
+            _initialized = true;
+        }
+        catch (Exception initializationException)
+        {
+            try
+            {
+                renderTarget.Dispose();
+            }
+            catch (Exception cleanupException)
+            {
+                throw new AggregateException(
+                    "Render pipeline initialization failed and its render target could not be disposed.",
+                    new[]
+                    {
+                        initializationException,
+                        cleanupException
+                    });
+            }
+
+            throw;
+        }
     }
 
     public void AddRenderPass<T>()
@@ -224,6 +296,20 @@ public sealed class RenderPipeline(Scene scene) : IDisposable
             // Force the next render to retry every pass after a partial resize.
             ViewportSize = Point.Zero;
             throw;
+        }
+    }
+    
+    private static void TryCleanup(
+        List<Exception> cleanupErrors,
+        Action cleanup)
+    {
+        try
+        {
+            cleanup();
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
         }
     }
 

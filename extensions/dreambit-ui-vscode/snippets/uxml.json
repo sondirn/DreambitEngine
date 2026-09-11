@@ -1,0 +1,82 @@
+{
+  "Dreambit UI layout": {
+    "prefix": "ui-layout",
+    "description": "Create a Dreambit UXML layout document.",
+    "body": [
+      "<Ui>",
+      "\t$0",
+      "</Ui>"
+    ]
+  },
+  "Dreambit UI component": {
+    "prefix": "ui-component",
+    "description": "Create a reusable Dreambit UXML component.",
+    "body": [
+      "<UiComponent>",
+      "\t$0",
+      "</UiComponent>"
+    ]
+  },
+  "Dreambit component declarations": {
+    "prefix": "ui-components",
+    "description": "Add a component declaration section to a layout.",
+    "body": [
+      "<Ui.Components>",
+      "\t<Component name=\"${1:MenuButton}\" source=\"${2:Ui/Components/menu-button.uxml}\" />",
+      "</Ui.Components>"
+    ]
+  },
+  "Dreambit nested component declarations": {
+    "prefix": "ui-component-components",
+    "description": "Add a component declaration section to a reusable component.",
+    "body": [
+      "<UiComponent.Components>",
+      "\t<Component name=\"${1:ChildComponent}\" source=\"${2:Ui/Components/child.uxml}\" />",
+      "</UiComponent.Components>"
+    ]
+  },
+  "Dreambit component declaration": {
+    "prefix": "ui-component-declaration",
+    "description": "Declare one reusable component.",
+    "body": "<Component name=\"${1:MenuButton}\" source=\"${2:Ui/Components/menu-button.uxml}\" />"
+  },
+  "Dreambit component include": {
+    "prefix": "ui-include",
+    "description": "Include a reusable UXML component directly.",
+    "body": "<Include source=\"${1:Ui/Components/menu-button.uxml}\" id-prefix=\"${2:menu}\" $0/>"
+  },
+  "Dreambit text": {
+    "prefix": "ui-text",
+    "description": "Add a Dreambit Text element.",
+    "body": "<Text class=\"${1:h1}\" text=\"${2:Text}\" $0/>"
+  },
+  "Dreambit button": {
+    "prefix": "ui-button",
+    "description": "Add a Dreambit Button with Text content.",
+    "body": [
+      "<Button class=\"${1:primary}\" width=\"${2:180}\" height=\"${3:48}\">",
+      "\t<Text text=\"${4:Button}\" />",
+      "</Button>"
+    ]
+  },
+  "Dreambit background brush": {
+    "prefix": "ui-background",
+    "description": "Assign a brush through a Dreambit property element.",
+    "body": [
+      "<${1:Button}.Background>",
+      "\t${2|<SolidColorBrush />,<SpriteBrush sprite=\"Ui/sprite\" />,<NineSliceBrush sprite=\"Ui/panel\" slice=\"8\" />|}",
+      "</${1:Button}.Background>"
+    ]
+  },
+  "Dreambit tooltip": {
+    "prefix": "ui-tooltip",
+    "description": "Assign a Tooltip property element.",
+    "body": [
+      "<${1:Button}.Tooltip>",
+      "\t<Tooltip delay=\"${2:0.5}\">",
+      "\t\t<Text text=\"${3:Tooltip}\" />",
+      "\t</Tooltip>",
+      "</${1:Button}.Tooltip>"
+    ]
+  }
+}

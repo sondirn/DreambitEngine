@@ -35,12 +35,17 @@ internal sealed class AssetRegistryStore
             using var stream = File.OpenRead(_registryPath);
             var document = JsonSerializer.Deserialize<AssetRegistryDocument>(stream, SerializerOptions)
                            ?? throw new AssetDatabaseException("The asset registry is empty.");
-            if (document.SchemaVersion != AssetRegistryDocument.CurrentSchemaVersion)
+            if (document.SchemaVersion is not AssetRegistryDocument.LegacySchemaVersion and
+                not AssetRegistryDocument.CurrentSchemaVersion)
                 throw new AssetDatabaseException(
                     $"Asset registry schema {document.SchemaVersion} is not supported. " +
-                    $"Expected {AssetRegistryDocument.CurrentSchemaVersion}.");
+                    $"Expected {AssetRegistryDocument.LegacySchemaVersion} or " +
+                    $"{AssetRegistryDocument.CurrentSchemaVersion}.");
 
             document.Assets ??= [];
+            // Version 1 has no authored import settings. Missing settings intentionally mean
+            // today's color-texture behavior, so migration requires no per-entry rewrite.
+            document.SchemaVersion = AssetRegistryDocument.CurrentSchemaVersion;
             return document;
         }
         catch (AssetDatabaseException)

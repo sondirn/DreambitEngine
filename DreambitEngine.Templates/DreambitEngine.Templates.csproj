@@ -3,7 +3,7 @@
     <TargetFramework>net9.0</TargetFramework>
 
     <PackageId>DreambitEngine.Templates</PackageId>
-    <Version>0.3.14</Version>
+    <Version>0.9.4</Version>
     <Title>Dreambit Engine Templates</Title>
     <Authors>Dreambit Engine</Authors>
     <Description>Project templates for creating games with Dreambit Engine.</Description>

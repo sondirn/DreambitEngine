@@ -29,8 +29,6 @@ public sealed class JsonbBaker : AssetBakerBase
     public override string[] SupportedInputs =>
     [
         ".json",
-        ".ldtk",
-        ".ldtkl",
         .. DreambitAssetExtensions.OrderBy(extension => extension, StringComparer.Ordinal)
     ];
     public override string OutputExtension => ".jsonb";

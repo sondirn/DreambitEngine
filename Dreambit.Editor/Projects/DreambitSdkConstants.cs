@@ -2,7 +2,7 @@ namespace Dreambit.Editor.Projects;
 
 internal static class DreambitSdkConstants
 {
-    public const string CurrentVersion = "0.3.14";
+    public const string CurrentVersion = "0.9.4";
     public const string RuntimePackageId = "DreambitEngine";
     public const string BuildPackageId = "DreambitEngine.Build";
     public const string EditorApiPackageId = "Dreambit.Editor.Abstractions";

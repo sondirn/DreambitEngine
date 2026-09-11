@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Dreambit;
+using DreambitEngine.AssetBaker.Abstractions;
+using DreambitEngine.AssetBaker.Core;
 
 namespace Dreambit.Editor.Assets;
 
@@ -23,6 +25,8 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
         new(PathComparer);
     private Dictionary<Guid, AssetRegistryEntry> _entriesById = [];
     private AssetDatabaseSnapshot _snapshot = AssetDatabaseSnapshot.Empty;
+    private readonly AssetBakerRegistry _bakers = AssetBakerRegistry.CreateDefault();
+    private IReadOnlyList<AssetCatalogEntry> _catalog = Array.Empty<AssetCatalogEntry>();
     private long _watcherRefreshRequestedAt;
     private bool _watcherRefreshPending;
     private bool _disposed;
@@ -202,6 +206,85 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
         return asset is not null;
     }
 
+    public IReadOnlyList<AssetCatalogEntry> GetAssets()
+    {
+        lock (_sync)
+            return _catalog;
+    }
+
+    /// <summary>
+    /// Atomically updates the authored interpretation of a live texture source. Import settings
+    /// are persisted before the new immutable snapshot is published, so a failed registry write
+    /// never leaves the Editor and disk disagreeing.
+    /// </summary>
+    public bool TrySetTextureSemantic(
+        AssetId assetId,
+        TextureSemantic semantic,
+        out string? error)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (assetId.IsEmpty)
+        {
+            error = "A live texture asset is required.";
+            return false;
+        }
+        if (!Enum.IsDefined(semantic))
+        {
+            error = $"Texture semantic '{semantic}' is not supported.";
+            return false;
+        }
+
+        lock (_sync)
+        {
+            var liveAsset = _snapshot.Assets.FirstOrDefault(asset => asset.Id == assetId);
+            if (liveAsset is null || liveAsset.Kind != AssetKind.Texture ||
+                !_entriesById.TryGetValue(assetId.Value, out var entry))
+            {
+                error = "The selected asset is not a live texture.";
+                return false;
+            }
+
+            var replacement = semantic == TextureSemantic.Color
+                ? null
+                : new AssetImportSettings
+                {
+                    Texture = new TextureImportSettings { Semantic = semantic }
+                };
+            if (Equals(entry.ImportSettings, replacement))
+            {
+                error = null;
+                return true;
+            }
+
+            var previous = entry.ImportSettings;
+            entry.ImportSettings = replacement;
+            try
+            {
+                _store.Save(_document);
+            }
+            catch (Exception exception) when (IsFileSystemException(exception))
+            {
+                entry.ImportSettings = previous;
+                error = $"Could not save texture import settings. {exception.Message}";
+                return false;
+            }
+
+            var assets = _snapshot.Assets
+                .Select(asset => asset.Id == assetId
+                    ? asset with { ImportSettings = replacement }
+                    : asset)
+                .ToArray();
+            _snapshot = _snapshot with
+            {
+                Version = _snapshot.Version + 1,
+                RefreshedUtc = DateTimeOffset.UtcNow,
+                Assets = assets
+            };
+            error = null;
+            return true;
+        }
+    }
+
     public bool TryCreateFolder(string parentPath, string name, out string? error)
     {
         if (!TryValidateName(name, out error))
@@ -316,13 +399,25 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
                 copyNumber++;
             } while (PathExists(target) || IsRegistryPathReserved(ToRelativePath(target), isDirectory));
 
+            IReadOnlyDictionary<string, AssetImportSettings?> importSettings;
+            lock (_sync)
+            {
+                importSettings = CaptureDuplicateImportSettings(
+                    ToRelativePath(source),
+                    ToRelativePath(target),
+                    isDirectory);
+            }
+
             if (isDirectory)
                 CopyDirectory(source, target);
             else
                 File.Copy(source, target, false);
 
             lock (_sync)
-                RefreshCore([], reconcileMissingMoves: false);
+                RefreshCore(
+                    [],
+                    reconcileMissingMoves: false,
+                    importSettingsForNewPaths: importSettings);
             duplicatedPath = ToRelativePath(target);
             Report(
                 AssetDatabaseDiagnosticSeverity.Information,
@@ -422,7 +517,8 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
 
     private void RefreshCore(
         IReadOnlyList<PendingRename> renames,
-        bool reconcileMissingMoves = true)
+        bool reconcileMissingMoves = true,
+        IReadOnlyDictionary<string, AssetImportSettings?>? importSettingsForNewPaths = null)
     {
         foreach (var rename in renames)
             RewriteRegistryPath(rename.OldPath, rename.NewPath, rename.IsDirectory);
@@ -497,6 +593,12 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
                 Path = file.RelativePath
             };
             UpdateEntry(entry, file);
+            if (importSettingsForNewPaths?.TryGetValue(
+                    file.RelativePath,
+                    out var importSettings) == true)
+            {
+                entry.ImportSettings = NormalizeImportSettings(entry.Kind, importSettings);
+            }
             _document.Assets.Add(entry);
             _entriesByPath.Add(entry.Path, entry);
             _entriesById.Add(entry.Id, entry);
@@ -514,6 +616,17 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
             .OrderBy(asset => asset.RelativePath, PathComparer)
             .ToArray();
         var folders = ScanFolders();
+        // Build from live files, never the persisted tombstones. Match the bake's source-only
+        // exclusions while leaving the editor's full project snapshot and identity APIs intact.
+        _catalog = Array.AsReadOnly(assets.Where(asset =>
+            {
+                var extension = Path.GetExtension(asset.RelativePath);
+                return _bakers.GetByExt(extension) is not null &&
+                       !extension.Equals(".css", StringComparison.OrdinalIgnoreCase) &&
+                       !extension.Equals(".ucss", StringComparison.OrdinalIgnoreCase);
+            })
+            .Select(asset => new AssetCatalogEntry(asset.Id, asset.LogicalAssetName, asset.TypeId))
+            .ToArray());
         var missingCount = _document.Assets.Count - assets.Length;
         _snapshot = new AssetDatabaseSnapshot(
             _snapshot.Version + 1,
@@ -603,6 +716,7 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
             if (!byId.TryAdd(entry.Id, entry))
                 throw new AssetDatabaseException(
                     $"The asset registry contains duplicate ID '{entry.Id:D}'.");
+            entry.ImportSettings = NormalizeImportSettings(entry.Kind, entry.ImportSettings);
         }
 
         _entriesByPath = byPath;
@@ -733,6 +847,7 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
         entry.LastWriteUtcTicks = file.LastWriteUtcTicks;
         entry.ContentHash = file.ContentHash;
         entry.ClassificationVersion = AssetTypeClassifier.ClassificationVersion;
+        entry.ImportSettings = NormalizeImportSettings(entry.Kind, entry.ImportSettings);
     }
 
     private static AssetRecord CreateAssetRecord(AssetRegistryEntry entry, ScannedFile file)
@@ -747,7 +862,50 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
             file.TypeInfo.Kind,
             file.TypeInfo.TypeId,
             file.Length,
-            new DateTimeOffset(file.LastWriteUtcTicks, TimeSpan.Zero));
+            new DateTimeOffset(file.LastWriteUtcTicks, TimeSpan.Zero),
+            entry.ImportSettings);
+    }
+
+    private Dictionary<string, AssetImportSettings?> CaptureDuplicateImportSettings(
+        string sourcePath,
+        string targetPath,
+        bool isDirectory)
+    {
+        var result = new Dictionary<string, AssetImportSettings?>(PathComparer);
+        foreach (var entry in _entriesByPath.Values)
+        {
+            if (!PathComparer.Equals(entry.Path, sourcePath) &&
+                (!isDirectory || !IsPathWithin(entry.Path, sourcePath)))
+            {
+                continue;
+            }
+
+            if (entry.ImportSettings is null)
+                continue;
+            var suffix = entry.Path.Length == sourcePath.Length
+                ? string.Empty
+                : entry.Path[sourcePath.Length..].TrimStart('/');
+            var duplicatedPath = suffix.Length == 0 ? targetPath : $"{targetPath}/{suffix}";
+            result[duplicatedPath] = entry.ImportSettings;
+        }
+        return result;
+    }
+
+    private static AssetImportSettings? NormalizeImportSettings(
+        AssetKind kind,
+        AssetImportSettings? settings)
+    {
+        if (kind != AssetKind.Texture || settings?.Texture is not { } texture)
+            return null;
+        if (!Enum.IsDefined(texture.Semantic))
+            throw new AssetDatabaseException(
+                $"Texture import semantic '{texture.Semantic}' is not supported.");
+        return texture.Semantic == TextureSemantic.Color
+            ? null
+            : new AssetImportSettings
+            {
+                Texture = new TextureImportSettings { Semantic = texture.Semantic }
+            };
     }
 
     private string GetAbsolutePath(string relativePath, bool allowRoot)
@@ -845,7 +1003,12 @@ internal sealed class AssetDatabase : IAssetRegistry, IDisposable
 
     private static string ToLogicalAssetName(string relativePath)
     {
-        if (DreambitAssetFileExtensions.IsSerialized(Path.GetExtension(relativePath)))
+        var extension = Path.GetExtension(relativePath);
+        if (extension.Equals(".ucss", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".css", StringComparison.OrdinalIgnoreCase))
+            return relativePath.Replace('\\', '/');
+
+        if (DreambitAssetFileExtensions.IsSerialized(extension))
             return relativePath.Replace('\\', '/');
 
         var withoutExtension = Path.ChangeExtension(relativePath, null) ?? relativePath;

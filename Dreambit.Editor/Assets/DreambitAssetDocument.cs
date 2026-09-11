@@ -1,4 +1,5 @@
 using System.Collections;
+using Dreambit.ECS;
 using Dreambit.Editor.Inspection;
 using Dreambit.Editor.Undo;
 using Newtonsoft.Json.Linq;
@@ -193,6 +194,10 @@ internal sealed class DreambitAssetDocument : IDisposable
             if (!string.IsNullOrWhiteSpace(asset.AssetName))
                 return new JValue(asset.AssetName);
         }
+        if (value is Entity entity)
+            return new JValue(entity.Id.ToString());
+        if (value is Component component)
+            return new JValue(component.Entity.Id.ToString());
         if (value is IDictionary dictionary)
         {
             var valueType = declaredType.IsGenericType

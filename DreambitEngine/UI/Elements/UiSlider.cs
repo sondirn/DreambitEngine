@@ -193,13 +193,10 @@ public class UiSlider : UiRangeBase
     public override void Parse(XmlNode node)
     {
         base.Parse(node);
-        var orientation = UiXmlParser.ParseString(node, "orientation", "Horizontal");
-        Orientation = Enum.TryParse(
-            orientation,
-            true,
-            out StackOrientation parsedOrientation)
-            ? parsedOrientation
-            : StackOrientation.Horizontal;
+        Orientation = UiXmlParser.ParseEnum(
+            node,
+            "orientation",
+            StackOrientation.Horizontal);
         TrackThickness = Math.Max(1, UiXmlParser.ParseInt(node, "track-thickness", 4));
         ThumbSize = Math.Max(1, UiXmlParser.ParseInt(node, "thumb-size", 14));
         ParseTint(node, "track-tint", value => TrackTint = value);

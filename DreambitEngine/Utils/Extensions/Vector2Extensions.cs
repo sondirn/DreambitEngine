@@ -13,4 +13,9 @@ public static class Vector2Extensions
     {
         return Mathf.Atan2(vector.Y, vector.X);
     }
+
+    public static bool IsFinite(this Vector2 vector)
+    {
+        return float.IsFinite(vector.X) &&  float.IsFinite(vector.Y);
+    }
 }

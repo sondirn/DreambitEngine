@@ -1,15 +1,12 @@
 using Dreambit.Editor.Compilation;
 using Dreambit.Editor.Projects;
 using Dreambit.Editor.Assets;
-using Dreambit.LDtk;
 using Dreambit.Tiled;
 
 namespace Dreambit.Editor.Scenes;
 
 internal sealed class SceneDocumentService : IDisposable
 {
-    internal sealed record LDtkWorldChoice(string DisplayName, Guid WorldIid);
-
     private readonly DreambitProjectDefinition _project;
     private readonly GameAssemblyLoadService _assemblies;
     private readonly AssetDatabase _assets;
@@ -49,41 +46,8 @@ internal sealed class SceneDocumentService : IDisposable
             Selection,
             _reportError,
             ResolveBlueprintInstance,
-            ResolveLDtkProject,
-            tiledMapResolver: ResolveTiledMap);
-        ReplaceCurrent(replacement);
-        return replacement;
-    }
-
-    public SceneDocument NewFromLDtk(
-        AssetRecord asset,
-        Guid worldIid,
-        string? worldName = null,
-        LDtkImportOptions? importOptions = null)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentNullException.ThrowIfNull(asset);
-        if (asset.Kind != AssetKind.Ldtk ||
-            !asset.RelativePath.EndsWith(".ldtk", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("The selected asset is not an LDtk project.", nameof(asset));
-
-        var sceneName = string.IsNullOrWhiteSpace(worldName)
-            ? System.IO.Path.GetFileNameWithoutExtension(asset.Name)
-            : worldName;
-        var replacement = SceneDocument.CreateNew(
-            sceneName,
-            Selection,
-            _reportError,
-            ResolveBlueprintInstance,
-            ResolveLDtkProject,
-            new LDtkSceneReference
-            {
-                AssetId = asset.Id.Value,
-                AssetName = asset.LogicalAssetName,
-                WorldIid = worldIid,
-                ImportOptions = (importOptions ?? new LDtkImportOptions()).Clone()
-            },
-            tiledMapResolver: ResolveTiledMap);
+            tiledMapResolver: ResolveTiledMap,
+            activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
         ReplaceCurrent(replacement);
         return replacement;
     }
@@ -103,27 +67,16 @@ internal sealed class SceneDocumentService : IDisposable
             Selection,
             _reportError,
             ResolveBlueprintInstance,
-            ResolveLDtkProject,
             tiledMapResolver: ResolveTiledMap,
             tiled: new TiledSceneReference
             {
                 AssetId = asset.Id.Value,
                 AssetName = asset.LogicalAssetName,
                 ImportOptions = (importOptions ?? new TiledImportOptions()).Clone()
-            });
+            },
+            activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
         ReplaceCurrent(replacement);
         return replacement;
-    }
-
-    public IReadOnlyList<LDtkWorldChoice> GetLDtkWorldChoices(AssetRecord asset)
-    {
-        ArgumentNullException.ThrowIfNull(asset);
-        var project = LoadLDtkSource(asset);
-        if (project.AvailableWorlds.Count == 0)
-            return [new LDtkWorldChoice("World", Guid.Empty)];
-        return project.AvailableWorlds
-            .Select(world => new LDtkWorldChoice(world.Identifier, world.Iid))
-            .ToArray();
     }
 
     public SceneDocument Open(string path)
@@ -135,8 +88,8 @@ internal sealed class SceneDocumentService : IDisposable
             Selection,
             _reportError,
             ResolveBlueprintInstance,
-            ResolveLDtkProject,
-            tiledMapResolver: ResolveTiledMap);
+            tiledMapResolver: ResolveTiledMap,
+            activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
         ReplaceCurrent(replacement);
         return replacement;
     }
@@ -146,6 +99,9 @@ internal sealed class SceneDocumentService : IDisposable
         var document = Current ?? throw new InvalidOperationException("No scene is open.");
         document.Save(path is null ? null : ResolveScenePath(path));
     }
+
+    private string? GetActiveGameAssemblyName() =>
+        _assemblies.Current?.Assembly.GetName().Name;
 
     public string ResolveScenePath(string path)
     {
@@ -176,15 +132,11 @@ internal sealed class SceneDocumentService : IDisposable
         if (assetVersion != _observedAssetVersion)
         {
             _observedAssetVersion = assetVersion;
-            if (Current is { } current &&
-                (current.LDtkReference is not null || current.TiledReference is not null))
+            if (Current is { TiledReference: not null } current)
             {
                 try
                 {
-                    if (current.LDtkReference is not null)
-                        current.ReimportLDtk();
-                    else
-                        current.ReimportTiled();
+                    current.ReimportTiled();
                 }
                 catch (Exception exception)
                 {
@@ -210,6 +162,46 @@ internal sealed class SceneDocumentService : IDisposable
         => _blueprintSources.SetPreview(asset, blueprint);
 
     public void ClearBlueprintPreviews() => _blueprintSources.ClearPreviews();
+
+    /// <summary>
+    /// Repairs scene documents after an Entity Blueprint has been removed. The open scene is
+    /// changed through its undo history; unopened scene assets are updated on disk so a later
+    /// load cannot retain a dangling Blueprint instance.
+    /// </summary>
+    public int RemoveDeletedBlueprintReferences(AssetRecord deletedAsset)
+    {
+        ArgumentNullException.ThrowIfNull(deletedAsset);
+        if (deletedAsset.Kind != AssetKind.Blueprint)
+            return 0;
+
+        var removed = Current?.RemoveDeletedBlueprintInstances(
+            deletedAsset.Id,
+            deletedAsset.LogicalAssetName) ?? 0;
+        var currentPath = Current?.Path;
+        foreach (var sceneAsset in _assets.GetSnapshot().Assets.Where(asset =>
+                     asset.Kind == AssetKind.Scene &&
+                     !string.Equals(
+                         ResolveScenePath(asset.RelativePath),
+                         currentPath,
+                         OperatingSystem.IsWindows()
+                             ? StringComparison.OrdinalIgnoreCase
+                             : StringComparison.Ordinal)))
+        {
+            var path = ResolveScenePath(sceneAsset.RelativePath);
+            var source = SceneDocumentSerializer.Deserialize(File.ReadAllText(path));
+            var removedFromScene = SceneDocument.RemoveBlueprintInstanceReferences(
+                source.Entities,
+                deletedAsset.Id,
+                deletedAsset.LogicalAssetName);
+            if (removedFromScene == 0)
+                continue;
+
+            WriteSceneAtomically(path, SceneDocumentSerializer.Serialize(source));
+            removed += removedFromScene;
+        }
+
+        return removed;
+    }
 
     public void Close()
     {
@@ -249,31 +241,6 @@ internal sealed class SceneDocumentService : IDisposable
     private EntityBlueprint ResolveBlueprintInstance(BlueprintInstanceReference instance) =>
         _blueprintSources.Resolve(instance);
 
-    private LDtkFile ResolveLDtkProject(LDtkSceneReference instance)
-    {
-        var assets = _assets.GetSnapshot().Assets;
-        var asset = instance.AssetId != Guid.Empty
-            ? assets.FirstOrDefault(candidate => candidate.Id.Value == instance.AssetId)
-            : assets.FirstOrDefault(candidate =>
-                !string.IsNullOrWhiteSpace(instance.AssetName) &&
-                string.Equals(
-                    candidate.LogicalAssetName,
-                    instance.AssetName,
-                    StringComparison.OrdinalIgnoreCase));
-        if (asset is null || asset.Kind != AssetKind.Ldtk)
-            throw new FileNotFoundException(
-                $"LDtk project asset '{instance.AssetName}' is not present in this project.");
-        return LoadLDtkSource(asset);
-    }
-
-    private LDtkFile LoadLDtkSource(AssetRecord asset)
-    {
-        var path = System.IO.Path.Combine(
-            _project.ContentRootPath,
-            asset.RelativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
-        return LDtkFile.FromContentFile(path, asset.LogicalAssetName, _project.ContentRootPath);
-    }
-
     private TmxMap ResolveTiledMap(TiledSceneReference instance)
     {
         var assets = _assets.GetSnapshot().Assets;
@@ -300,6 +267,21 @@ internal sealed class SceneDocumentService : IDisposable
             _project.ContentRootPath,
             asset.RelativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
         return TmxMap.FromContentFile(path, asset.LogicalAssetName, _project.ContentRootPath);
+    }
+
+    private static void WriteSceneAtomically(string path, string content)
+    {
+        var temporaryPath = path + $".{Guid.NewGuid():N}.tmp";
+        try
+        {
+            File.WriteAllText(temporaryPath, content);
+            File.Move(temporaryPath, path, true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
     }
 
     public void Dispose()

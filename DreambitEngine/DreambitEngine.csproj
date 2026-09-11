@@ -4,15 +4,20 @@
         <BaseOutputPath>Build\</BaseOutputPath>
         <AssemblyName>Dreambit</AssemblyName>
         <RootNamespace>Dreambit</RootNamespace>
+        <Nullable>annotations</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsPackable>true</IsPackable>
         <PackageId>DreambitEngine</PackageId>
-        <PackageVersion Condition="'$(PackageVersion)' == ''">0.3.14</PackageVersion>
+        <PackageVersion Condition="'$(PackageVersion)' == ''">0.9.4</PackageVersion>
         <Authors>Dreambit Engine</Authors>
         <Description>DreambitEngine runtime library for MonoGame games.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>dreambit;monogame;game-engine</PackageTags>
         <RepositoryUrl>https://github.com/Twisted-Demon/DreambitEngine</RepositoryUrl>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- The runtime predates complete XML coverage. Keep package IntelliSense enabled while
+             individual subsystems are documented without flooding builds with legacy CS1591 warnings. -->
+        <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
         <OutputPath>$(BaseOutputPath)</OutputPath> <!-- No version folder for Debug -->

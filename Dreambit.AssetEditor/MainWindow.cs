@@ -623,9 +623,9 @@ internal sealed class MainWindow : AvaloniaWindow
                             ?? throw new InvalidDataException("The SceneBlueprint deserialized to null.");
                 errors = scene.Entities.SelectMany(BlueprintValidator.Validate).ToArray();
             }
-            else if (_document.AssetType == typeof(SpriteSheetAnimation))
+            else if (_document.AssetType == typeof(SpriteAnimation))
             {
-                errors = ValidateSpriteSheetAnimation(_document.Json);
+                errors = ValidateSpriteAnimation(_document.Json);
             }
             else
             {
@@ -669,17 +669,9 @@ internal sealed class MainWindow : AvaloniaWindow
         }
     }
 
-    private static IReadOnlyList<string> ValidateSpriteSheetAnimation(JObject json)
+    private static IReadOnlyList<string> ValidateSpriteAnimation(JObject json)
     {
         var errors = new List<string>();
-
-        var spriteSheet = json["sprite_sheet"];
-        if (spriteSheet is null ||
-            spriteSheet.Type == JTokenType.Null ||
-            spriteSheet is JValue { Type: JTokenType.String } value &&
-            string.IsNullOrWhiteSpace(value.Value<string>()) ||
-            spriteSheet.Type is not JTokenType.String and not JTokenType.Object)
-            errors.Add("Sprite Sheet: enter a project-relative sprite-sheet asset path.");
 
         var framesPerSecond = json.Value<float?>("frames_per_second") ?? 12f;
         if (!float.IsFinite(framesPerSecond) || framesPerSecond <= 0f)
@@ -694,26 +686,29 @@ internal sealed class MainWindow : AvaloniaWindow
         if (frameTokens.Count == 0)
             errors.Add("Frames: add at least one frame.");
 
-        try
+        for (var i = 0; i < frameTokens.Count; i++)
         {
-            var frames = (List<SpriteAnimationFrame>)DreambitJson.FromToken(
-                frameTokens,
-                typeof(List<SpriteAnimationFrame>))!;
-
-            for (var i = 0; i < frames.Count; i++)
+            if (frameTokens[i] is not JObject frame)
             {
-                var frame = frames[i];
-                if (frame.SpriteIndex < 0)
-                    errors.Add($"Frames[{i}]: sprite cannot be negative.");
-                if (frame.Duration is <= 0f)
-                    errors.Add($"Frames[{i}]: duration must be greater than zero when specified.");
-                if (frame.Event is not null && string.IsNullOrWhiteSpace(frame.Event.Name))
-                    errors.Add($"Frames[{i}]: event name is required.");
+                errors.Add($"Frames[{i}]: an object is required.");
+                continue;
             }
-        }
-        catch (Exception exception)
-        {
-            errors.Add($"Frames: {exception.GetBaseException().Message}");
+
+            var sprite = frame["sprite"];
+            if (sprite is null ||
+                sprite.Type == JTokenType.Null ||
+                sprite is JValue { Type: JTokenType.String } value &&
+                string.IsNullOrWhiteSpace(value.Value<string>()) ||
+                sprite.Type is not JTokenType.String and not JTokenType.Object)
+                errors.Add($"Frames[{i}]: enter a project-relative sprite asset path.");
+
+            var duration = frame.Value<float?>("duration");
+            if (duration is not null && (!float.IsFinite(duration.Value) || duration <= 0f))
+                errors.Add($"Frames[{i}]: duration must be finite and greater than zero when specified.");
+
+            if (frame["event"] is JObject animationEvent &&
+                string.IsNullOrWhiteSpace(animationEvent.Value<string>("name")))
+                errors.Add($"Frames[{i}]: event name is required.");
         }
 
         return errors;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Dreambit.ECS;
 
@@ -9,10 +10,10 @@ public class SpriteAnimator : Component
 {
     private readonly Dictionary<string, Action<SpriteAnimationEvent>> _eventHandlers =
         new(StringComparer.Ordinal);
-    private readonly Queue<SpriteSheetAnimation> _animationQueue = [];
+    private readonly Queue<SpriteAnimation> _animationQueue = [];
 
     [FromRequired]
-    private SpriteDrawer _spriteDrawer;
+    private SpriteDrawer? SpriteDrawer { get; set; }
 
     private float _elapsedFrameTime;
     private float _playSpeed = 1f;
@@ -20,7 +21,7 @@ public class SpriteAnimator : Component
     private uint _playbackVersion;
 
     [DreambitSerialize]
-    public SpriteSheetAnimation InitialAnimation { get; set; }
+    public SpriteAnimation? InitialAnimation { get; set; }
 
     [DreambitSerialize]
     public bool PlayOnStart { get; set; }
@@ -37,11 +38,10 @@ public class SpriteAnimator : Component
         }
     }
 
-    public event Action<SpriteSheetAnimation> AnimationCompleted;
+    public event Action<SpriteAnimation>? AnimationCompleted;
 
-    public SpriteSheetAnimation Animation { get; private set; }
-    public SpriteSheet CurrentSpriteSheet => Animation?.SpriteSheet;
-    public SpriteAnimationFrame CurrentFrame => Animation?[CurrentFrameIndex];
+    public SpriteAnimation? Animation { get; private set; }
+    public SpriteAnimationFrame? CurrentFrame => Animation?[CurrentFrameIndex];
     public int CurrentFrameIndex { get; private set; }
     public bool IsPlaying { get; private set; }
 
@@ -62,8 +62,6 @@ public class SpriteAnimator : Component
 
     public override void OnCreated()
     {
-        _spriteDrawer.WithPivot(PivotType.Custom);
-
         if (InitialAnimation is not null)
             StartAnimation(InitialAnimation);
 
@@ -83,7 +81,7 @@ public class SpriteAnimator : Component
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(animationPath);
 
-        var animation = Resources.LoadAsset<SpriteSheetAnimation>(animationPath);
+        var animation = Resources.LoadAsset<SpriteAnimation>(animationPath);
         if (animation is null)
             throw new InvalidOperationException($"Could not load sprite animation '{animationPath}'.");
 
@@ -94,7 +92,7 @@ public class SpriteAnimator : Component
     /// Selects an animation and displays its first frame. Selecting the current
     /// animation is a no-op; call <see cref="Restart"/> to restart it explicitly.
     /// </summary>
-    public void SetAnimation(SpriteSheetAnimation animation)
+    public void SetAnimation(SpriteAnimation animation)
     {
         ArgumentNullException.ThrowIfNull(animation);
 
@@ -104,7 +102,7 @@ public class SpriteAnimator : Component
         StartAnimation(animation);
     }
 
-    public void Play(SpriteSheetAnimation animation)
+    public void Play(SpriteAnimation animation)
     {
         SetAnimation(animation);
         Play();
@@ -149,7 +147,7 @@ public class SpriteAnimator : Component
         Play();
     }
 
-    public void QueueAnimation(SpriteSheetAnimation animation)
+    public void QueueAnimation(SpriteAnimation animation)
     {
         ArgumentNullException.ThrowIfNull(animation);
         ThrowIfInvalid(animation);
@@ -160,7 +158,7 @@ public class SpriteAnimator : Component
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(animationPath);
 
-        var animation = Resources.LoadAsset<SpriteSheetAnimation>(animationPath);
+        var animation = Resources.LoadAsset<SpriteAnimation>(animationPath);
         if (animation is null)
             throw new InvalidOperationException($"Could not load sprite animation '{animationPath}'.");
 
@@ -224,6 +222,12 @@ public class SpriteAnimator : Component
 
     private void AdvanceFrame()
     {
+        if (Animation is null)
+        {
+            Stop();
+            return;
+        }
+        
         if (CurrentFrameIndex + 1 < Animation.FrameCount)
         {
             SetCurrentFrame(CurrentFrameIndex + 1, dispatchEvent: true);
@@ -235,6 +239,12 @@ public class SpriteAnimator : Component
 
     private void CompleteAnimationIteration()
     {
+        if (Animation is null)
+        {
+            Stop();
+            return;
+        }
+        
         var completedAnimation = Animation;
         var playbackVersion = _playbackVersion;
         AnimationCompleted?.Invoke(completedAnimation);
@@ -264,7 +274,7 @@ public class SpriteAnimator : Component
         _elapsedFrameTime = Animation.GetFrameDuration(CurrentFrameIndex);
     }
 
-    private void StartAnimation(SpriteSheetAnimation animation, bool preserveElapsedTime = false)
+    private void StartAnimation(SpriteAnimation animation, bool preserveElapsedTime = false)
     {
         ThrowIfInvalid(animation);
 
@@ -287,13 +297,23 @@ public class SpriteAnimator : Component
 
     private void SetCurrentFrame(int frameIndex, bool dispatchEvent)
     {
+        ArgumentNullException.ThrowIfNull(SpriteDrawer);
+
+        if (Animation is null)
+        {
+            Stop();
+            return;
+        }
+
         CurrentFrameIndex = frameIndex;
         _currentFrameEventDispatched = false;
 
         var frame = Animation[frameIndex];
-        var sprite = Animation.SpriteSheet[frame.SpriteIndex];
-        _spriteDrawer.SetSprite(sprite);
-        _spriteDrawer.WithPivot(Animation.GetFramePivot(frameIndex));
+        var sprite = frame.Sprite;
+
+        ArgumentNullException.ThrowIfNull(sprite);
+
+        SpriteDrawer.SetSprite(sprite);
 
         if (dispatchEvent)
             DispatchCurrentFrameEvent();
@@ -308,8 +328,8 @@ public class SpriteAnimator : Component
         if (_eventHandlers.TryGetValue(animationEvent.Name, out var handler))
             handler.Invoke(animationEvent);
     }
-
-    private static void ThrowIfInvalid(SpriteSheetAnimation animation)
+    
+    private static void ThrowIfInvalid(SpriteAnimation animation)
     {
         var errors = animation.GetValidationErrors();
         if (errors.Count > 0)
@@ -324,6 +344,6 @@ public class SpriteAnimator : Component
         Animation = null;
         _animationQueue.Clear();
         _eventHandlers.Clear();
-        _spriteDrawer = null;
+        SpriteDrawer = null;
     }
 }

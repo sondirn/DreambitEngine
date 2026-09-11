@@ -1,4 +1,5 @@
 using Dreambit;
+using DreambitEngine.AssetBaker.Abstractions;
 
 namespace Dreambit.Editor.Assets;
 
@@ -11,7 +12,8 @@ internal sealed record AssetRecord(
     AssetKind Kind,
     string? TypeId,
     long Length,
-    DateTimeOffset LastWriteUtc);
+    DateTimeOffset LastWriteUtc,
+    AssetImportSettings? ImportSettings = null);
 
 internal sealed record AssetFolderRecord(
     string RelativePath,

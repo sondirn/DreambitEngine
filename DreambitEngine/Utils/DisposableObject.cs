@@ -8,8 +8,14 @@ public abstract class DisposableObject : IDisposable
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        try
+        {
+            Dispose(true);
+        }
+        finally
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
     ~DisposableObject()
@@ -23,10 +29,18 @@ public abstract class DisposableObject : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
-        if (disposing)
-            CleanUp();
+        if (_isDisposed)
+            return;
 
-        _isDisposed = true;
+        try
+        {
+            if (disposing)
+                CleanUp();
+        }
+        finally
+        {
+            // Disposal is terminal even if CleanUp throws.
+            _isDisposed = true;
+        }
     }
 }

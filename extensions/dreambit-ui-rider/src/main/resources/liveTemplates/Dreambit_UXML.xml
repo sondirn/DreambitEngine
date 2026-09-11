@@ -1,0 +1,12 @@
+<templateSet group="Dreambit UXML">
+  <template name="dbui" value="&lt;Ui&gt;&#10;    $END$&#10;&lt;/Ui&gt;" description="Dreambit UI layout root" toReformat="true" toShortenFQNames="true">
+    <context><option name="XML" value="true" /></context>
+  </template>
+  <template name="dbcomponent" value="&lt;UiComponent&gt;&#10;    $END$&#10;&lt;/UiComponent&gt;" description="Dreambit reusable UI component root" toReformat="true" toShortenFQNames="true">
+    <context><option name="XML" value="true" /></context>
+  </template>
+  <template name="dbinclude" value="&lt;Include source=&quot;$PATH$&quot; /&gt;$END$" description="Dreambit UXML include" toReformat="true" toShortenFQNames="true">
+    <variable name="PATH" expression="" defaultValue="&quot;Ui/components/component.uxml&quot;" alwaysStopAt="true" />
+    <context><option name="XML" value="true" /></context>
+  </template>
+</templateSet>

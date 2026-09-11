@@ -62,6 +62,45 @@ public sealed class SceneDocumentServiceTests : IDisposable
         Assert.Equal("do not overwrite", File.ReadAllText(outsidePath));
     }
 
+    [Fact]
+    public void RemovingBlueprintReferencesRepairsUnopenedSceneAssets()
+    {
+        using var fixture = CreateFixture();
+        Directory.CreateDirectory(Path.Combine(ContentRoot, "Actors"));
+        Directory.CreateDirectory(Path.Combine(ContentRoot, "Scenes"));
+        File.WriteAllText(
+            Path.Combine(ContentRoot, "Actors", "Hero.blueprint"),
+            DreambitJson.Serialize(new EntityBlueprint { Name = "Hero" }));
+        fixture.Assets.RefreshNow();
+        Assert.True(fixture.Assets.TryGetAsset("Actors/Hero.blueprint", out var blueprint));
+
+        var scenePath = Path.Combine(ContentRoot, "Scenes", "Level.scene");
+        File.WriteAllText(scenePath, SceneDocumentSerializer.Serialize(new SceneBlueprint
+        {
+            Name = "Level",
+            Entities =
+            [
+                new EntityBlueprint
+                {
+                    Name = "Hero Instance",
+                    BlueprintInstance = new BlueprintInstanceReference
+                    {
+                        AssetId = blueprint!.Id.Value,
+                        AssetName = blueprint.LogicalAssetName
+                    }
+                },
+                new EntityBlueprint { Name = "Keep" }
+            ]
+        }));
+        fixture.Assets.RefreshNow();
+
+        var removed = fixture.Scenes.RemoveDeletedBlueprintReferences(blueprint!);
+
+        Assert.Equal(1, removed);
+        var repaired = SceneDocumentSerializer.Deserialize(File.ReadAllText(scenePath));
+        Assert.Equal("Keep", Assert.Single(repaired.Entities).Name);
+    }
+
     private Fixture CreateFixture()
     {
         var project = new DreambitProjectDefinition(

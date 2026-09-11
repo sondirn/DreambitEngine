@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Dreambit;
 
 /// <summary>
@@ -6,6 +8,9 @@ namespace Dreambit;
 /// </summary>
 public interface IAssetRegistry
 {
+    /// <summary>Returns a read-only snapshot of the live authored asset catalog.</summary>
+    IReadOnlyList<AssetCatalogEntry> GetAssets();
+
     bool TryResolveAssetName(AssetId assetId, out string assetName);
 
     bool TryGetAssetId(string assetName, out AssetId assetId);

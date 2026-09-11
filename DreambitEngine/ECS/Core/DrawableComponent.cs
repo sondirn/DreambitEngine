@@ -103,5 +103,5 @@ public abstract class DrawableComponent : Component
 
 public abstract class DrawableComponent<T> : DrawableComponent where T : DrawableComponent
 {
-    protected readonly Logger<T> Logger = new();
+    protected new readonly Logger<T> Logger = new();
 }

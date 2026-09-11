@@ -63,6 +63,20 @@ public sealed class EditorPanelRegistryTests
         Assert.Single(exception.InnerExceptions);
     }
 
+    [Fact]
+    public void CapturesCurrentPanelVisibilityBeforeWorkspacePersistence()
+    {
+        var state = new EditorWorkspaceState();
+        using var registry = new EditorPanelRegistry(state);
+        var panel = new TestPanel("visibility") { IsOpen = false };
+        registry.Register(panel);
+
+        panel.IsOpen = true;
+        registry.CaptureVisibility();
+
+        Assert.True(state.PanelVisibility[panel.Id]);
+    }
+
     private sealed class TestPanel : IEditorPanel
     {
         private readonly List<string>? _disposeOrder;

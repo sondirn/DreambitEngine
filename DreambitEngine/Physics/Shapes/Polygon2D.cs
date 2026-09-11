@@ -69,35 +69,128 @@ public struct Polygon2D
         mtvDepth = float.MaxValue;
         mtvAxis = Vector2.Zero;
 
-        // Build axes from both polygons
-        var axes = new List<Vector2>();
-        foreach (var edge in GetEdges())
-            axes.Add(Vector2.Normalize(new Vector2(-edge.Y, edge.X)));
-        foreach (var edge in other.GetEdges())
-            axes.Add(Vector2.Normalize(new Vector2(-edge.Y, edge.X)));
-
-        foreach (var axis in axes)
+        if (Vertices is not { Length: >= 3 } ||
+            other.Vertices is not { Length: >= 3 })
         {
-            var (minA, maxA) = ProjectOntoAxis(axis);
-            var (minB, maxB) = other.ProjectOntoAxis(axis);
-
-            if (maxA < minB || maxB < minA)
-                return false; // separating axis found
-
-            // overlap on this axis
-            var overlap = MathF.Min(maxA, maxB) - MathF.Max(minA, minB);
-            if (overlap < mtvDepth)
-            {
-                mtvDepth = overlap;
-                mtvAxis = axis;
-            }
+            return false;
         }
 
-        // Point mtvAxis from A -> B (roughly)
-        var centerA = GetCentroid();
-        var centerB = other.GetCentroid();
-        var dir = centerB - centerA;
-        if (Vector2.Dot(dir, mtvAxis) < 0) mtvAxis = -mtvAxis;
+        /*
+         * SAT requires axes perpendicular to every edge of both polygons.
+         *
+         * We can test each axis immediately instead.
+         */
+        if (!TestSatAxes(
+                this,
+                this,
+                other,
+                ref mtvAxis,
+                ref mtvDepth))
+        {
+            return false;
+        }
+
+        if (!TestSatAxes(
+                other,
+                this,
+                other,
+                ref mtvAxis,
+                ref mtvDepth))
+        {
+            return false;
+        }
+
+        /*
+         * Preserve the previous MTV orientation:
+         * axis should point approximately from A toward B.
+         */
+        var centerA =
+            GetCentroid();
+
+        var centerB =
+            other.GetCentroid();
+
+        var direction =
+            centerB - centerA;
+
+        if (Vector2.Dot(
+                direction,
+                mtvAxis) < 0f)
+        {
+            mtvAxis = -mtvAxis;
+        }
+
+        return true;
+    }
+    
+    private static bool TestSatAxes(
+        Polygon2D axisSource,
+        Polygon2D polygonA,
+        Polygon2D polygonB,
+        ref Vector2 mtvAxis,
+        ref float mtvDepth)
+    {
+        var vertices =
+            axisSource.Vertices;
+
+        for (var index = 0;
+             index < vertices.Length;
+             index++)
+        {
+            var current =
+                vertices[index];
+
+            var next =
+                vertices[
+                    (index + 1) %
+                    vertices.Length];
+
+            var edge =
+                next - current;
+
+            var axis =
+                new Vector2(
+                    -edge.Y,
+                    edge.X);
+
+            var axisLengthSquared =
+                axis.LengthSquared();
+
+            /*
+             * Degenerate edges do not define a useful separating axis.
+             * Clean polygons should not normally contain these, but ignoring
+             * them keeps SAT robust.
+             */
+            if (axisLengthSquared <= EPS * EPS)
+                continue;
+
+            axis *=
+                1f /
+                MathF.Sqrt(axisLengthSquared);
+
+            var (minA, maxA) =
+                polygonA.ProjectOntoAxis(axis);
+
+            var (minB, maxB) =
+                polygonB.ProjectOntoAxis(axis);
+
+            if (maxA < minB ||
+                maxB < minA)
+            {
+                // Separating axis found.
+                return false;
+            }
+
+            var overlap =
+                MathF.Min(maxA, maxB) -
+                MathF.Max(minA, minB);
+
+            if (overlap >= mtvDepth)
+                continue;
+
+            mtvDepth = overlap;
+            mtvAxis = axis;
+        }
 
         return true;
     }
@@ -232,27 +325,28 @@ public struct Polygon2D
 
     public bool Intersects(Polygon2D other)
     {
-        var axes = new List<Vector2>();
-
-        foreach (var edge in GetEdges())
-            axes.Add(new Vector2(-edge.Y, edge.X));
-
-        foreach (var edge in other.GetEdges())
-            axes.Add(new Vector2(-edge.Y, edge.X));
-
-        foreach (var axis in axes)
+        if (Vertices is not { Length: >= 3 } ||
+            other.Vertices is not { Length: >= 3 })
         {
-            if (axis != Vector2.Zero)
-                axis.Normalize();
-
-            var (minA, maxA) = ProjectOntoAxis(axis);
-            var (minB, maxB) = other.ProjectOntoAxis(axis);
-
-            if (maxA < minB || maxB < minA)
-                return false;
+            return false;
         }
 
-        return true;
+        if (!IsConcave() &&
+            !other.IsConcave())
+        {
+            var axis = Vector2.Zero;
+            var depth = float.MaxValue;
+
+            return IntersectsSAT(
+                other,
+                ref axis,
+                ref depth);
+        }
+
+        return IntersectsGeneral(
+            other,
+            out _,
+            out _);
     }
 
     public bool IsPointInside(Vector2 point)

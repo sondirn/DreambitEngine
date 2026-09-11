@@ -1,0 +1,51 @@
+{
+  "Dreambit element rule": {
+    "prefix": "ui-element-rule",
+    "description": "Create a Dreambit element selector rule.",
+    "body": [
+      "${1:Button} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Dreambit class rule": {
+    "prefix": "ui-class-rule",
+    "description": "Create a Dreambit class selector rule.",
+    "body": [
+      ".${1:primary} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Dreambit element and class rule": {
+    "prefix": "ui-combined-rule",
+    "description": "Create a Dreambit element.class selector rule.",
+    "body": [
+      "${1:Button}.${2:primary} {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Dreambit heading style": {
+    "prefix": "ui-heading-style",
+    "description": "Create a reusable Dreambit text heading style.",
+    "body": [
+      "Text.${1:h1} {",
+      "\tfont-family: \"${2:monogram}\";",
+      "\tfont-size: ${3:32px};",
+      "\tcolor: ${4:#FFFFFF};",
+      "}"
+    ]
+  },
+  "Dreambit button style": {
+    "prefix": "ui-button-style",
+    "description": "Create a basic Dreambit button style.",
+    "body": [
+      "Button.${1:primary} {",
+      "\twidth: ${2:180px};",
+      "\theight: ${3:48px};",
+      "\tbackground-color: ${4:#355E3B};",
+      "}"
+    ]
+  }
+}

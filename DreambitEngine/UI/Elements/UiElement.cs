@@ -24,6 +24,12 @@ public abstract class UiElement
     /// <summary>Gets or sets the container that owns this element.</summary>
     public UiContainer Parent;
 
+    /// <summary>
+    ///     Gets the immutable CSS class tokens authored for this element.
+    ///     Classes are resolved only while the element is constructed.
+    /// </summary>
+    public IReadOnlyList<string> StyleClasses { get; private set; } = Array.Empty<string>();
+
     private UiAnchor _anchor = UiAnchor.TopLeft;
     private bool _forceArrange;
     private int _gridColumn;
@@ -294,6 +300,12 @@ public abstract class UiElement
 
     /// <summary>Raised when the primary pointer button is pressed over this element.</summary>
     public event EventHandler<UiPointerEventArgs> PointerPressed;
+
+    /// <summary>Raised when the secondary button is pressed, including during primary pointer capture.</summary>
+    public event EventHandler<UiPointerEventArgs> SecondaryPointerPressed;
+
+    /// <summary>Raised when this element loses pointer capture, including when hidden or disabled.</summary>
+    public event EventHandler PointerCaptureLost;
 
     /// <summary>Raised when the primary pointer button is released for this element.</summary>
     public event EventHandler<UiPointerEventArgs> PointerReleased;
@@ -671,6 +683,7 @@ public abstract class UiElement
     /// <param name="node">The XML element that describes this UI element.</param>
     internal void ParseInternal(XmlNode node)
     {
+        StyleClasses = UiStyleResolver.ParseClasses(node);
         Id = UiXmlParser.ParseString(node, "id", string.Empty);
         X = UiXmlParser.ParseLength(
             UiXmlParser.ParseString(node, "x", "0%"));
@@ -680,10 +693,8 @@ public abstract class UiElement
             UiXmlParser.ParseString(node, "width", "100%"));
         Height = UiXmlParser.ParseLength(
             UiXmlParser.ParseString(node, "height", "100%"));
-        Anchor = UiXmlParser.ParseAnchor(
-            UiXmlParser.ParseString(node, "anchor", "TopLeft"));
-        Origin = UiXmlParser.ParseAnchor(
-            UiXmlParser.ParseString(node, "origin", "TopLeft"));
+        Anchor = UiXmlParser.ParseEnum(node, "anchor", UiAnchor.TopLeft);
+        Origin = UiXmlParser.ParseEnum(node, "origin", UiAnchor.TopLeft);
         ZIndex = UiXmlParser.ParseInt(node, "z");
         GridRow = UiXmlParser.ParseInt(node, "grid-row");
         GridColumn = UiXmlParser.ParseInt(node, "grid-column");
@@ -818,6 +829,17 @@ public abstract class UiElement
     {
         OnPointerPressed(args);
         PointerPressed?.Invoke(this, args);
+    }
+
+    internal void RaiseSecondaryPointerPressed(UiPointerEventArgs args)
+    {
+        SecondaryPointerPressed?.Invoke(this, args);
+    }
+
+    internal void RaisePointerCaptureLost()
+    {
+        OnPointerCaptureLost();
+        PointerCaptureLost?.Invoke(this, EventArgs.Empty);
     }
 
     internal void RaisePointerReleased(UiPointerEventArgs args)

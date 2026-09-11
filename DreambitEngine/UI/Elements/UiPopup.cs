@@ -147,13 +147,10 @@ public class UiPopup : UiControl
             string.Empty);
         HorizontalOffset = UiXmlParser.ParseInt(node, "horizontal-offset");
         VerticalOffset = UiXmlParser.ParseInt(node, "vertical-offset");
-        var placement = UiXmlParser.ParseString(node, "placement", "Bottom");
-        Placement = Enum.TryParse(
-            placement,
-            true,
-            out UiPopupPlacement parsedPlacement)
-            ? parsedPlacement
-            : UiPopupPlacement.Bottom;
+        Placement = UiXmlParser.ParseEnum(
+            node,
+            "placement",
+            UiPopupPlacement.Bottom);
         IsVisible = OpenRequested;
     }
 

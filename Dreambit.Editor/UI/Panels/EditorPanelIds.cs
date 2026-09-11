@@ -6,7 +6,6 @@ internal static class EditorPanelIds
     public const string Scene = "Dreambit.Editor.Scene";
     public const string Blueprint = "Dreambit.Editor.Blueprint";
     public const string Inspector = "Dreambit.Editor.Inspector";
-    public const string LDtkImportOptions = "Dreambit.Editor.LDtkImportOptions";
     public const string TiledImportOptions = "Dreambit.Editor.TiledImportOptions";
     public const string SceneSettings = "Dreambit.Editor.SceneSettings";
     public const string Project = "Dreambit.Editor.Project";

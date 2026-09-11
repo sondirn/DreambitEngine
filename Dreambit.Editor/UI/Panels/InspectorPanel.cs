@@ -15,7 +15,7 @@ internal sealed class InspectorPanel : EditorPanel
     private readonly AssetEditingService _assetEditing;
     private readonly AssetPreviewService _previews;
     private readonly AssetInspector _assets;
-    private readonly AssetPreviewInspector _assetPreviews;
+    private readonly SourceAssetInspectorRegistry _sourceAssetInspectors;
     private readonly SceneEntityInspector _sceneEntities;
     private readonly EditorLogService _logs;
     private string? _lastUnhandledFailure;
@@ -54,7 +54,12 @@ internal sealed class InspectorPanel : EditorPanel
             drawers,
             blueprintInspector,
             customInspectorHost);
-        _assetPreviews = new AssetPreviewInspector(previews);
+        var assetPreview = new AssetPreviewInspector(previews);
+        _sourceAssetInspectors = new SourceAssetInspectorRegistry(
+        [
+            new TextureSourceAssetInspector(assets, assetEditing, assetPreview),
+            assetPreview
+        ]);
         _sceneEntities = new SceneEntityInspector(
             metadata,
             types,
@@ -103,7 +108,7 @@ internal sealed class InspectorPanel : EditorPanel
         if (_documentContext.IsAsset && !inspectBlueprintEntity &&
             _assetEditing.Selected is { } selectedAsset)
         {
-            _assetPreviews.Draw(selectedAsset);
+            _sourceAssetInspectors.Draw(selectedAsset);
             return;
         }
 

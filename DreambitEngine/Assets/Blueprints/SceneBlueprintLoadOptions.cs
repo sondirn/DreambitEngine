@@ -1,5 +1,4 @@
 using System;
-using Dreambit.LDtk;
 using Dreambit.Tiled;
 
 namespace Dreambit;
@@ -14,9 +13,7 @@ public sealed class SceneBlueprintLoadOptions
         AllowMissingComponentTypes = true,
         PreserveEntityIds = true,
         TolerateComponentLoadErrors = true,
-        MarkImportedLDtkEntitiesEditorOnly = true,
-        MarkImportedTiledEntitiesEditorOnly = true,
-        MaterializeLDtkEntities = false
+        MarkImportedTiledEntitiesEditorOnly = true
     };
 
     /// <summary>
@@ -40,21 +37,11 @@ public sealed class SceneBlueprintLoadOptions
     /// </summary>
     public Func<BlueprintInstanceReference, EntityBlueprint> BlueprintInstanceResolver { get; init; }
 
-    /// <summary>Optional source-aware LDtk resolver used by editor hosts before a bake completes.</summary>
-    public Func<LDtkSceneReference, LDtkFile> LDtkProjectResolver { get; init; }
-
     /// <summary>Optional source-aware Tiled resolver used by editor hosts before a bake completes.</summary>
     public Func<TiledSceneReference, TmxMap> TiledMapResolver { get; init; }
-
-    /// <summary>Keeps regenerated LDtk-owned entities out of serialized Dreambit entity data.</summary>
-    public bool MarkImportedLDtkEntitiesEditorOnly { get; init; }
 
     /// <summary>Keeps regenerated Tiled-owned entities out of serialized Dreambit entity data.</summary>
     public bool MarkImportedTiledEntitiesEditorOnly { get; init; }
 
-    /// <summary>
-    /// Creates gameplay entities described in LDtk entity layers. Editor scenes disable this so
-    /// LDtk remains a tilemap authoring source while Dreambit owns gameplay entity placement.
-    /// </summary>
-    public bool MaterializeLDtkEntities { get; init; } = true;
+    public bool ApplySceneSettings { get; set; } = true;
 }

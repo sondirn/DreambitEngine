@@ -31,6 +31,11 @@ internal sealed class CoroutineScheduler : ICoroutineService, ICanLog<CoroutineS
         Remove(node);
     }
 
+    public void StopAllCoroutines()
+    {
+        StopAllCoroutines(null);
+    }
+
     public void StopAllCoroutines(object owner = null)
     {
         if (owner == null)

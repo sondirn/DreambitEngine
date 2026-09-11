@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageId>Dreambit.Editor.Abstractions</PackageId>
-    <PackageVersion Condition="'$(PackageVersion)' == ''">0.3.14</PackageVersion>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">0.9.4</PackageVersion>
     <Authors>Dreambit Engine</Authors>
     <Description>Public, reload-safe extension contracts for Dreambit.Editor.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

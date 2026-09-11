@@ -24,6 +24,15 @@ public static class UiLoader
         var doc = new XmlDocument();
         doc.LoadXml(xml);
 
+        return LoadDocument(doc, null, null);
+    }
+
+    private static UiLayout LoadDocument(
+        XmlDocument doc,
+        UiCompositionResult? composition,
+        UiStyleTraversal? styles)
+    {
+
         var rootNode = doc.SelectSingleNode("/Ui");
         if (rootNode is null)
             throw new XmlException("UI document must contain a <Ui> root.");
@@ -46,7 +55,7 @@ public static class UiLoader
                 continue;
 
             rootPanel.AddChild(
-                ParseElement(child, typeCatalog));
+                ParseElement((XmlElement)child, typeCatalog, composition, styles));
         }
 
         ValidateUniqueIds(rootPanel, []);
@@ -69,8 +78,43 @@ public static class UiLoader
     /// <returns>The parsed layout.</returns>
     public static UiLayout LoadFromFile(string filePath, string contentRoot)
     {
-        var composedXml = UiXmlComposer.ComposeLayout(filePath, contentRoot);
-        return LoadFromXml(composedXml);
+        var composition = UiXmlComposer.ComposeLayoutResult(filePath, contentRoot);
+        var styleSession = UiStyleLoadSession.ForFiles(contentRoot);
+        var layers = new List<UiStylesheet>();
+        AddOptional(layers, styleSession.LoadOptionalSibling(composition.EntryPath));
+        var styles = new UiStyleTraversal(composition, styleSession, layers, null);
+        return LoadDocument(composition.Document, composition, styles);
+    }
+
+    /// <summary>
+    ///     Loads a UI document through Dreambit's active baked-content source.
+    ///     Source-style <c>.uxml</c> paths are resolved to their baked
+    ///     <c>.xmlb</c> assets in the active blob directory or PAK.
+    /// </summary>
+    /// <param name="assetPath">
+    ///     The content-root-relative UI path, such as
+    ///     <c>Ui/main-menu.uxml</c>.
+    /// </param>
+    /// <returns>The parsed layout.</returns>
+    public static UiLayout LoadFromAsset(string assetPath)
+    {
+        return LoadFromAsset(assetPath, null);
+    }
+
+    internal static UiLayout LoadFromAsset(string assetPath, string? cssPath)
+    {
+        var composition = UiXmlComposer.ComposeAssetLayoutResult(
+            assetPath,
+            OpenAssetStream);
+        var styleSession = UiStyleLoadSession.ForAssets(
+            OpenAssetStream,
+            TryOpenAssetStream);
+        var layers = new List<UiStylesheet>();
+        if (!string.IsNullOrWhiteSpace(cssPath))
+            layers.Add(styleSession.LoadRequired(cssPath));
+        AddOptional(layers, styleSession.LoadOptionalSibling(composition.EntryPath));
+        var styles = new UiStyleTraversal(composition, styleSession, layers, null);
+        return LoadDocument(composition.Document, composition, styles);
     }
 
     /// <summary>
@@ -89,11 +133,16 @@ public static class UiLoader
         string contentRoot,
         string idPrefix = null)
     {
-        var composedXml = UiXmlComposer.ComposeComponentAsLayout(
+        var composition = UiXmlComposer.ComposeComponentResult(
             filePath,
             contentRoot,
             idPrefix);
-        var temporaryLayout = LoadFromXml(composedXml);
+        var styles = new UiStyleTraversal(
+            composition,
+            UiStyleLoadSession.ForFiles(contentRoot),
+            [],
+            null);
+        var temporaryLayout = LoadDocument(composition.Document, composition, styles);
 
         if (temporaryLayout.Root.Children.Count != 1)
             throw new XmlException(
@@ -105,43 +154,142 @@ public static class UiLoader
         return component;
     }
 
-    private static UiElement ParseElement(
-        XmlNode node,
-        UiTypeCatalog typeCatalog)
+    /// <summary>
+    ///     Creates one detached UI component through Dreambit's active
+    ///     baked-content source.
+    /// </summary>
+    /// <param name="assetPath">
+    ///     The content-root-relative component path, such as
+    ///     <c>Ui/components/button.uxml</c>.
+    /// </param>
+    /// <param name="idPrefix">Optional text prepended to every authored component ID.</param>
+    /// <returns>The detached component root.</returns>
+    public static UiElement LoadComponentFromAsset(
+        string assetPath,
+        string idPrefix = null)
     {
+        return LoadComponentFromAsset(
+            assetPath,
+            idPrefix,
+            null,
+            null,
+            null);
+    }
+
+    internal static UiElement LoadComponentFromAsset(
+        string assetPath,
+        string? idPrefix,
+        string? globalCssPath,
+        string? currentLayoutPath,
+        string? additionalCssPath)
+    {
+        var composition = UiXmlComposer.ComposeAssetComponentResult(
+            assetPath,
+            OpenAssetStream,
+            idPrefix);
+        var styleSession = UiStyleLoadSession.ForAssets(
+            OpenAssetStream,
+            TryOpenAssetStream);
+        var layers = new List<UiStylesheet>();
+        if (!string.IsNullOrWhiteSpace(globalCssPath))
+            layers.Add(styleSession.LoadRequired(globalCssPath));
+        if (!string.IsNullOrWhiteSpace(currentLayoutPath))
+            AddOptional(layers, styleSession.LoadOptionalSibling(currentLayoutPath));
+        var additionalStylesheet = string.IsNullOrWhiteSpace(additionalCssPath)
+            ? null
+            : styleSession.LoadRequired(additionalCssPath);
+        var styles = new UiStyleTraversal(
+            composition,
+            styleSession,
+            layers,
+            additionalStylesheet);
+        var temporaryLayout = LoadDocument(composition.Document, composition, styles);
+
+        if (temporaryLayout.Root.Children.Count != 1)
+            throw new XmlException(
+                $"UI component '{assetPath}' did not produce exactly one " +
+                "visual root element.");
+
+        var component = temporaryLayout.Root.Children[0];
+        temporaryLayout.Root.RemoveChild(component);
+        return component;
+    }
+
+    private static System.IO.Stream OpenAssetStream(string assetPath)
+    {
+        return Resources.OpenAssetStream(
+            assetPath,
+            Resources.PakName,
+            Resources.UsePak,
+            Resources.ActiveContentDirectory);
+    }
+
+    private static System.IO.Stream? TryOpenAssetStream(string assetPath)
+    {
+        return Resources.TryOpenAssetStream(
+            assetPath,
+            Resources.PakName,
+            Resources.UsePak,
+            Resources.ActiveContentDirectory,
+            out var stream)
+            ? stream
+            : null;
+    }
+
+    private static UiElement ParseElement(
+        XmlElement node,
+        UiTypeCatalog typeCatalog,
+        UiCompositionResult? composition,
+        UiStyleTraversal? styles)
+    {
+        var pushedLayers = styles?.Push(node) ?? 0;
         var element = typeCatalog.CreateElement(node.Name);
-        element.ParseInternal(node);
-
-        if (element is UiContainer container)
+        try
         {
-            var parsedProperties = new HashSet<string>(StringComparer.Ordinal);
-            foreach (XmlNode childNode in node.ChildNodes)
+            if (styles is null)
+                element.ParseInternal(node);
+            else
+                UiStyleResolver.ApplyAndParse(element, node, styles.Layers);
+
+            if (element is UiContainer container)
             {
-                if (childNode.NodeType != XmlNodeType.Element)
-                    continue;
+                var parsedProperties = new HashSet<string>(StringComparer.Ordinal);
+                foreach (XmlNode childNode in node.ChildNodes)
+                {
+                    if (childNode is not XmlElement childElement)
+                        continue;
 
-                if (TryParsePropertyElement(
-                        element,
-                        node.Name,
-                        childNode,
-                        typeCatalog,
-                        parsedProperties))
-                    continue;
+                    if (TryParsePropertyElement(
+                            element,
+                            node.Name,
+                            childElement,
+                            typeCatalog,
+                            parsedProperties,
+                            composition,
+                            styles))
+                        continue;
 
-                container.AddChild(
-                    ParseElement(childNode, typeCatalog));
+                    container.AddChild(
+                        ParseElement(childElement, typeCatalog, composition, styles));
+                }
             }
-        }
 
-        return element;
+            return element;
+        }
+        finally
+        {
+            styles?.Pop(pushedLayers);
+        }
     }
 
     private static bool TryParsePropertyElement(
         UiElement element,
         string elementName,
-        XmlNode propertyNode,
+        XmlElement propertyNode,
         UiTypeCatalog typeCatalog,
-        ISet<string> parsedProperties)
+        ISet<string> parsedProperties,
+        UiCompositionResult? composition,
+        UiStyleTraversal? styles)
     {
         var prefix = $"{elementName}.";
         if (!propertyNode.Name.StartsWith(prefix, StringComparison.Ordinal))
@@ -168,7 +316,11 @@ public static class UiLoader
         else if (typeof(UiElement).IsAssignableFrom(property.PropertyType))
         {
             var valueNode = GetSinglePropertyValueNode(propertyNode);
-            value = ParseElement(valueNode, typeCatalog);
+            value = ParseElement(
+                (XmlElement)valueNode,
+                typeCatalog,
+                composition,
+                styles);
             if (!property.PropertyType.IsInstanceOfType(value))
                 throw new XmlException(
                     $"<{propertyNode.Name}> requires a " +
@@ -182,7 +334,86 @@ public static class UiLoader
         }
 
         property.SetValue(element, value);
+        if (string.Equals(propertyName, nameof(UiContentControl.Background), StringComparison.Ordinal) &&
+            element is UiContentControl contentControl &&
+            propertyNode.ParentNode is XmlElement ownerElement &&
+            ownerElement.HasAttribute("background-color") &&
+            !ownerElement.HasAttribute("background-tint"))
+        {
+            // background-color is shorthand for both a solid brush and its color.
+            // An explicit Background property element replaces that shorthand as
+            // a unit; retain an independently authored background-tint when present.
+            contentControl.BackgroundTint = Microsoft.Xna.Framework.Color.White;
+        }
         return true;
+    }
+
+    private static void AddOptional(
+        ICollection<UiStylesheet> layers,
+        UiStylesheet? stylesheet)
+    {
+        if (stylesheet is not null)
+            layers.Add(stylesheet);
+    }
+
+    private sealed class UiStyleTraversal
+    {
+        private readonly UiCompositionResult _composition;
+        private readonly UiStyleLoadSession _session;
+        private readonly UiStylesheet? _additionalStylesheet;
+        private bool _additionalApplied;
+
+        public UiStyleTraversal(
+            UiCompositionResult composition,
+            UiStyleLoadSession session,
+            List<UiStylesheet> layers,
+            UiStylesheet? additionalStylesheet)
+        {
+            _composition = composition;
+            _session = session;
+            Layers = layers;
+            _additionalStylesheet = additionalStylesheet;
+        }
+
+        public List<UiStylesheet> Layers { get; }
+
+        public int Push(XmlElement element)
+        {
+            var added = 0;
+            foreach (var componentPath in _composition.GetComponentBoundaries(element))
+            {
+                var sibling = _session.LoadOptionalSibling(componentPath);
+                if (sibling is not null)
+                {
+                    Layers.Add(sibling);
+                    added++;
+                }
+
+                if (!_additionalApplied &&
+                    _additionalStylesheet is not null &&
+                    PathsEqual(componentPath, _composition.EntryPath))
+                {
+                    Layers.Add(_additionalStylesheet);
+                    added++;
+                    _additionalApplied = true;
+                }
+            }
+            return added;
+        }
+
+        public void Pop(int count)
+        {
+            if (count > 0)
+                Layers.RemoveRange(Layers.Count - count, count);
+        }
+
+        private bool PathsEqual(string left, string right) =>
+            string.Equals(
+                left,
+                right,
+                _composition.IsAssetBacked || OperatingSystem.IsWindows()
+                    ? StringComparison.OrdinalIgnoreCase
+                    : StringComparison.Ordinal);
     }
 
     private static IUiBrush ParseBrushProperty(
@@ -410,6 +641,16 @@ public static class UiLoader
                 matches = [];
                 types.Add(xmlName, matches);
             }
+
+            // Editor compilation/reload tests can keep multiple load-context
+            // copies of the same game assembly alive. Treat identical
+            // assembly-qualified types as one discovery result while preserving
+            // ambiguity diagnostics for genuinely different types sharing a tag.
+            if (matches.Any(existing => string.Equals(
+                    existing.AssemblyQualifiedName,
+                    type.AssemblyQualifiedName,
+                    StringComparison.Ordinal)))
+                return;
 
             matches.Add(type);
         }

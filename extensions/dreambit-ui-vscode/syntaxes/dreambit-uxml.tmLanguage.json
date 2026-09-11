@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Dreambit UXML",
+  "scopeName": "text.xml.dreambit.uxml",
+  "patterns": [
+    {
+      "include": "#dreambit-names"
+    },
+    {
+      "include": "text.xml"
+    }
+  ],
+  "repository": {
+    "dreambit-names": {
+      "patterns": [
+        {
+          "match": "(</?)\\s*((?:Ui|UiComponent|Include|Component|Button|CheckBox|ComboBox|ContentControl|Control|Grid|HorizontalStackPanel|ItemsControl|ListBox|Overlay|Panel|Popup|ProgressBar|RadioButton|ScrollBar|Slider|Spacer|StackPanel|Text|TextBox|Texture|ToggleButton|Tooltip|UniformGrid|VerticalStackPanel|Viewbox|WrapPanel|Container|Border)(?:\\.[A-Za-z_][\\w-]*)?)(?=\\s|/?>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.xml"
+            },
+            "2": {
+              "name": "entity.name.tag.dreambit.uxml"
+            }
+          }
+        },
+        {
+          "name": "entity.other.attribute-name.class.dreambit.uxml",
+          "match": "(?<=\\s)(?:class|id|source|id-prefix)(?=\\s*=)"
+        },
+        {
+          "name": "entity.other.attribute-name.style.dreambit.uxml",
+          "match": "(?<=\\s)(?:x|y|width|height|anchor|origin|z|grid-row|grid-column|grid-row-span|grid-column-span|is-visible|is-enabled|is-hit-test-visible|is-focusable|captures-keyboard-input|clip-to-bounds|background-color|background-tint|padding|content-alignment|font|font-size|text-color|horizontal-alignment)(?=\\s*=)"
+        }
+      ]
+    }
+  }
+}

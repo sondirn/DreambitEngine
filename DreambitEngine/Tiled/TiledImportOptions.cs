@@ -31,6 +31,10 @@ public sealed class TiledImportOptions
     [JsonProperty("include_invisible_layers")]
     public bool IncludeInvisibleLayers { get; set; }
 
+    /// <summary>Stable seed used for rule and indexed-output probability choices.</summary>
+    [JsonProperty("automapping_seed")]
+    public int AutomappingSeed { get; set; }
+
     public TiledImportOptions Clone() => new()
     {
         PixelsPerUnit = PixelsPerUnit,
@@ -39,7 +43,8 @@ public sealed class TiledImportOptions
         WorldDepth = WorldDepth,
         WorldDepthDrawLayerStride = WorldDepthDrawLayerStride,
         RenderMapBackgroundColor = RenderMapBackgroundColor,
-        IncludeInvisibleLayers = IncludeInvisibleLayers
+        IncludeInvisibleLayers = IncludeInvisibleLayers,
+        AutomappingSeed = AutomappingSeed
     };
 
     public void Validate()

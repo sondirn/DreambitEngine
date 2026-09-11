@@ -46,7 +46,8 @@ internal sealed class ProjectPanel : EditorPanel
     private bool _requestCreateAssetPopup;
     private string? _createAssetTypeId;
     private string _createAssetTypeName = "Asset";
-    private string _createAssetPath = string.Empty;
+    private string _createAssetName = string.Empty;
+    private string _createAssetSuffix = string.Empty;
     private bool _restoreWorkspaceSelection;
 
     public ProjectPanel(
@@ -397,7 +398,6 @@ internal sealed class ProjectPanel : EditorPanel
         AssetKind.Animation => "animation",
         AssetKind.Audio => "audiotrack",
         AssetKind.SoundCue => "audiotrack",
-        AssetKind.Ldtk => "data_object",
         AssetKind.TiledMap => "data_object",
         _ => "extension"
     };
@@ -545,8 +545,9 @@ internal sealed class ProjectPanel : EditorPanel
     {
         _createAssetTypeId = DreambitAssetTypeRegistry.GetTypeId(type);
         _createAssetTypeName = type.Name;
-        var suffix = AssetTypeClassifier.GetFileSuffix(type);
-        _createAssetPath = JoinPath(_currentFolder, $"New {type.Name}{suffix}");
+        _createAssetSuffix = AssetTypeClassifier.GetFileSuffix(type);
+        
+        _createAssetName = string.Empty;
         _requestCreateAssetPopup = true;
     }
 
@@ -555,29 +556,46 @@ internal sealed class ProjectPanel : EditorPanel
         using var popup = EditorGui.Modal("Create Asset##Dreambit.Editor.Project");
         if (!popup.IsOpen)
             return;
+
         var createAssetType = ResolveCreateAssetType();
+
         EditorGui.Text($"Create {_createAssetTypeName}");
+
         var submit = EditorGui.Property(
-            "CreateAsset.Path",
-            "Path",
-            ref _createAssetPath,
+            "CreateAsset.Name",
+            "Name",
+            ref _createAssetName,
             maxLength: 1024,
             commitOnEnter: true);
-        using (EditorGui.Disabled(createAssetType is null))
+
+        var createAssetPath = JoinPath(
+            _currentFolder,
+            $"{_createAssetName}{_createAssetSuffix}");
+
+        var canCreate =
+            createAssetType is not null &&
+            !string.IsNullOrWhiteSpace(_createAssetName);
+
+        using (EditorGui.Disabled(!canCreate))
         {
             if ((submit || EditorGui.Button(
                     "CreateAsset.Submit",
                     "Create",
                     new Vector2(90f, 0f),
                     primary: true)) &&
-                createAssetType is not null)
+                canCreate)
             {
-                if (_assetEditing.TryCreate(createAssetType, _createAssetPath, out var error))
+                if (_assetEditing.TryCreate(
+                        createAssetType!,
+                        createAssetPath,
+                        out var error))
                 {
-                    _selectedPath = _createAssetPath;
+                    _selectedPath = createAssetPath;
                     _selectedIsFolder = false;
                     _error = null;
+
                     _documentContext.ActivateAsset();
+
                     ClearCreateAssetRequest();
                     EditorGui.ClosePopup();
                 }
@@ -587,10 +605,19 @@ internal sealed class ProjectPanel : EditorPanel
                 }
             }
         }
+
         if (createAssetType is null)
-            EditorGui.MutedText("This asset type is unavailable until game code finishes reloading.");
+        {
+            EditorGui.MutedText(
+                "This asset type is unavailable until game code finishes reloading.");
+        }
+
         EditorGui.Inline();
-        if (EditorGui.Button("CreateAsset.Cancel", "Cancel", new Vector2(90f, 0f)))
+
+        if (EditorGui.Button(
+                "CreateAsset.Cancel",
+                "Cancel",
+                new Vector2(90f, 0f)))
         {
             ClearCreateAssetRequest();
             EditorGui.ClosePopup();
@@ -729,6 +756,12 @@ internal sealed class ProjectPanel : EditorPanel
 
         EditorGui.WrappedText($"Delete '{_pendingDeletePath}' from disk?");
         EditorGui.MutedText("Its stable asset ID will remain as a missing-reference tombstone.");
+        if (_pendingDeletePath is not null &&
+            _assets.TryGetAsset(_pendingDeletePath, out var pendingAsset) &&
+            pendingAsset?.Kind == AssetKind.Blueprint)
+        {
+            EditorGui.MutedText("Linked Blueprint instances will also be removed from scene assets.");
+        }
         DrawPopupError();
         EditorGui.Space();
         if (EditorGui.Button(
@@ -738,9 +771,30 @@ internal sealed class ProjectPanel : EditorPanel
                 primary: true) &&
             _pendingDeletePath is not null)
         {
+            var deletedAsset = _assets.TryGetAsset(_pendingDeletePath, out var asset)
+                ? asset
+                : null;
             if (_assets.TryDelete(_pendingDeletePath, out var error))
             {
                 _assetEditing.RefreshFromDatabase();
+                if (deletedAsset?.Kind == AssetKind.Blueprint)
+                {
+                    try
+                    {
+                        var removed = _scenes.RemoveDeletedBlueprintReferences(deletedAsset);
+                        if (removed > 0)
+                            _logs.Info(
+                                "Assets",
+                                $"Removed {removed} scene Blueprint instance(s) that referenced '{deletedAsset.RelativePath}'.");
+                    }
+                    catch (Exception exception)
+                    {
+                        SetError(
+                            $"The Blueprint was deleted, but some scene references could not be removed. {exception.Message}",
+                            exception);
+                        return;
+                    }
+                }
                 ClearSelection();
                 _pendingDeletePath = null;
                 _error = null;

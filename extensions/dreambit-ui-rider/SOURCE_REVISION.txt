@@ -1,0 +1,6 @@
+DreambitEngine
+Repository: https://github.com/sondirn/DreambitEngine
+Branch: editor-refactor
+Commit: 2606a7b6fd41ac1fcb66b83cfc189393b5074b22
+Commit message: update to 0.7.5
+Prepared as a local-only Rider plugin source package.

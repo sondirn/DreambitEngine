@@ -160,14 +160,20 @@ public class UiContentControl : UiContainer
                 $"<{node.Name}> backgrounds must use " +
                 $"<{node.Name}.Background> with a brush element.");
 
+        if (node.Attributes?["background-color"] is not null)
+        {
+            Background = new SolidColorBrush();
+            BackgroundTint = UiXmlParser.ParseColor(node, "background-color");
+        }
+
         Padding = UiXmlParser.ParseThickness(
             UiXmlParser.ParseString(node, "padding", "0"),
             "Padding");
-        ContentAlignment = UiXmlParser.ParseAnchor(
-            UiXmlParser.ParseString(
-                node,
-                "content-alignment",
-                "Center"));
+        ContentAlignment = UiXmlParser.ParseEnum(
+            node,
+            "content-alignment",
+            UiAnchor.Center,
+            UiAnchor.TopLeft);
 
         if (node.Attributes?["background-tint"] is not null)
             BackgroundTint = UiXmlParser.ParseColor(

@@ -63,6 +63,7 @@ Use as the base for controls that own exactly one arbitrary visual tree. Wrap mu
 |---|---|---|---|
 | `padding` | `UiThickness` | `0` | One value or left,top,right,bottom. |
 | `content-alignment` | `UiAnchor` | `Center` | Alignment within padded bounds. |
+| `background-color` | `Color` | absent | Creates a `SolidColorBrush` and uses this color as its tint. |
 | `background-tint` | `Color` | white | Brush tint. |
 
 ## XML example
@@ -104,6 +105,9 @@ control.SetContent(new UiText { Text = "Single content" });
 ## Ownership and lifecycle
 
 - Exactly one direct child is allowed; use `SetContent` for replacement.
+- An explicit `<ContentControl.Background>` property element replaces a
+  `background-color` shorthand brush. An independently authored
+  `background-tint` still applies to the replacement brush.
 
 ## Production pitfalls
 

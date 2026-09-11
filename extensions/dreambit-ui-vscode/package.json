@@ -1,0 +1,110 @@
+{
+  "name": "dreambit-ui",
+  "displayName": "Dreambit UI",
+  "description": "Dreambit-aware editing for .uxml layouts and .ucss stylesheets.",
+  "version": "0.1.0",
+  "publisher": "dreambit",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "dreambit",
+    "uxml",
+    "ucss",
+    "ui",
+    "xml",
+    "css"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:dreambit-uxml",
+    "onLanguage:dreambit-ucss"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "dreambit-uxml",
+        "aliases": [
+          "Dreambit UXML",
+          "UXML"
+        ],
+        "extensions": [
+          ".uxml"
+        ],
+        "configuration": "./language-configuration/uxml-language-configuration.json"
+      },
+      {
+        "id": "dreambit-ucss",
+        "aliases": [
+          "Dreambit UCSS",
+          "UCSS"
+        ],
+        "extensions": [
+          ".ucss"
+        ],
+        "configuration": "./language-configuration/ucss-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dreambit-uxml",
+        "scopeName": "text.xml.dreambit.uxml",
+        "path": "./syntaxes/dreambit-uxml.tmLanguage.json"
+      },
+      {
+        "language": "dreambit-ucss",
+        "scopeName": "source.css.dreambit.ucss",
+        "path": "./syntaxes/dreambit-ucss.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "dreambit-uxml",
+        "path": "./snippets/uxml.json"
+      },
+      {
+        "language": "dreambit-ucss",
+        "path": "./snippets/ucss.json"
+      }
+    ],
+    "configuration": {
+      "title": "Dreambit UI",
+      "properties": {
+        "dreambitUi.customElements": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional project-defined Dreambit UI element names to suggest in UXML and UCSS."
+        },
+        "dreambitUi.customProperties": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional project-defined XML attribute/CSS property names to suggest."
+        },
+        "dreambitUi.scanWorkspace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest component names, style classes, and UXML source paths found in the workspace."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "node --check extension.js && node --check src/dreambit-language.js && node --test test/*.test.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sondirn/DreambitEngine.git"
+  }
+}

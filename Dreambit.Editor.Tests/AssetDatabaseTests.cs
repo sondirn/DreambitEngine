@@ -1,5 +1,6 @@
 using Dreambit;
 using Dreambit.Editor.Assets;
+using DreambitEngine.AssetBaker.Abstractions;
 using Newtonsoft.Json.Linq;
 
 namespace Dreambit.Editor.Tests;
@@ -48,6 +49,18 @@ public sealed class AssetDatabaseTests : IDisposable
         using var reopened = CreateDatabase();
         Assert.True(reopened.TryGetAsset("characters/hero.sprite", out var reopenedSprite));
         Assert.Equal(spriteId, reopenedSprite!.Id);
+    }
+
+    [Fact]
+    public void StylesheetKeepsExtensionInEditorLogicalName()
+    {
+        WriteAsset("Ui/main.ucss", "Text { width: 10px; }");
+
+        using var database = CreateDatabase();
+        var stylesheet = Assert.Single(database.GetSnapshot().Assets);
+
+        Assert.Equal(AssetKind.Stylesheet, stylesheet.Kind);
+        Assert.Equal("Ui/main.ucss", stylesheet.LogicalAssetName);
     }
 
     [Fact]
@@ -144,6 +157,94 @@ public sealed class AssetDatabaseTests : IDisposable
         Assert.False(database.TryCreateFolder("../outside", "bad", out var traversalError));
         Assert.Contains("cannot contain", traversalError, StringComparison.OrdinalIgnoreCase);
         Assert.False(Directory.Exists(Path.Combine(_root, "outside")));
+    }
+
+    [Fact]
+    public void TextureSemanticPersistsAcrossEditorOperationsAndLegacyRegistriesMigrate()
+    {
+        WriteAsset("textures/wall.png", "png-source");
+        var textureId = Guid.NewGuid();
+        var registryPath = Path.Combine(_root, ".dreambit", "assets.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(registryPath)!);
+        File.WriteAllText(
+            registryPath,
+            $$"""
+              {
+                "schemaVersion": 1,
+                "assets": [
+                  { "id": "{{textureId:D}}", "path": "textures/wall.png", "kind": "Texture" }
+                ]
+              }
+              """);
+
+        using var database = CreateDatabase();
+        var legacyTexture = Assert.Single(database.GetSnapshot().Assets);
+        Assert.Null(legacyTexture.ImportSettings);
+
+        var previousVersion = database.GetSnapshot().Version;
+        Assert.True(database.TrySetTextureSemantic(
+            legacyTexture.Id,
+            TextureSemantic.NormalMap,
+            out var semanticError), semanticError);
+        var configured = Assert.Single(database.GetSnapshot().Assets);
+        Assert.Equal(TextureSemantic.NormalMap, configured.ImportSettings?.Texture?.Semantic);
+        Assert.True(database.GetSnapshot().Version > previousVersion);
+
+        Assert.True(database.TryRename(
+            "textures/wall.png",
+            "wall-normal.png",
+            out var renameError), renameError);
+        Assert.True(database.TryCreateFolder("", "materials", out var folderError), folderError);
+        Assert.True(database.TryMove(
+            "textures/wall-normal.png",
+            "materials",
+            out var moveError), moveError);
+        Assert.True(database.TryDuplicate(
+            "materials/wall-normal.png",
+            out var duplicatePath,
+            out var duplicateError), duplicateError);
+        Assert.True(database.TryGetAsset(duplicatePath!, out var duplicate));
+        Assert.Equal(TextureSemantic.NormalMap, duplicate!.ImportSettings?.Texture?.Semantic);
+
+        Assert.True(database.TryDelete("materials/wall-normal.png", out var deleteError), deleteError);
+        WriteAsset("materials/wall-normal.png", "png-source");
+        database.RefreshNow();
+        Assert.True(database.TryGetAsset("materials/wall-normal.png", out var restored));
+        Assert.Equal(configured.Id, restored!.Id);
+        Assert.Equal(TextureSemantic.NormalMap, restored.ImportSettings?.Texture?.Semantic);
+
+        var registry = JObject.Parse(File.ReadAllText(registryPath));
+        Assert.Equal(2, registry.Value<int>("schemaVersion"));
+        var entries = Assert.IsType<JArray>(registry["assets"]);
+        Assert.All(entries, entry =>
+            Assert.Equal("NormalMap", entry["importSettings"]?["texture"]?.Value<string>("semantic")));
+    }
+
+    [Fact]
+    public void TextureSemanticRejectsNonTexturesAndColorUsesDefaultMetadata()
+    {
+        WriteAsset("notes/readme.txt", "hello");
+        WriteAsset("textures/color.png", "png-source");
+        using var database = CreateDatabase();
+        var assets = database.GetSnapshot().Assets.ToDictionary(asset => asset.RelativePath);
+
+        Assert.False(database.TrySetTextureSemantic(
+            assets["notes/readme.txt"].Id,
+            TextureSemantic.NormalMap,
+            out var nonTextureError));
+        Assert.Contains("not a live texture", nonTextureError, StringComparison.OrdinalIgnoreCase);
+
+        Assert.True(database.TrySetTextureSemantic(
+            assets["textures/color.png"].Id,
+            TextureSemantic.NormalMap,
+            out var normalError), normalError);
+        Assert.True(database.TrySetTextureSemantic(
+            assets["textures/color.png"].Id,
+            TextureSemantic.Color,
+            out var colorError), colorError);
+        Assert.Null(Assert.Single(
+            database.GetSnapshot().Assets,
+            asset => asset.RelativePath == "textures/color.png").ImportSettings);
     }
 
     [Fact]

@@ -10,5 +10,6 @@ public enum AssetType
     Yaml = 5,
     Text = 6,
     Xml = 7,
-    Effect = 8
+    Effect = 8,
+    Stylesheet = 9
 }

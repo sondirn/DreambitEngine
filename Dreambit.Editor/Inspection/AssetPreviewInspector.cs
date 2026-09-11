@@ -5,12 +5,19 @@ using ImGuiNET;
 
 namespace Dreambit.Editor.Inspection;
 
-internal sealed class AssetPreviewInspector(AssetPreviewService previews)
+internal sealed class AssetPreviewInspector(AssetPreviewService previews) : ISourceAssetInspector
 {
+    public bool CanInspect(AssetRecord asset) => true;
+
     public void Draw(AssetRecord asset)
     {
         EditorGui.Header(asset.Name, asset.RelativePath);
         EditorGui.Space();
+        DrawBody(asset);
+    }
+
+    public void DrawBody(AssetRecord asset)
+    {
         try
         {
             if (previews.TryGetTexture(asset, out var texture, out var width, out var height))

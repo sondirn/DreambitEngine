@@ -16,7 +16,11 @@ param(
 
     [switch] $SkipPush,
 
-    [switch] $SkipTemplateInstall
+    [switch] $SkipTemplateInstall,
+
+    [string] $LocalSourceName = 'Dreambit-local',
+
+    [switch] $SkipLocalSourceUpdate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -156,6 +160,20 @@ $packages = foreach ($packageId in $packageIds) {
         throw "Expected package was not produced: $path"
     }
     $path
+}
+
+if (-not $SkipLocalSourceUpdate) {
+    Write-Host "Updating local NuGet source '$LocalSourceName'." -ForegroundColor DarkGray
+    & dotnet nuget update source $LocalSourceName --source $OutputDirectory
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Local NuGet source '$LocalSourceName' is not registered; adding it." -ForegroundColor DarkGray
+        Invoke-DotNet @(
+            'nuget', 'add', 'source', $OutputDirectory,
+            '--name', $LocalSourceName)
+    }
+    else {
+        Invoke-DotNet @('nuget', 'enable', 'source', $LocalSourceName)
+    }
 }
 
 if ($Push -and -not $SkipPush) {

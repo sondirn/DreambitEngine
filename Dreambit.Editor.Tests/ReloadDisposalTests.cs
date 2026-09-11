@@ -111,7 +111,7 @@ public sealed class ReloadDisposalTests
         var document = SceneDocument.CreateNew("Dispose", new SelectionService());
         AttachThrowingComponent(document);
 
-        Assert.Throws<InvalidOperationException>(() => document.Dispose());
+        Assert.Throws<AggregateException>(() => document.Dispose());
 
         Assert.False(document.HasLiveScene);
         document.Dispose();

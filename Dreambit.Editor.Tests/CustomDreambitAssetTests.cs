@@ -201,7 +201,7 @@ public sealed class CustomDreambitAssetTests
         {
             typeof(Sprite),
             typeof(SpriteSheet),
-            typeof(SpriteSheetAnimation),
+            typeof(SpriteAnimation),
             typeof(SoundCue),
             typeof(ParticleFxConfig),
             typeof(EntityBlueprint),
@@ -223,21 +223,30 @@ public sealed class CustomDreambitAssetTests
 
         Assert.True(DreambitSerializationRules.UsesOptInSerialization(typeof(Sprite)));
         Assert.True(DreambitSerializationRules.UsesOptInSerialization(typeof(ParticleFxConfig)));
+        Assert.Equal(PivotType.Center, new Sprite().PivotType);
 
-        var sprite = JObject.Parse(DreambitJson.Serialize(new Sprite
+        var spriteAsset = new Sprite
         {
+            AssetId = AssetId.New(),
+            AssetName = "sprites/hero.sprite",
             SourceRect = new Microsoft.Xna.Framework.Rectangle(1, 2, 3, 4),
+            PivotType = PivotType.Custom,
+            Pivot = new Microsoft.Xna.Framework.Vector2(1.5f, 3f),
             PixelsPerUnit = 16f
-        }));
+        };
+
+        var sprite = JObject.Parse(DreambitJson.Serialize(spriteAsset));
         Assert.NotNull(sprite["texture"]);
         Assert.Equal(new JArray(1, 2, 3, 4), sprite["source"]);
+        Assert.Equal((int)PivotType.Custom, sprite.Value<int>("pivot_type"));
+        Assert.Equal(new JArray(1.5f, 3f), sprite["pivot"]);
         Assert.Equal(16f, sprite.Value<float>("pixels_per_unit"));
 
-        var animation = JObject.Parse(DreambitJson.Serialize(new SpriteSheetAnimation
+        var animation = JObject.Parse(DreambitJson.Serialize(new SpriteAnimation
         {
             Frames = [new SpriteAnimationFrame
             {
-                SpriteIndex = 3,
+                Sprite = spriteAsset,
                 Event = new SpriteAnimationEvent
                 {
                     Name = "step",
@@ -245,7 +254,12 @@ public sealed class CustomDreambitAssetTests
                 }
             }]
         }));
-        Assert.Equal(3, animation["frames"]![0]!["sprite"]!.Value<int>());
+        Assert.True(DreambitAssetReferenceToken.TryRead(
+            animation["frames"]![0]!["sprite"]!,
+            out var animationSpriteId,
+            out var animationSpritePath));
+        Assert.Equal(spriteAsset.AssetId, animationSpriteId);
+        Assert.Equal(spriteAsset.AssetName, animationSpritePath);
         Assert.Equal("step", animation["frames"]![0]!["event"]!["name"]!.Value<string>());
         Assert.Equal("stone", animation["frames"]![0]!["event"]!["args"]!["surface"]!.Value<string>());
     }
@@ -670,6 +684,11 @@ public sealed class ExplicitOverrideEnemyConfigLoader : AssetLoaderBase<Explicit
 
 internal sealed class TestAssetRegistry(AssetId assetId, string assetName) : IAssetRegistry
 {
+    private readonly IReadOnlyList<AssetCatalogEntry> _assets =
+        Array.AsReadOnly(new[] { new AssetCatalogEntry(assetId, assetName, null) });
+
+    public IReadOnlyList<AssetCatalogEntry> GetAssets() => _assets;
+
     public bool TryResolveAssetName(AssetId requestedAssetId, out string resolvedAssetName)
     {
         resolvedAssetName = assetName;

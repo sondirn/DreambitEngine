@@ -8,6 +8,7 @@ using Dreambit;
 using DreambitEngine.AssetBaker.Abstractions;
 using DreambitEngine.AssetBaker.Core;
 using DreambitEngine.AssetBaker.Pipeline.Docs;
+using DreambitEngine.AssetBaker.Pipeline.Tiled;
 using DreambitEngine.AssetBaker.Pipeline.Textures;
 
 namespace DreambitEngine.AssetBaker.Pipeline;
@@ -23,7 +24,10 @@ public sealed record AssetBakeRequest(
     int? MaxDimension = null,
     bool MarkSrgb = true,
     string TargetPlatform = "DesktopVK",
-    bool IncludeBuiltInContent = false);
+    bool IncludeBuiltInContent = false)
+{
+    public string? ProjectRoot { get; init; }
+}
 
 public sealed record AssetBlobBakeRequest(
     string InputRoot,
@@ -35,7 +39,11 @@ public sealed record AssetBlobBakeRequest(
     int? MaxDimension = null,
     bool MarkSrgb = true,
     string TargetPlatform = "DesktopVK",
-    bool IncludeBuiltInContent = false);
+    bool IncludeBuiltInContent = false)
+{
+    public string? RuntimeOutputDirectory { get; init; }
+    public string? ProjectRoot { get; init; }
+}
 
 public sealed record AssetBakeProgress(
     string Stage,
@@ -65,6 +73,8 @@ public sealed record AssetBlobBakeResult(
 public sealed class AssetBakePipeline
 {
     public const string RuntimeRegistryLogicalPath = "__dreambit/asset-registry.jsonb";
+    private const string RuntimeSyncFileName = ".dreambit-blobs.sync";
+    private const string RuntimeSyncVersion = "1";
 
     public static bool HasCurrentBuiltInContent(string cacheDirectory) =>
         BuiltInContentSource.IsCurrent(cacheDirectory);
@@ -97,21 +107,38 @@ public sealed class AssetBakePipeline
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.BlobDirectory);
         var stopwatch = Stopwatch.StartNew();
-        var prepared = PrepareAssets(
-            new BakeParameters(
-                request.InputRoot,
-                request.AssetRegistryPath,
-                request.BlobDirectory,
-                request.RebuildAll,
-                request.GenerateMips,
-                request.PremultiplyAlpha,
-                request.MaxDimension,
-                request.MarkSrgb,
-                request.TargetPlatform,
-                request.IncludeBuiltInContent),
-            retainBlobData: false,
-            progress,
-            cancellationToken);
+        PreparedBake prepared;
+        using (BakeCacheWriterLease.Acquire(
+                   request.BlobDirectory,
+                   progress,
+                   cancellationToken))
+        {
+            prepared = PrepareAssets(
+                new BakeParameters(
+                    request.InputRoot,
+                    request.AssetRegistryPath,
+                    request.BlobDirectory,
+                    request.RebuildAll,
+                    request.GenerateMips,
+                    request.PremultiplyAlpha,
+                    request.MaxDimension,
+                    request.MarkSrgb,
+                    request.TargetPlatform,
+                    request.IncludeBuiltInContent,
+                    request.ProjectRoot),
+                retainBlobData: false,
+                progress,
+                cancellationToken);
+            if (!string.IsNullOrWhiteSpace(request.RuntimeOutputDirectory))
+            {
+                PublishBlobSnapshot(
+                    request.BlobDirectory,
+                    request.RuntimeOutputDirectory,
+                    prepared,
+                    progress,
+                    cancellationToken);
+            }
+        }
         stopwatch.Stop();
 
         var manifestPath = Path.Combine(
@@ -139,21 +166,29 @@ public sealed class AssetBakePipeline
         ArgumentNullException.ThrowIfNull(request);
         var stopwatch = Stopwatch.StartNew();
         var outputPak = Path.GetFullPath(request.OutputPak);
-        var prepared = PrepareAssets(
-            new BakeParameters(
-                request.InputRoot,
-                request.AssetRegistryPath,
-                request.CacheDirectory,
-                request.RebuildAll,
-                request.GenerateMips,
-                request.PremultiplyAlpha,
-                request.MaxDimension,
-                request.MarkSrgb,
-                request.TargetPlatform,
-                request.IncludeBuiltInContent),
-            retainBlobData: true,
-            progress,
-            cancellationToken);
+        PreparedBake prepared;
+        using (BakeCacheWriterLease.Acquire(
+                   request.CacheDirectory,
+                   progress,
+                   cancellationToken))
+        {
+            prepared = PrepareAssets(
+                new BakeParameters(
+                    request.InputRoot,
+                    request.AssetRegistryPath,
+                    request.CacheDirectory,
+                    request.RebuildAll,
+                    request.GenerateMips,
+                    request.PremultiplyAlpha,
+                    request.MaxDimension,
+                    request.MarkSrgb,
+                    request.TargetPlatform,
+                    request.IncludeBuiltInContent,
+                    request.ProjectRoot),
+                retainBlobData: true,
+                progress,
+                cancellationToken);
+        }
 
         var pak = new PakWriter();
         foreach (var preparedBlob in prepared.Blobs.Values)
@@ -192,11 +227,12 @@ public sealed class AssetBakePipeline
 
         var cache = IncrementalBakeCache.Load(request.CacheDirectory, request.RebuildAll);
         var bakerRegistry = AssetBakerRegistry.CreateDefault();
+        var sourceRegistry = SourceAssetRegistryCatalog.Load(request.AssetRegistryPath);
         var bakedCount = 0;
         var cacheHitCount = 0;
         var unsupportedCount = 0;
-        var optionSignature = CreateOptionSignature(request);
         var liveCacheKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var liveProjectSourcePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var builtInEffectPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var finalBlobs = new Dictionary<string, PreparedBlob>(StringComparer.OrdinalIgnoreCase);
 
@@ -227,6 +263,12 @@ public sealed class AssetBakePipeline
                 var baker = bakerRegistry.GetByExt(Path.GetExtension(file));
                 if (baker is null)
                 {
+                    // Tiled project metadata is consumed by the generated runtime
+                    // Automapping catalog below rather than emitted as a user asset.
+                    if (Path.GetExtension(file).Equals(
+                            ".tiled-project",
+                            StringComparison.OrdinalIgnoreCase))
+                        continue;
                     unsupportedCount++;
                     continue;
                 }
@@ -250,11 +292,26 @@ public sealed class AssetBakePipeline
                 var sourceHash = ComputeHash(file);
                 var cacheKey = $"{bakeRoot.CachePrefix}/{relativePath}".ToLowerInvariant();
                 liveCacheKeys.Add(cacheKey);
+                var bakeContext = new BakeContext
+                {
+                    InputPath = file,
+                    OutputPath = string.Empty,
+                    GenerateMips = request.GenerateMips,
+                    PremultiplyAlpha = request.PremultiplyAlpha,
+                    MaxDimension = request.MaxDimension,
+                    MarkSRgb = request.MarkSrgb,
+                    TargetPlatform = request.TargetPlatform,
+                    LogicalRoot = bakeRoot.Path,
+                    ImportSettings = bakeRoot.IsBuiltIn
+                        ? null
+                        : sourceRegistry?.GetImportSettings(relativePath)
+                };
+                var cacheSignature = baker.GetCacheSignature(bakeContext);
                 PreparedBlob preparedBlob;
                 if (cache.TryRead(
                         cacheKey,
                         sourceHash,
-                        optionSignature,
+                        cacheSignature,
                         retainBlobData,
                         out preparedBlob))
                 {
@@ -271,18 +328,8 @@ public sealed class AssetBakePipeline
                         "Bake",
                         $"Baking {relativePath}",
                         relativePath));
-                    var blob = baker.BakeToBytes(new BakeContext
-                    {
-                        InputPath = file,
-                        OutputPath = string.Empty,
-                        GenerateMips = request.GenerateMips,
-                        PremultiplyAlpha = request.PremultiplyAlpha,
-                        MaxDimension = request.MaxDimension,
-                        MarkSRgb = request.MarkSrgb,
-                        TargetPlatform = request.TargetPlatform,
-                        LogicalRoot = bakeRoot.Path
-                    });
-                    var blobFile = cache.Write(cacheKey, sourceHash, optionSignature, blob);
+                    var blob = baker.BakeToBytes(bakeContext);
+                    var blobFile = cache.Write(cacheKey, sourceHash, cacheSignature, blob);
                     preparedBlob = PreparedBlob.FromBlob(
                         blob,
                         blobFile,
@@ -303,31 +350,66 @@ public sealed class AssetBakePipeline
                 }
                 else
                     finalBlobs[preparedBlob.LogicalPath] = preparedBlob;
+
+                if (!bakeRoot.IsBuiltIn)
+                    liveProjectSourcePaths.Add(relativePath);
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(request.AssetRegistryPath) &&
-            File.Exists(request.AssetRegistryPath))
+        cancellationToken.ThrowIfCancellationRequested();
+        const string automappingCacheKey = "tiled/automapping-catalog";
+        const string automappingCacheSignature = "tiled-automapping-v1";
+        liveCacheKeys.Add(automappingCacheKey);
+        var bakedAutomappingCatalog = TiledAutomappingAssetCompiler.Compile(
+            inputRoot,
+            request.ProjectRoot);
+        var automappingHash = Convert.ToHexString(SHA256.HashData(bakedAutomappingCatalog.Data))
+            .ToLowerInvariant();
+        PreparedBlob automappingCatalog;
+        if (!cache.TryRead(
+                automappingCacheKey,
+                automappingHash,
+                automappingCacheSignature,
+                retainBlobData,
+                out automappingCatalog))
+        {
+            var catalogBlobFile = cache.Write(
+                automappingCacheKey,
+                automappingHash,
+                automappingCacheSignature,
+                bakedAutomappingCatalog);
+            automappingCatalog = PreparedBlob.FromBlob(
+                bakedAutomappingCatalog,
+                catalogBlobFile,
+                retainBlobData);
+        }
+        finalBlobs[automappingCatalog.LogicalPath] = automappingCatalog;
+
+        if (sourceRegistry is not null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             const string registryCacheKey = "registry/runtime";
+            const string registryCacheSignature = "runtime-registry-v5";
             liveCacheKeys.Add(registryCacheKey);
-            var registryHash = ComputeHash(request.AssetRegistryPath);
+            var registryHash = ComputeRuntimeRegistryHash(
+                sourceRegistry.SourceHash,
+                liveProjectSourcePaths);
             PreparedBlob registryBlob;
             if (!cache.TryRead(
                     registryCacheKey,
                     registryHash,
-                    "runtime-registry-v2",
+                    registryCacheSignature,
                     retainBlobData,
                     out registryBlob))
             {
                 var bakedRegistryBlob = CreateRuntimeRegistryBlob(
-                    request.AssetRegistryPath,
-                    bakerRegistry);
+                    sourceRegistry,
+                    bakerRegistry,
+                    liveProjectSourcePaths);
                 var registryBlobFile = cache.Write(
                     registryCacheKey,
                     registryHash,
-                    "runtime-registry-v1",
+                    registryCacheSignature,
                     bakedRegistryBlob);
                 registryBlob = PreparedBlob.FromBlob(
                     bakedRegistryBlob,
@@ -352,12 +434,10 @@ public sealed class AssetBakePipeline
     }
 
     private static AssetBlob CreateRuntimeRegistryBlob(
-        string registryPath,
-        AssetBakerRegistry bakerRegistry)
+        SourceAssetRegistryCatalog source,
+        AssetBakerRegistry bakerRegistry,
+        ISet<string> liveSourcePaths)
     {
-        using var stream = File.OpenRead(registryPath);
-        var source = JsonSerializer.Deserialize<SourceAssetRegistry>(stream, JsonOptions)
-                     ?? throw new InvalidDataException("The Dreambit asset registry is empty.");
         var seenIds = new HashSet<Guid>();
         var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var runtimeAssets = new List<RuntimeRegistryEntry>(source.Assets.Count);
@@ -365,6 +445,12 @@ public sealed class AssetBakePipeline
         {
             if (entry.Id == Guid.Empty || string.IsNullOrWhiteSpace(entry.Path))
                 throw new InvalidDataException("The Dreambit asset registry contains an invalid entry.");
+            var normalizedPath = NormalizeRelativePath(entry.Path);
+            // The Editor deliberately preserves deleted assets as tombstones so
+            // restoring a path can recover its stable ID. Tombstones have no
+            // runtime content, so they must not enter the emitted registry.
+            if (!liveSourcePaths.Contains(normalizedPath))
+                continue;
             var extension = Path.GetExtension(entry.Path);
             // The editor tracks source-only files so they remain visible in the
             // Project panel. They must not enter the runtime registry unless a
@@ -374,19 +460,26 @@ public sealed class AssetBakePipeline
             if (bakerRegistry.GetByExt(extension) is null)
                 continue;
 
+            // Stylesheets are addressed by their full logical path so a sibling
+            // foo.ucss can coexist with foo.uxml. Stylesheets intentionally do
+            // not receive stable IDs in the extension-stripping runtime registry.
+            if (extension.Equals(".ucss", StringComparison.OrdinalIgnoreCase) ||
+                extension.Equals(".css", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             var logicalName = IsSerializedDreambitExtension(extension)
-                ? entry.Path.Replace('\\', '/')
-                : Path.ChangeExtension(entry.Path, null)!.Replace('\\', '/');
+                ? normalizedPath
+                : Path.ChangeExtension(normalizedPath, null)!.Replace('\\', '/');
             if (!seenIds.Add(entry.Id))
                 throw new InvalidDataException($"Duplicate asset ID '{entry.Id:D}'.");
             if (!seenNames.Add(logicalName))
                 throw new InvalidDataException(
                     $"Two source assets resolve to runtime name '{logicalName}'.");
-            runtimeAssets.Add(new RuntimeRegistryEntry(entry.Id, logicalName));
+            runtimeAssets.Add(new RuntimeRegistryEntry(entry.Id, logicalName, entry.TypeId));
         }
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(
-            new RuntimeAssetRegistryDocument(1, runtimeAssets),
+            new RuntimeAssetRegistryDocument(2, runtimeAssets),
             JsonOptions);
         using var output = new MemoryStream();
         JsnbWriter.Write(output, payload, 0);
@@ -397,10 +490,20 @@ public sealed class AssetBakePipeline
             output.ToArray());
     }
 
-    private static string CreateOptionSignature(BakeParameters request) =>
-        $"v2;mips={request.GenerateMips};premul={request.PremultiplyAlpha};" +
-        $"max={request.MaxDimension?.ToString() ?? "none"};srgb={request.MarkSrgb};" +
-        $"platform={request.TargetPlatform}";
+    private static string ComputeRuntimeRegistryHash(
+        string sourceRegistryHash,
+        IEnumerable<string> liveSourcePaths)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(Encoding.UTF8.GetBytes(sourceRegistryHash));
+        hash.AppendData([0]);
+        foreach (var path in liveSourcePaths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(path.ToLowerInvariant()));
+            hash.AppendData([0]);
+        }
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
 
     private static string ComputeContentFingerprint(
         IReadOnlyDictionary<string, PreparedBlob> blobs,
@@ -455,6 +558,106 @@ public sealed class AssetBakePipeline
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static void PublishBlobSnapshot(
+        string cacheDirectory,
+        string runtimeOutputDirectory,
+        PreparedBake prepared,
+        IProgress<AssetBakeProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var cacheRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(cacheDirectory));
+        var outputRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(runtimeOutputDirectory));
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (string.Equals(cacheRoot, outputRoot, comparison))
+            return;
+
+        Directory.CreateDirectory(outputRoot);
+        var expectedSync = $"{RuntimeSyncVersion}:{prepared.Fingerprint}";
+        var syncPath = Path.Combine(outputRoot, RuntimeSyncFileName);
+        string? currentSync = null;
+        try
+        {
+            if (File.Exists(syncPath))
+                currentSync = File.ReadAllText(syncPath).Trim();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A missing or unreadable commit marker means the output cannot be trusted. Recopy
+            // the complete snapshot and let a real write error surface below if it persists.
+        }
+
+        var contentChanged = !string.Equals(expectedSync, currentSync, StringComparison.Ordinal);
+        progress?.Report(new AssetBakeProgress(
+            "Publish",
+            contentChanged
+                ? $"Publishing fresh Debug blobs to {outputRoot}"
+                : $"Verifying Debug blobs in {outputRoot}"));
+
+        foreach (var blob in prepared.Blobs.Values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var relativePath = blob.BlobFile
+                               ?? throw new InvalidOperationException(
+                                   $"Asset '{blob.LogicalPath}' has no cached blob path.");
+            var normalized = relativePath.Replace('/', Path.DirectorySeparatorChar);
+            var source = Path.Combine(cacheRoot, normalized);
+            var destination = Path.Combine(outputRoot, normalized);
+            if (contentChanged || !File.Exists(destination))
+                CopyFileAtomically(source, destination, cancellationToken);
+        }
+
+        // Blobs are immutable for the duration of the cache writer lease. Commit the manifest
+        // only after every file it references is available, then write the sync token last.
+        CopyFileAtomically(
+            Path.Combine(cacheRoot, BlobContentManifest.FileName),
+            Path.Combine(outputRoot, BlobContentManifest.FileName),
+            cancellationToken);
+        WriteTextAtomically(
+            Path.Combine(outputRoot, BlobContentManifest.FingerprintFileName),
+            prepared.Fingerprint + Environment.NewLine);
+
+        // Auto mode prefers a PAK when present. A Debug snapshot must never silently select a
+        // shipping PAK left behind by an earlier Release build.
+        File.Delete(Path.Combine(outputRoot, "content.pak"));
+        File.Delete(Path.Combine(outputRoot, "content.pak.fingerprint"));
+        WriteTextAtomically(syncPath, expectedSync + Environment.NewLine);
+    }
+
+    private static void CopyFileAtomically(
+        string sourcePath,
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
+        var fullDestination = Path.GetFullPath(destinationPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullDestination)!);
+        var temporaryPath = fullDestination + $".{Guid.NewGuid():N}.tmp";
+        try
+        {
+            using (var source = new FileStream(
+                       sourcePath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.ReadWrite | FileShare.Delete))
+            using (var destination = new FileStream(
+                       temporaryPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None))
+            {
+                source.CopyTo(destination);
+                cancellationToken.ThrowIfCancellationRequested();
+                destination.Flush(true);
+            }
+            File.Move(temporaryPath, fullDestination, true);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(temporaryPath);
         }
     }
 
@@ -579,7 +782,8 @@ public sealed class AssetBakePipeline
         int? MaxDimension,
         bool MarkSrgb,
         string TargetPlatform,
-        bool IncludeBuiltInContent);
+        bool IncludeBuiltInContent,
+        string? ProjectRoot);
 
     private sealed record PreparedBlob(
         string LogicalPath,
@@ -609,22 +813,64 @@ public sealed class AssetBakePipeline
         int CacheHitCount,
         int UnsupportedCount);
 
-    private sealed class SourceAssetRegistry
-    {
-        public List<SourceAssetRegistryEntry> Assets { get; set; } = [];
-    }
-
-    private sealed class SourceAssetRegistryEntry
-    {
-        public Guid Id { get; set; }
-        public string Path { get; set; } = string.Empty;
-    }
-
     private sealed record RuntimeAssetRegistryDocument(
         int SchemaVersion,
         IReadOnlyList<RuntimeRegistryEntry> Assets);
 
-    private sealed record RuntimeRegistryEntry(Guid Id, string Name);
+    private sealed record RuntimeRegistryEntry(
+        Guid Id,
+        string Name,
+        [property: System.Text.Json.Serialization.JsonPropertyName("type")] string? TypeId);
+
+    private sealed class BakeCacheWriterLease : IDisposable
+    {
+        internal const string FileName = "bake.lock";
+        private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(50);
+        private readonly FileStream? _stream;
+
+        private BakeCacheWriterLease(FileStream? stream) => _stream = stream;
+
+        public static BakeCacheWriterLease Acquire(
+            string? cacheDirectory,
+            IProgress<AssetBakeProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(cacheDirectory))
+                return new BakeCacheWriterLease(null);
+
+            var directory = Path.GetFullPath(cacheDirectory);
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, FileName);
+            var reportedWait = false;
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    return new BakeCacheWriterLease(new FileStream(
+                        path,
+                        FileMode.OpenOrCreate,
+                        FileAccess.ReadWrite,
+                        FileShare.None));
+                }
+                catch (IOException)
+                {
+                    if (!reportedWait)
+                    {
+                        progress?.Report(new AssetBakeProgress(
+                            "Wait",
+                            "Waiting for another asset bake to finish."));
+                        reportedWait = true;
+                    }
+
+                    if (cancellationToken.WaitHandle.WaitOne(RetryDelay))
+                        cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+        }
+
+        public void Dispose() => _stream?.Dispose();
+    }
 
     private sealed class IncrementalBakeCache
     {

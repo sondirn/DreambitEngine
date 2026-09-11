@@ -80,7 +80,10 @@ public sealed class AssetBakerRegistry
                 new Pipeline.Docs.TxtbBaker())
             .Register(
                 AssetType.Xml,
-                new Pipeline.Docs.XmlbBaker());
+                new Pipeline.Docs.XmlbBaker())
+            .Register(
+                AssetType.Stylesheet,
+                new Pipeline.Docs.CssbBaker());
     }
 
     private static string NormalizeExtension(string extension)

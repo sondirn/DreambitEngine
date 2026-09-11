@@ -3,6 +3,17 @@ using System.Reflection;
 
 namespace Dreambit.Editor.Projects;
 
+internal interface IProjectProcessLauncher
+{
+    bool TryLaunch(string projectPath, out string? error);
+}
+
+internal sealed class CurrentEditorProjectProcessLauncher : IProjectProcessLauncher
+{
+    public bool TryLaunch(string projectPath, out string? error) =>
+        ProjectProcessLauncher.TryLaunch(projectPath, out error);
+}
+
 internal static class ProjectProcessLauncher
 {
     public static bool TryLaunch(string projectPath, out string? error)

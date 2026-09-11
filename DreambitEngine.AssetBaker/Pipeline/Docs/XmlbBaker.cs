@@ -7,7 +7,7 @@ namespace DreambitEngine.AssetBaker.Pipeline.Docs;
 public sealed class XmlbBaker : AssetBakerBase
 {
     public override string AssetTypeName => "XML";
-    public override string[] SupportedInputs => [".xml", ".tmx", ".tx", ".tsx"];
+    public override string[] SupportedInputs => [".uxml", ".xml", ".tmx", ".tx", ".tsx"];
     public override string OutputExtension => ".xmlb";
 
     public override void Bake(BakeContext ctx)

@@ -7,12 +7,12 @@ internal readonly record struct AssetTypeInfo(AssetKind Kind, string? TypeId);
 
 internal static class AssetTypeClassifier
 {
-    public const int ClassificationVersion = 4;
+    public const int ClassificationVersion = 7;
 
     private static readonly (AssetKind Kind, Type AssetType)[] SerializedTypes =
     [
         (AssetKind.SpriteSheet, typeof(SpriteSheet)),
-        (AssetKind.Animation, typeof(SpriteSheetAnimation)),
+        (AssetKind.Animation, typeof(SpriteAnimation)),
         (AssetKind.Blueprint, typeof(EntityBlueprint)),
         (AssetKind.ParticleEffect, typeof(ParticleFxConfig)),
         (AssetKind.SoundCue, typeof(SoundCue)),
@@ -26,7 +26,7 @@ internal static class AssetTypeClassifier
     private static readonly (string Suffix, AssetKind Kind, Type AssetType)[] LegacyJsonTypes =
     [
         (".spritesheet.json", AssetKind.SpriteSheet, typeof(SpriteSheet)),
-        (".animation.json", AssetKind.Animation, typeof(SpriteSheetAnimation)),
+        (".animation.json", AssetKind.Animation, typeof(SpriteAnimation)),
         (".blueprint.json", AssetKind.Blueprint, typeof(EntityBlueprint)),
         (".particlefx.json", AssetKind.ParticleEffect, typeof(ParticleFxConfig)),
         (".soundcue.json", AssetKind.SoundCue, typeof(SoundCue)),
@@ -76,21 +76,21 @@ internal static class AssetTypeClassifier
 
         return extension.ToLowerInvariant() switch
         {
-            ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".tga" or ".webp" =>
+            ".png" or ".jpg" or ".jpeg" or ".bmp" or ".tga" =>
                 new AssetTypeInfo(AssetKind.Texture, DreambitAssetTypeRegistry.GetTypeId(typeof(TextureAsset))),
             ".wav" or ".ogg" or ".mp3" or ".flac" =>
                 new AssetTypeInfo(AssetKind.Audio, null),
             ".ttf" => new AssetTypeInfo(AssetKind.Font, DreambitAssetTypeRegistry.GetTypeId(typeof(FontAsset))),
             ".fx" => new AssetTypeInfo(AssetKind.Effect, DreambitAssetTypeRegistry.GetTypeId(typeof(DreambitEffect))),
             ".txt" or ".md" => new AssetTypeInfo(AssetKind.Text, null),
-            ".ldtk" or ".ldtkl" => new AssetTypeInfo(AssetKind.Ldtk, null),
+            ".ucss" or ".css" => new AssetTypeInfo(AssetKind.Stylesheet, null),
             ".tmx" => new AssetTypeInfo(
                 AssetKind.TiledMap,
                 DreambitAssetTypeRegistry.GetTypeId(typeof(Dreambit.Tiled.TmxMap))),
             ".tsx" => new AssetTypeInfo(
                 AssetKind.TiledMap,
                 DreambitAssetTypeRegistry.GetTypeId(typeof(Dreambit.Tiled.TmxTileset))),
-            ".xml" or ".yaml" or ".yml" => new AssetTypeInfo(AssetKind.Data, null),
+            ".uxml" or ".xml" or ".yaml" or ".yml" => new AssetTypeInfo(AssetKind.Data, null),
             _ => new AssetTypeInfo(AssetKind.Unknown, null)
         };
     }

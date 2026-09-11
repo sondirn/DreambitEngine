@@ -25,6 +25,7 @@ public class EntityRepository
     private readonly Logger<EntityRepository> _logger = new();
     private readonly Scene _scene;
     private readonly Dictionary<Guid, Entity> _toCreateById = new(64);
+    private int _iterationDepth;
 
     public EntityRepository(Scene scene)
     {
@@ -32,6 +33,8 @@ public class EntityRepository
     }
 
     public int Count => _entities.Count + _entitiesToCreate.Count;
+
+    internal bool IsIterating => _iterationDepth > 0;
 
     internal Entity CreateEntity(string name, HashSet<string> tags, bool enabled, Vector3? createAt,
         Vector3? eulerRotation,
@@ -74,44 +77,52 @@ public class EntityRepository
     {
         if (entity == null)
         {
-            Console.WriteLine("Could not destroy entity, entity is null");
+            Console.WriteLine(
+                "Could not destroy entity, entity is null");
+
             return;
         }
 
-        // Already queued for destroy?
+        _scene.Services.EnsureCanRemove(entity);
+
         if (_entitiesToDestroySet.Contains(entity))
         {
-            Console.WriteLine("Entity {0} is already being removed", entity.Name);
+            Console.WriteLine(
+                "Entity {0} is already being removed",
+                entity.Name);
+
             return;
         }
 
-        // If it’s still in the creation queue, cancel the creation
+        // Pending creation: ownership already exists even though the entity
+        // has not entered the active list.
         if (_entitiesToCreateSet.Contains(entity))
         {
-            // Remove from create list & indices
             _entitiesToCreateSet.Remove(entity);
             _toCreateById.Remove(entity.Id);
 
-            // Remove from list without reallocating too much
-            for (var i = 0; i < _entitiesToCreate.Count; i++)
-                if (ReferenceEquals(_entitiesToCreate[i], entity))
-                {
-                    var last = _entitiesToCreate.Count - 1;
-                    _entitiesToCreate[i] = _entitiesToCreate[last];
-                    _entitiesToCreate.RemoveAt(last);
-                    break;
-                }
+            RemoveByReference(
+                _entitiesToCreate,
+                entity);
 
-            // A streamed level may be unloaded before the next entity tick.
-            // Pending entities already own live components/drawable registrations,
-            // so cancelling the queue entry must also destroy those resources.
-            entity.Destroy();
-            entity.Dispose();
-            RemoveByReference(_alwaysUpdateEntities, entity);
+            RemoveByReference(
+                _alwaysUpdateEntities,
+                entity);
+
+            var cleanupErrors =
+                new List<Exception>();
+
+            DestroyAndDisposeEntity(
+                entity,
+                cleanupErrors);
+
+            ThrowIfCleanupFailed(
+                cleanupErrors,
+                "Pending entity cleanup failed.");
+
             return;
         }
 
-        // If it exists in active set, queue for deletion
         if (_entitiesSet.Contains(entity))
         {
             _entitiesToDestroy.Add(entity);
@@ -121,29 +132,124 @@ public class EntityRepository
 
     internal void ClearLists()
     {
-        var allEntities = new HashSet<Entity>(ReferenceEqualityComparer.Instance);
-        allEntities.UnionWith(_entitiesToCreate);
-        allEntities.UnionWith(_entitiesToDestroy);
-        allEntities.UnionWith(_entities);
+        var allEntities =
+            new List<Entity>(
+                _entities.Count +
+                _entitiesToCreate.Count +
+                _entitiesToDestroy.Count);
 
-        foreach (var entity in _entities)
-            entity.OnRemovedFromScene();
+        AddUniqueByReference(
+            allEntities,
+            _entities);
+
+        AddUniqueByReference(
+            allEntities,
+            _entitiesToCreate);
+
+        AddUniqueByReference(
+            allEntities,
+            _entitiesToDestroy);
+
+        var ordinaryEntities =
+            new List<Entity>(
+                allEntities.Count);
+
+        var serviceEntities =
+            new List<Entity>();
 
         foreach (var entity in allEntities)
-        {
-            entity.Destroy();
-            entity.Dispose();
-        }
+            if (entity.ContainsSceneService())
+                serviceEntities.Add(entity);
+            else
+                ordinaryEntities.Add(entity);
 
+        var cleanupErrors =
+            new List<Exception>();
+
+        RemoveAndDestroyEntities(
+            ordinaryEntities,
+            cleanupErrors);
+
+        _scene.Services.StopAll();
+
+        RemoveAndDestroyEntities(
+            serviceEntities,
+            cleanupErrors);
+
+        // Repository ownership must always be released, even when user cleanup
+        // code throws.
         _entities.Clear();
         _entitiesSet.Clear();
         _entitiesById.Clear();
+
         _entitiesToCreate.Clear();
         _entitiesToCreateSet.Clear();
         _toCreateById.Clear();
+
         _entitiesToDestroy.Clear();
         _entitiesToDestroySet.Clear();
+
         _alwaysUpdateEntities.Clear();
+
+        ThrowIfCleanupFailed(
+            cleanupErrors,
+            "One or more entities failed while clearing the scene.");
+    }
+
+    private void RemoveAndDestroyEntities(
+        IReadOnlyList<Entity> entities,
+        List<Exception> cleanupErrors)
+    {
+        for (var i = 0;
+             i < entities.Count;
+             i++)
+        {
+            var entity =
+                entities[i];
+
+            if (_entitiesSet.Contains(entity))
+                TryCleanup(
+                    cleanupErrors,
+                    entity.OnRemovedFromScene);
+
+            DestroyAndDisposeEntity(
+                entity,
+                cleanupErrors);
+        }
+    }
+
+    private static void AddUniqueByReference(
+        List<Entity> destination,
+        IReadOnlyList<Entity> source)
+    {
+        for (var i = 0;
+             i < source.Count;
+             i++)
+        {
+            var candidate =
+                source[i];
+
+            var exists =
+                false;
+
+            for (var destinationIndex = 0;
+                 destinationIndex < destination.Count;
+                 destinationIndex++)
+            {
+                if (!ReferenceEquals(
+                        destination[destinationIndex],
+                        candidate))
+                {
+                    continue;
+                }
+
+                exists = true;
+                break;
+            }
+
+            if (!exists)
+                destination.Add(candidate);
+        }
     }
 
     private void UpdateEntities()
@@ -223,64 +329,108 @@ public class EntityRepository
 
     private void HandleEntityDeletions()
     {
-        // Remove from active, updating indices
-        for (var i = 0; i < _entitiesToDestroy.Count; i++)
+        var cleanupErrors =
+            new List<Exception>();
+
+        for (var i = 0;
+             i < _entitiesToDestroy.Count;
+             i++)
         {
-            var e = _entitiesToDestroy[i];
-            if (!_entitiesSet.Contains(e)) continue;
+            var entity =
+                _entitiesToDestroy[i];
 
-            // Remove from active list without O(n) shifting (swap pop)
-            for (var j = 0; j < _entities.Count; j++)
-                if (ReferenceEquals(_entities[j], e))
-                {
-                    var last = _entities.Count - 1;
-                    _entities[j] = _entities[last];
-                    _entities.RemoveAt(last);
-                    break;
-                }
+            if (!_entitiesSet.Contains(entity))
+                continue;
 
-            _entitiesSet.Remove(e);
-            _entitiesById.Remove(e.Id);
-            RemoveByReference(_alwaysUpdateEntities, e);
+            RemoveByReference(
+                _entities,
+                entity);
 
-            e.OnRemovedFromScene();
-            e.Destroy();
-            e.Dispose();
+            _entitiesSet.Remove(entity);
+            _entitiesById.Remove(entity.Id);
+
+            RemoveByReference(
+                _alwaysUpdateEntities,
+                entity);
+
+            TryCleanup(
+                cleanupErrors,
+                entity.OnRemovedFromScene);
+
+            DestroyAndDisposeEntity(
+                entity,
+                cleanupErrors);
         }
 
         _entitiesToDestroy.Clear();
         _entitiesToDestroySet.Clear();
+
+        ThrowIfCleanupFailed(
+            cleanupErrors,
+            "One or more entities failed while being destroyed.");
     }
 
     internal void Tick()
     {
-        HandleEntityCreations();
-        UpdateEntities();
-        HandleEntityDeletions();
+        _iterationDepth++;
+        try
+        {
+            HandleEntityCreations();
+            UpdateEntities();
+            HandleEntityDeletions();
+        }
+        finally
+        {
+            _iterationDepth--;
+        }
     }
 
     internal void FlushStructuralChanges()
     {
-        HandleEntityCreations();
-        for (var index = 0; index < _entities.Count; index++)
-            _entities[index].FlushStructuralChanges();
-        HandleEntityDeletions();
+        _iterationDepth++;
+        try
+        {
+            HandleEntityCreations();
+            for (var index = 0; index < _entities.Count; index++)
+                _entities[index].FlushStructuralChanges();
+            HandleEntityDeletions();
+        }
+        finally
+        {
+            _iterationDepth--;
+        }
     }
 
     internal void EditorUpdate()
     {
         FlushStructuralChanges();
-        for (var index = 0; index < _entities.Count; index++)
+        _iterationDepth++;
+        try
         {
-            var entity = _entities[index];
-            if (entity.Enabled)
-                entity.EditorUpdate();
+            for (var index = 0; index < _entities.Count; index++)
+            {
+                var entity = _entities[index];
+                if (entity.Enabled)
+                    entity.EditorUpdate();
+            }
+        }
+        finally
+        {
+            _iterationDepth--;
         }
     }
 
     internal void PhysicsTick()
     {
-        PhysicsUpdateEntities();
+        _iterationDepth++;
+        try
+        {
+            PhysicsUpdateEntities();
+        }
+        finally
+        {
+            _iterationDepth--;
+        }
     }
 
     public Entity GetEntity(Guid id)
@@ -381,23 +531,89 @@ public class EntityRepository
         if (entity == null)
             return;
 
-        var wasActive = _entitiesSet.Remove(entity);
+        entity.MarkDeadForImmediateDestruction();
+
+        var wasActive =
+            _entitiesSet.Remove(entity);
 
         _entitiesById.Remove(entity.Id);
         _toCreateById.Remove(entity.Id);
+
         _entitiesToCreateSet.Remove(entity);
         _entitiesToDestroySet.Remove(entity);
 
-        RemoveByReference(_entities, entity);
-        RemoveByReference(_entitiesToCreate, entity);
-        RemoveByReference(_entitiesToDestroy, entity);
-        RemoveByReference(_alwaysUpdateEntities, entity);
+        RemoveByReference(
+            _entities,
+            entity);
+
+        RemoveByReference(
+            _entitiesToCreate,
+            entity);
+
+        RemoveByReference(
+            _entitiesToDestroy,
+            entity);
+
+        RemoveByReference(
+            _alwaysUpdateEntities,
+            entity);
+
+        var cleanupErrors =
+            new List<Exception>();
 
         if (wasActive)
-            entity.OnRemovedFromScene();
+        {
+            TryCleanup(
+                cleanupErrors,
+                entity.OnRemovedFromScene);
+        }
 
-        entity.Destroy();
-        entity.Dispose();
+        DestroyAndDisposeEntity(
+            entity,
+            cleanupErrors);
+
+        ThrowIfCleanupFailed(
+            cleanupErrors,
+            "Immediate entity destruction failed.");
+    }
+    
+    private static void DestroyAndDisposeEntity(
+        Entity entity,
+        List<Exception> cleanupErrors)
+    {
+        TryCleanup(
+            cleanupErrors,
+            entity.Destroy);
+
+        TryCleanup(
+            cleanupErrors,
+            entity.Dispose);
+    }
+
+    private static void TryCleanup(
+        List<Exception> cleanupErrors,
+        Action cleanup)
+    {
+        try
+        {
+            cleanup();
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
+        }
+    }
+
+    private static void ThrowIfCleanupFailed(
+        List<Exception> cleanupErrors,
+        string message)
+    {
+        if (cleanupErrors.Count == 0)
+            return;
+
+        throw new AggregateException(
+            message,
+            cleanupErrors);
     }
 
     private static void RemoveByReference(List<Entity> list, Entity entity)

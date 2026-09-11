@@ -28,6 +28,7 @@ namespace Dreambit.UI;
 /// <param name="CancelGamePad">Whether the game pad requested cancellation.</param>
 /// <param name="KeyboardNavigationHeld">Whether a keyboard navigation or command key is held.</param>
 /// <param name="GamePadNavigationHeld">Whether a game-pad navigation or command control is held.</param>
+/// <param name="SecondaryPressed">Whether the secondary pointer button was pressed this update.</param>
 public readonly record struct UiInputState(
     Vector2 PointerPosition,
     bool PointerInWindow,
@@ -49,4 +50,5 @@ public readonly record struct UiInputState(
     bool CancelKeyboard,
     bool CancelGamePad,
     bool KeyboardNavigationHeld,
-    bool GamePadNavigationHeld);
+    bool GamePadNavigationHeld,
+    bool SecondaryPressed = false);

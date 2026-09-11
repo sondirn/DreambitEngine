@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>State machines and blackboards - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "State machines and blackboards";
+        var mkdocs_page_input_path = "ai\\fsm.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/logging/">Logging and debugging</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../UI/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../UI/Stylesheets/">Stylesheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../networking/">Networking</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Overview</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">State machines and blackboards</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#core-concepts">Core concepts</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tiled</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tiled/">Overview and quick start</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">AI</li>
+      <li class="breadcrumb-item active">State machines and blackboards</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="finite-state-machines">Finite State Machines<a class="headerlink" href="#finite-state-machines" title="Permanent link">&para;</a></h1>
+<p>The Dreambit finite state machine, or <code>FSM</code>, manages behavior that can be divided into distinct states.</p>
+<p>Common uses include:</p>
+<ul>
+<li>Player movement</li>
+<li>Enemy artificial intelligence</li>
+<li>User-interface navigation</li>
+<li>Game phases</li>
+<li>Menus</li>
+<li>Cutscenes</li>
+<li>Character abilities</li>
+<li>Interaction modes</li>
+</ul>
+<p>An FSM has one active state at a time. The active state executes its behavior every frame, while registered transition conditions determine when the machine should enter another state.</p>
+<p>A basic platformer player might use the following states:</p>
+<pre><code class="language-text">                         ┌─────────────┐
+                         │  HurtState  │
+                         └──────┬──────┘
+                                │ Recovered
+                                v
+┌───────────┐  Movement   ┌──────────┐  Jump pressed  ┌───────────┐
+│ IdleState │ ──────────► │ RunState │ ─────────────► │ JumpState │
+└─────┬─────┘             └────┬─────┘                └─────┬─────┘
+      │ Jump pressed            │ No movement                │ Falling
+      └─────────────────────────┴────────────────────────────v
+                                                         ┌───────────┐
+                                                         │ FallState │
+                                                         └─────┬─────┘
+                                                               │ Grounded
+                                                               v
+                                                         Idle or Run
+</code></pre>
+<p>A global death transition can interrupt any of these states:</p>
+<pre><code class="language-text">Any active state ── Health &lt;= 0 ──► DeadState
+</code></pre>
+<hr />
+<h2 id="core-concepts">Core concepts<a class="headerlink" href="#core-concepts" title="Permanent link">&para;</a></h2>
+<p>An FSM is composed of four main parts:</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FSM</code></td>
+<td>Owns states, checks transitions, and changes the active state</td>
+</tr>
+<tr>
+<td><code>State</code></td>
+<td>Defines behavior for one mode</td>
+</tr>
+<tr>
+<td><code>Blackboard</code></td>
+<td>Stores data shared between states and transition guards</td>
+</tr>
+<tr>
+<td><code>TransitionEdge</code></td>
+<td>Connects a source state to a destination state</td>
+</tr>
+<tr>
+<td>Guard</td>
+<td>A function that decides whether a transition should occur</td>
+</tr>
+</tbody>
+</table>
+<p>A typical update looks like this:</p>
+<pre><code class="language-text">Run CurrentState.OnExecute()
+              |
+              v
+Check any-state transition guards
+              |
+              v
+Check transition guards for the current state
+              |
+              v
+If a guard passes, leave the current state
+              |
+              v
+Enter the destination state
+</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+</div>
+<pre><code>This page documents the corrected FSM implementation where registered transition guards are evaluated every update.
+</code></pre>
+<hr />
+<h1 id="state-lifecycle">State lifecycle<a class="headerlink" href="#state-lifecycle" title="Permanent link">&para;</a></h1>
+<p>Every state inherits from <code>State</code>.</p>
+<pre><code class="language-csharp">using Dreambit;
+
+public sealed class PlayerIdleState : State
+{
+}
+</code></pre>
+<p>A state can override several lifecycle methods.</p>
+<h2 id="oninitialize"><code>OnInitialize</code><a class="headerlink" href="#oninitialize" title="Permanent link">&para;</a></h2>
+<p>Called once when the state is created and registered.</p>
+<pre><code class="language-csharp">public override void OnInitialize()
+{
+    // Perform one-time setup.
+}
+</code></pre>
+<p>Use <code>OnInitialize</code> for:</p>
+<ul>
+<li>Creating state-owned helper objects</li>
+<li>Resolving long-lived references</li>
+<li>Allocating reusable collections</li>
+<li>Performing setup that should happen only once</li>
+</ul>
+<p>Do not use it for values that must reset every time the state becomes active.</p>
+<hr />
+<h2 id="onenter"><code>OnEnter</code><a class="headerlink" href="#onenter" title="Permanent link">&para;</a></h2>
+<p>Called each time the FSM enters the state.</p>
+<pre><code class="language-csharp">public override void OnEnter()
+{
+    Logger.Info(&quot;Player entered IdleState&quot;);
+}
+</code></pre>
+<p>Use <code>OnEnter</code> for:</p>
+<ul>
+<li>Resetting state-local values</li>
+<li>Starting an animation</li>
+<li>Enabling state-specific effects</li>
+<li>Reading the latest blackboard values</li>
+<li>Preparing the state for execution</li>
+</ul>
+<p>A state instance is reused. Therefore, private state fields should normally be reset in <code>OnEnter</code>.</p>
+<pre><code class="language-csharp">private float _elapsedTime;
+
+public override void OnEnter()
+{
+    _elapsedTime = 0f;
+}
+</code></pre>
+<hr />
+<h2 id="onexecute"><code>OnExecute</code><a class="headerlink" href="#onexecute" title="Permanent link">&para;</a></h2>
+<p>Called once per frame while the state is active.</p>
+<pre><code class="language-csharp">public override void OnExecute()
+{
+    // Run the state's active behavior.
+}
+</code></pre>
+<p>Use <code>OnExecute</code> for:</p>
+<ul>
+<li>Applying movement</li>
+<li>Updating animation</li>
+<li>Reading input</li>
+<li>Running artificial intelligence</li>
+<li>Updating timers</li>
+<li>Requesting explicit state changes</li>
+</ul>
+<p>For example:</p>
+<pre><code class="language-csharp">public override void OnExecute()
+{
+    var data = Fsm.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+    data.Motor.Value.ApplyHorizontalMovement(
+        data.MoveInputX.Value);
+}
+</code></pre>
+<hr />
+<h2 id="reason"><code>Reason</code><a class="headerlink" href="#reason" title="Permanent link">&para;</a></h2>
+<p><code>Reason</code> allows the active state to decide whether it can remain active.</p>
+<pre><code class="language-csharp">public override bool Reason()
+{
+    return true;
+}
+</code></pre>
+<p>The return value means:</p>
+<table>
+<thead>
+<tr>
+<th>Return value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>true</code></td>
+<td>The state accepts remaining active</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>The state wants to leave</td>
+</tr>
+</tbody>
+</table>
+<p>With the corrected FSM, ordinary transition guards are checked every frame. Most states therefore do not need to override <code>Reason</code>.</p>
+<p>Use <code>Reason</code> when a state needs to make a local decision and explicitly choose its destination.</p>
+<pre><code class="language-csharp">public override bool Reason()
+{
+    if (_animationFinished)
+    {
+        Go&lt;PlayerIdleState&gt;();
+        return false;
+    }
+
+    return true;
+}
+</code></pre>
+<p>For most movement states, prefer registered transition guards instead.</p>
+<hr />
+<h2 id="onend"><code>OnEnd</code><a class="headerlink" href="#onend" title="Permanent link">&para;</a></h2>
+<p>Called whenever the FSM leaves the state.</p>
+<pre><code class="language-csharp">public override void OnEnd()
+{
+    Logger.Info(&quot;Player left IdleState&quot;);
+}
+</code></pre>
+<p>Use <code>OnEnd</code> for:</p>
+<ul>
+<li>Stopping state-specific effects</li>
+<li>Ending animations</li>
+<li>Clearing temporary flags</li>
+<li>Disabling state-owned objects</li>
+<li>Releasing temporary resources</li>
+</ul>
+<hr />
+<h2 id="ondestroyed"><code>OnDestroyed</code><a class="headerlink" href="#ondestroyed" title="Permanent link">&para;</a></h2>
+<p>Called when the owning FSM is destroyed.</p>
+<pre><code class="language-csharp">public override void OnDestroyed()
+{
+    // Release state-lifetime resources.
+}
+</code></pre>
+<p>Use this for cleanup related to resources created in <code>OnInitialize</code>.</p>
+<hr />
+<h1 id="registering-states">Registering states<a class="headerlink" href="#registering-states" title="Permanent link">&para;</a></h1>
+<p>A state must be registered before it can become active or be used in a transition.</p>
+<pre><code class="language-csharp">Fsm.Register(
+    typeof(PlayerIdleState),
+    typeof(PlayerRunState),
+    typeof(PlayerJumpState),
+    typeof(PlayerFallState),
+    typeof(PlayerHurtState),
+    typeof(PlayerDeadState));
+</code></pre>
+<p>Registration:</p>
+<ol>
+<li>Creates one instance of each state.</li>
+<li>Assigns the owning FSM.</li>
+<li>Calls the state's <code>OnInitialize</code> method.</li>
+<li>Stores the state instance for later reuse.</li>
+</ol>
+<p>Registered state classes must:</p>
+<ul>
+<li>Inherit from <code>State</code></li>
+<li>Be non-abstract</li>
+<li>Have a parameterless constructor</li>
+</ul>
+<p>A state is not recreated every time it becomes active.</p>
+<hr />
+<h1 id="setting-the-initial-state">Setting the initial state<a class="headerlink" href="#setting-the-initial-state" title="Permanent link">&para;</a></h1>
+<p>Registering states does not automatically make one active.</p>
+<p>Set a default state after registering all states:</p>
+<pre><code class="language-csharp">Fsm.SetDefaultState&lt;PlayerIdleState&gt;();
+Fsm.GoToDefault();
+</code></pre>
+<p>This starts the FSM in <code>PlayerIdleState</code>.</p>
+<p>Without an initial state:</p>
+<pre><code class="language-csharp">Fsm.CurrentState == null
+</code></pre>
+<p>State-specific transitions cannot be evaluated because there is no active source state.</p>
+<p>The recommended setup order is:</p>
+<pre><code class="language-text">1. Create the blackboard
+2. Register states
+3. Register transitions
+4. Set the default state
+5. Enter the default state
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-csharp">private void ConfigureFsm()
+{
+    _blackboard = Fsm.SetBlackboard&lt;PlayerBlackboard&gt;();
+
+    RegisterStates();
+    RegisterTransitions();
+
+    Fsm.SetDefaultState&lt;PlayerIdleState&gt;();
+    Fsm.GoToDefault();
+}
+</code></pre>
+<hr />
+<h1 id="the-blackboard">The blackboard<a class="headerlink" href="#the-blackboard" title="Permanent link">&para;</a></h1>
+<p>A blackboard stores data shared between states and transition guards.</p>
+<p>For a platformer player, shared data might include:</p>
+<ul>
+<li>Movement input</li>
+<li>Grounded status</li>
+<li>Vertical velocity</li>
+<li>Current health</li>
+<li>Jump requests</li>
+<li>A reference to the player's movement controller</li>
+</ul>
+<h2 id="example-blackboard">Example blackboard<a class="headerlink" href="#example-blackboard" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">using Dreambit;
+
+public sealed class PlayerBlackboard : Blackboard
+{
+    public BlackboardVar&lt;PlayerMotor&gt; Motor { get; }
+
+    public BlackboardVar&lt;float&gt; MoveInputX { get; }
+
+    public BlackboardVar&lt;float&gt; VerticalVelocity { get; }
+
+    public BlackboardVar&lt;bool&gt; IsGrounded { get; }
+
+    public BlackboardVar&lt;bool&gt; JumpRequested { get; }
+
+    public BlackboardVar&lt;bool&gt; IsInvulnerable { get; }
+
+    public BlackboardVar&lt;int&gt; Health { get; }
+
+    public PlayerBlackboard()
+    {
+        Motor = CreateVariable&lt;PlayerMotor&gt;(
+            &quot;Motor&quot;,
+            null);
+
+        MoveInputX = CreateVariable(
+            &quot;MoveInputX&quot;,
+            0f);
+
+        VerticalVelocity = CreateVariable(
+            &quot;VerticalVelocity&quot;,
+            0f);
+
+        IsGrounded = CreateVariable(
+            &quot;IsGrounded&quot;,
+            false);
+
+        JumpRequested = CreateVariable(
+            &quot;JumpRequested&quot;,
+            false);
+
+        IsInvulnerable = CreateVariable(
+            &quot;IsInvulnerable&quot;,
+            false);
+
+        Health = CreateVariable(
+            &quot;Health&quot;,
+            3);
+    }
+}
+</code></pre>
+<p><code>PlayerMotor</code> represents the platformer's movement component. Its exact implementation depends on the game.</p>
+<p>A simple example interface might look like:</p>
+<pre><code class="language-csharp">public class PlayerMotor
+{
+    public void StopHorizontalMovement()
+    {
+    }
+
+    public void ApplyHorizontalMovement(float input)
+    {
+    }
+
+    public void BeginJump()
+    {
+    }
+
+    public void ApplyAirMovement(float input)
+    {
+    }
+
+    public void ApplyGravity()
+    {
+    }
+}
+</code></pre>
+<p>These methods are example game APIs rather than required Dreambit APIs.</p>
+<hr />
+<h2 id="creating-the-blackboard">Creating the blackboard<a class="headerlink" href="#creating-the-blackboard" title="Permanent link">&para;</a></h2>
+<p>Install the blackboard on the FSM:</p>
+<pre><code class="language-csharp">_blackboard = Fsm.SetBlackboard&lt;PlayerBlackboard&gt;();
+</code></pre>
+<p>Then configure its initial references:</p>
+<pre><code class="language-csharp">_blackboard.Motor.Value = playerMotor;
+_blackboard.Health.Value = 3;
+</code></pre>
+<hr />
+<h2 id="retrieving-the-blackboard">Retrieving the blackboard<a class="headerlink" href="#retrieving-the-blackboard" title="Permanent link">&para;</a></h2>
+<p>Retrieve the typed blackboard from the FSM:</p>
+<pre><code class="language-csharp">var data =
+    Fsm.GetBlackboard&lt;PlayerBlackboard&gt;();
+</code></pre>
+<p>Read a value:</p>
+<pre><code class="language-csharp">var grounded =
+    data.IsGrounded.Value;
+</code></pre>
+<p>Update a value:</p>
+<pre><code class="language-csharp">data.MoveInputX.Value =
+    horizontalInput;
+</code></pre>
+<hr />
+<h2 id="accessing-the-blackboard-from-states">Accessing the blackboard from states<a class="headerlink" href="#accessing-the-blackboard-from-states" title="Permanent link">&para;</a></h2>
+<p>A common base state can expose the correctly typed blackboard:</p>
+<pre><code class="language-csharp">using Dreambit;
+
+public abstract class PlayerState : State
+{
+    protected PlayerBlackboard Data =&gt;
+        Fsm.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+    protected PlayerMotor Motor =&gt;
+        Data.Motor.Value;
+}
+</code></pre>
+<p>Platformer states can then inherit from <code>PlayerState</code>:</p>
+<pre><code class="language-csharp">public sealed class PlayerIdleState : PlayerState
+{
+    public override void OnExecute()
+    {
+        Motor.StopHorizontalMovement();
+    }
+}
+</code></pre>
+<p>This avoids repeating the blackboard cast in every state.</p>
+<hr />
+<h1 id="creating-platformer-states">Creating platformer states<a class="headerlink" href="#creating-platformer-states" title="Permanent link">&para;</a></h1>
+<p>The following states form a basic platformer movement FSM.</p>
+<h2 id="idle-state">Idle state<a class="headerlink" href="#idle-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerIdleState : PlayerState
+{
+    public override void OnEnter()
+    {
+        Logger.Info(&quot;Player entered IdleState&quot;);
+    }
+
+    public override void OnExecute()
+    {
+        Motor.StopHorizontalMovement();
+    }
+}
+</code></pre>
+<p>The idle state does not need to decide when to leave. Registered transition guards handle that.</p>
+<hr />
+<h2 id="run-state">Run state<a class="headerlink" href="#run-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerRunState : PlayerState
+{
+    public override void OnEnter()
+    {
+        Logger.Info(&quot;Player entered RunState&quot;);
+    }
+
+    public override void OnExecute()
+    {
+        Motor.ApplyHorizontalMovement(
+            Data.MoveInputX.Value);
+    }
+}
+</code></pre>
+<hr />
+<h2 id="jump-state">Jump state<a class="headerlink" href="#jump-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerJumpState : PlayerState
+{
+    public override void OnEnter()
+    {
+        Logger.Info(&quot;Player entered JumpState&quot;);
+
+        Motor.BeginJump();
+
+        // The jump request has now been handled.
+        Data.JumpRequested.Value = false;
+    }
+
+    public override void OnExecute()
+    {
+        Motor.ApplyAirMovement(
+            Data.MoveInputX.Value);
+
+        Motor.ApplyGravity();
+    }
+}
+</code></pre>
+<hr />
+<h2 id="fall-state">Fall state<a class="headerlink" href="#fall-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerFallState : PlayerState
+{
+    public override void OnEnter()
+    {
+        Logger.Info(&quot;Player entered FallState&quot;);
+    }
+
+    public override void OnExecute()
+    {
+        Motor.ApplyAirMovement(
+            Data.MoveInputX.Value);
+
+        Motor.ApplyGravity();
+    }
+}
+</code></pre>
+<hr />
+<h2 id="hurt-state">Hurt state<a class="headerlink" href="#hurt-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerHurtState : PlayerState
+{
+    private float _remainingDuration;
+
+    public override void OnEnter()
+    {
+        _remainingDuration = 0.35f;
+
+        Data.IsInvulnerable.Value = true;
+
+        Logger.Info(&quot;Player entered HurtState&quot;);
+    }
+
+    public override void OnExecute()
+    {
+        // Replace with the engine's actual delta-time value.
+        _remainingDuration -= GameTime.DeltaSeconds;
+
+        if (_remainingDuration &lt;= 0f)
+        {
+            Data.IsInvulnerable.Value = false;
+
+            Fsm.SetNextState&lt;PlayerIdleState&gt;(
+                &quot;Hurt recovery completed&quot;);
+        }
+    }
+
+    public override void OnEnd()
+    {
+        Data.IsInvulnerable.Value = false;
+    }
+}
+</code></pre>
+<p><code>GameTime.DeltaSeconds</code> is illustrative. Replace it with the project's actual frame-delta API.</p>
+<hr />
+<h2 id="dead-state">Dead state<a class="headerlink" href="#dead-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public sealed class PlayerDeadState : PlayerState
+{
+    public override void OnEnter()
+    {
+        Motor.StopHorizontalMovement();
+
+        Logger.Info(&quot;Player entered DeadState&quot;);
+    }
+
+    public override void OnExecute()
+    {
+        // Play death animation or wait for respawn.
+    }
+}
+</code></pre>
+<p>Because death is normally terminal until the player respawns, this state does not need an automatic outgoing transition.</p>
+<hr />
+<h1 id="state-specific-transitions">State-specific transitions<a class="headerlink" href="#state-specific-transitions" title="Permanent link">&para;</a></h1>
+<p>Use <code>AddTransition&lt;TFrom, TTo&gt;</code> for a transition that only applies while a particular source state is active.</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;PlayerIdleState, PlayerRunState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return MathF.Abs(data.MoveInputX.Value) &gt; 0.01f;
+    });
+</code></pre>
+<p>The generic parameters identify the connection:</p>
+<pre><code class="language-text">TFrom = PlayerIdleState
+TTo   = PlayerRunState
+</code></pre>
+<p>The lambda is the transition guard:</p>
+<pre><code class="language-csharp">machine =&gt;
+{
+    return condition;
+}
+</code></pre>
+<p>The result means:</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>true</code></td>
+<td>Enter the destination state</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>Remain in the current state</td>
+</tr>
+</tbody>
+</table>
+<p>Conceptually, the FSM performs:</p>
+<pre><code class="language-csharp">if (CurrentState is PlayerIdleState)
+{
+    if (MathF.Abs(data.MoveInputX.Value) &gt; 0.01f)
+    {
+        ChangeState&lt;PlayerRunState&gt;();
+    }
+}
+</code></pre>
+<p>The guard is only relevant while <code>PlayerIdleState</code> is active.</p>
+<hr />
+<h1 id="any-state-transitions">Any-state transitions<a class="headerlink" href="#any-state-transitions" title="Permanent link">&para;</a></h1>
+<p>Use <code>AddAnyTransition&lt;TTo&gt;</code> for a transition that can interrupt nearly any active state.</p>
+<pre><code class="language-csharp">Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return data.Health.Value &lt;= 0;
+    });
+</code></pre>
+<p>This means:</p>
+<blockquote>
+<p>Enter <code>PlayerDeadState</code> whenever health reaches zero, regardless of the active state.</p>
+</blockquote>
+<p>It replaces several repetitive transitions:</p>
+<pre><code class="language-text">PlayerIdleState ─────► PlayerDeadState
+PlayerRunState ──────► PlayerDeadState
+PlayerJumpState ─────► PlayerDeadState
+PlayerFallState ─────► PlayerDeadState
+PlayerHurtState ─────► PlayerDeadState
+</code></pre>
+<p>Any-state transitions are appropriate for:</p>
+<ul>
+<li>Death</li>
+<li>Disabling</li>
+<li>Despawning</li>
+<li>Global interruption states</li>
+<li>Game-over states</li>
+<li>Forced cutscene states</li>
+</ul>
+<p>They should not be used for every ordinary movement transition.</p>
+<hr />
+<h1 id="complete-platformer-transition-setup">Complete platformer transition setup<a class="headerlink" href="#complete-platformer-transition-setup" title="Permanent link">&para;</a></h1>
+<p>The following transition table supports:</p>
+<ul>
+<li>Idle to run</li>
+<li>Idle to jump</li>
+<li>Run to idle</li>
+<li>Run to jump</li>
+<li>Jump to fall</li>
+<li>Fall to idle</li>
+<li>Fall to run</li>
+<li>Damage from most states</li>
+<li>Death from any state</li>
+</ul>
+<pre><code class="language-csharp">private void RegisterTransitions()
+{
+    Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.Health.Value &lt;= 0;
+        });
+
+    Fsm.AddAnyTransition&lt;PlayerHurtState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.Health.Value &gt; 0 &amp;&amp;
+                   !data.IsInvulnerable.Value &amp;&amp;
+                   machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerIdleState,
+        PlayerRunState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return HasMovementInput(data);
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerIdleState,
+        PlayerJumpState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.IsGrounded.Value &amp;&amp;
+                   data.JumpRequested.Value;
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerRunState,
+        PlayerIdleState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return !HasMovementInput(data);
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerRunState,
+        PlayerJumpState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.IsGrounded.Value &amp;&amp;
+                   data.JumpRequested.Value;
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerJumpState,
+        PlayerFallState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.VerticalVelocity.Value &lt;= 0f;
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerFallState,
+        PlayerIdleState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.IsGrounded.Value &amp;&amp;
+                   !HasMovementInput(data);
+        });
+
+    Fsm.AddTransition&lt;
+        PlayerFallState,
+        PlayerRunState&gt;(
+        machine =&gt;
+        {
+            var data =
+                machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+            return data.IsGrounded.Value &amp;&amp;
+                   HasMovementInput(data);
+        });
+}
+
+private static bool HasMovementInput(
+    PlayerBlackboard data)
+{
+    return MathF.Abs(data.MoveInputX.Value) &gt; 0.01f;
+}
+</code></pre>
+<hr />
+<h1 id="transition-ordering">Transition ordering<a class="headerlink" href="#transition-ordering" title="Permanent link">&para;</a></h1>
+<p>When multiple guards pass during the same update, transition priority matters.</p>
+<p>In the corrected FSM, the general priority is:</p>
+<ol>
+<li>A pending transition requested before the update</li>
+<li>Any-state transitions</li>
+<li>A transition explicitly requested by the active state</li>
+<li>State-specific transitions</li>
+<li>Default-state fallback</li>
+</ol>
+<p>Within the same category, the first registered passing transition wins.</p>
+<p>Consider the idle transitions:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;PlayerIdleState, PlayerRunState&gt;(
+    CanRun);
+
+Fsm.AddTransition&lt;PlayerIdleState, PlayerJumpState&gt;(
+    CanJump);
+</code></pre>
+<p>If both guards return <code>true</code>, <code>PlayerRunState</code> wins because it was registered first.</p>
+<p>For a platformer, jump usually deserves higher priority:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;PlayerIdleState, PlayerJumpState&gt;(
+    CanJump);
+
+Fsm.AddTransition&lt;PlayerIdleState, PlayerRunState&gt;(
+    CanRun);
+</code></pre>
+<p>Now pressing jump while holding a direction enters <code>PlayerJumpState</code>.</p>
+<p>The same ordering should be used for <code>PlayerRunState</code>:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;PlayerRunState, PlayerJumpState&gt;(
+    CanJump);
+
+Fsm.AddTransition&lt;PlayerRunState, PlayerIdleState&gt;(
+    ShouldIdle);
+</code></pre>
+<hr />
+<h1 id="updating-the-blackboard">Updating the blackboard<a class="headerlink" href="#updating-the-blackboard" title="Permanent link">&para;</a></h1>
+<p>The FSM only knows what the game writes into its blackboard.</p>
+<p>A platformer controller might update it every frame before the FSM runs:</p>
+<pre><code class="language-csharp">private void UpdateBlackboard()
+{
+    _blackboard.MoveInputX.Value =
+        Input.GetAxis(&quot;MoveHorizontal&quot;);
+
+    _blackboard.JumpRequested.Value =
+        Input.IsActionPressed(&quot;Jump&quot;);
+
+    _blackboard.IsGrounded.Value =
+        _playerMotor.IsGrounded;
+
+    _blackboard.VerticalVelocity.Value =
+        _playerMotor.VerticalVelocity;
+}
+</code></pre>
+<p>The update order should be:</p>
+<pre><code class="language-text">1. Read input
+2. Update collision and movement facts
+3. Write those facts to the blackboard
+4. Update the FSM
+</code></pre>
+<p>If the blackboard is updated after the FSM, transitions will react one frame later.</p>
+<hr />
+<h1 id="complete-controller-example">Complete controller example<a class="headerlink" href="#complete-controller-example" title="Permanent link">&para;</a></h1>
+<pre><code class="language-csharp">using System;
+using Dreambit;
+using Dreambit.ECS;
+
+namespace ExamplePlatformer;
+
+[Require(typeof(FSM))]
+public sealed class PlayerStateController : Component
+{
+    private PlayerBlackboard _blackboard;
+    private PlayerMotor _playerMotor;
+
+    [FromRequired]
+    private FSM Fsm { get; set; }
+
+    public override void OnCreated()
+    {
+        _playerMotor =
+            Entity.GetRequiredComponent&lt;PlayerMotor&gt;();
+
+        ConfigureFsm();
+
+        Fsm.OnTransition += HandleTransition;
+    }
+
+    public override void OnUpdate()
+    {
+        UpdateBlackboard();
+    }
+
+    private void ConfigureFsm()
+    {
+        _blackboard =
+            Fsm.SetBlackboard&lt;PlayerBlackboard&gt;();
+
+        _blackboard.Motor.Value =
+            _playerMotor;
+
+        Fsm.Register(
+            typeof(PlayerIdleState),
+            typeof(PlayerRunState),
+            typeof(PlayerJumpState),
+            typeof(PlayerFallState),
+            typeof(PlayerHurtState),
+            typeof(PlayerDeadState));
+
+        RegisterTransitions();
+
+        Fsm.SetDefaultState&lt;PlayerIdleState&gt;();
+        Fsm.GoToDefault();
+    }
+
+    private void RegisterTransitions()
+    {
+        Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+            machine =&gt;
+            {
+                var data =
+                    machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+                return data.Health.Value &lt;= 0;
+            });
+
+        Fsm.AddAnyTransition&lt;PlayerHurtState&gt;(
+            machine =&gt;
+            {
+                var data =
+                    machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+                return data.Health.Value &gt; 0 &amp;&amp;
+                       !data.IsInvulnerable.Value &amp;&amp;
+                       machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+            });
+
+        Fsm.AddTransition&lt;
+            PlayerIdleState,
+            PlayerJumpState&gt;(
+            CanJump);
+
+        Fsm.AddTransition&lt;
+            PlayerIdleState,
+            PlayerRunState&gt;(
+            HasMovementInput);
+
+        Fsm.AddTransition&lt;
+            PlayerRunState,
+            PlayerJumpState&gt;(
+            CanJump);
+
+        Fsm.AddTransition&lt;
+            PlayerRunState,
+            PlayerIdleState&gt;(
+            machine =&gt;
+                !HasMovementInput(machine));
+
+        Fsm.AddTransition&lt;
+            PlayerJumpState,
+            PlayerFallState&gt;(
+            machine =&gt;
+            {
+                var data =
+                    machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+                return data.VerticalVelocity.Value &lt;= 0f;
+            });
+
+        Fsm.AddTransition&lt;
+            PlayerFallState,
+            PlayerRunState&gt;(
+            machine =&gt;
+            {
+                var data =
+                    machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+                return data.IsGrounded.Value &amp;&amp;
+                       HasMovementInput(machine);
+            });
+
+        Fsm.AddTransition&lt;
+            PlayerFallState,
+            PlayerIdleState&gt;(
+            machine =&gt;
+            {
+                var data =
+                    machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+                return data.IsGrounded.Value &amp;&amp;
+                       !HasMovementInput(machine);
+            });
+    }
+
+    private void UpdateBlackboard()
+    {
+        _blackboard.MoveInputX.Value =
+            Input.GetAxis(&quot;MoveHorizontal&quot;);
+
+        if (Input.IsActionPressed(&quot;Jump&quot;))
+            _blackboard.JumpRequested.Value = true;
+
+        _blackboard.IsGrounded.Value =
+            _playerMotor.IsGrounded;
+
+        _blackboard.VerticalVelocity.Value =
+            _playerMotor.VerticalVelocity;
+    }
+
+    private static bool CanJump(FSM machine)
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return data.IsGrounded.Value &amp;&amp;
+               data.JumpRequested.Value;
+    }
+
+    private static bool HasMovementInput(FSM machine)
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return MathF.Abs(
+            data.MoveInputX.Value) &gt; 0.01f;
+    }
+
+    private void HandleTransition(
+        Type previousState,
+        Type nextState,
+        string reason)
+    {
+        Logger.Info(
+            &quot;Player state: {0} -&gt; {1}. Reason: {2}&quot;,
+            previousState?.Name ?? &quot;None&quot;,
+            nextState?.Name ?? &quot;None&quot;,
+            reason ?? &quot;Guard&quot;);
+    }
+
+    public void ApplyDamage(int amount)
+    {
+        if (_blackboard.IsInvulnerable.Value)
+            return;
+
+        _blackboard.Health.Value -= amount;
+
+        Fsm.Trigger(&quot;PlayerDamaged&quot;);
+    }
+
+    public override void OnDestroyed()
+    {
+        Fsm.OnTransition -= HandleTransition;
+
+        base.OnDestroyed();
+    }
+}
+</code></pre>
+<p>The input names and <code>PlayerMotor</code> API are illustrative. Replace them with the project's actual input and movement APIs.</p>
+<hr />
+<h1 id="requesting-transitions-directly">Requesting transitions directly<a class="headerlink" href="#requesting-transitions-directly" title="Permanent link">&para;</a></h1>
+<p>A state or external component can explicitly request a destination state.</p>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerFallState&gt;();
+</code></pre>
+<p>A transition reason can also be provided:</p>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerFallState&gt;(
+    &quot;Walked off platform&quot;);
+</code></pre>
+<p>Direct transitions are useful when the destination is already known.</p>
+<p>For example, a scripted launch pad could force the player into the jump state:</p>
+<pre><code class="language-csharp">public void ActivateLaunchPad()
+{
+    Fsm.SetNextState&lt;PlayerJumpState&gt;(
+        &quot;Launch pad activated&quot;);
+}
+</code></pre>
+<p>From inside a state, use the protected <code>Go&lt;TState&gt;</code> helper:</p>
+<pre><code class="language-csharp">public override bool Reason()
+{
+    if (_recoveryFinished)
+    {
+        Go&lt;PlayerIdleState&gt;();
+        return false;
+    }
+
+    return true;
+}
+</code></pre>
+<p>Prefer guarded transitions for continuously observed conditions.</p>
+<p>Prefer direct transitions for:</p>
+<ul>
+<li>Scripted actions</li>
+<li>Animation completion</li>
+<li>Ability completion</li>
+<li>Cutscene commands</li>
+<li>Explicit cancellation</li>
+<li>Known one-time outcomes</li>
+</ul>
+<hr />
+<h1 id="event-driven-transitions">Event-driven transitions<a class="headerlink" href="#event-driven-transitions" title="Permanent link">&para;</a></h1>
+<p>The FSM includes a string event queue.</p>
+<p>Queue an event with:</p>
+<pre><code class="language-csharp">Fsm.Trigger(&quot;PlayerDamaged&quot;);
+</code></pre>
+<p>Consume it inside a guard:</p>
+<pre><code class="language-csharp">Fsm.AddAnyTransition&lt;PlayerHurtState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return data.Health.Value &gt; 0 &amp;&amp;
+               machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+    });
+</code></pre>
+<p><code>TryConsumeEvent</code> removes the first matching event from the queue.</p>
+<p>The flow is:</p>
+<pre><code class="language-text">Player takes damage
+        |
+        v
+Health is reduced
+        |
+        v
+&quot;PlayerDamaged&quot; is queued
+        |
+        v
+FSM evaluates any-state transitions
+        |
+        v
+PlayerHurtState guard consumes the event
+        |
+        v
+FSM enters PlayerHurtState
+</code></pre>
+<h2 id="use-constants-for-event-names">Use constants for event names<a class="headerlink" href="#use-constants-for-event-names" title="Permanent link">&para;</a></h2>
+<p>Avoid repeating raw string values throughout the game.</p>
+<pre><code class="language-csharp">public static class PlayerFsmEvents
+{
+    public const string Damaged = &quot;PlayerDamaged&quot;;
+    public const string Respawned = &quot;PlayerRespawned&quot;;
+}
+</code></pre>
+<p>Then use:</p>
+<pre><code class="language-csharp">Fsm.Trigger(PlayerFsmEvents.Damaged);
+</code></pre>
+<pre><code class="language-csharp">machine.TryConsumeEvent(
+    PlayerFsmEvents.Damaged);
+</code></pre>
+<p>This reduces spelling mistakes.</p>
+<hr />
+<h1 id="consuming-events-safely">Consuming events safely<a class="headerlink" href="#consuming-events-safely" title="Permanent link">&para;</a></h1>
+<p>Avoid consuming an event before validating persistent conditions.</p>
+<p>Less safe:</p>
+<pre><code class="language-csharp">var damaged =
+    machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+
+var alive =
+    data.Health.Value &gt; 0;
+
+return damaged &amp;&amp; alive;
+</code></pre>
+<p>This consumes the event even when the player is already dead.</p>
+<p>Prefer:</p>
+<pre><code class="language-csharp">return data.Health.Value &gt; 0 &amp;&amp;
+       machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+</code></pre>
+<p>Because <code>&amp;&amp;</code> short-circuits, the event is only consumed when the player is still alive.</p>
+<hr />
+<h1 id="state-history">State history<a class="headerlink" href="#state-history" title="Permanent link">&para;</a></h1>
+<p>The FSM can keep track of previously active states.</p>
+<p>Return to the previous state with:</p>
+<pre><code class="language-csharp">Fsm.Revert();
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-text">PlayerRunState
+      |
+      v
+PlayerHurtState
+      |
+      | Revert()
+      v
+PlayerRunState
+</code></pre>
+<p>Set the maximum history capacity:</p>
+<pre><code class="language-csharp">Fsm.SetHistoryCapacity(8);
+</code></pre>
+<p>Clear the history:</p>
+<pre><code class="language-csharp">Fsm.ClearHistory();
+</code></pre>
+<p>History is useful for temporary interruption states such as:</p>
+<ul>
+<li>Pause</li>
+<li>Stun</li>
+<li>Dialogue</li>
+<li>Inspection mode</li>
+<li>Temporary lock-on mode</li>
+</ul>
+<p>For platformer movement, explicit destination transitions are often easier to reason about than history.</p>
+<p>For example, after recovering from damage, the player may need to enter:</p>
+<ul>
+<li><code>PlayerIdleState</code> when grounded</li>
+<li><code>PlayerFallState</code> when airborne</li>
+</ul>
+<p>That decision is better represented by guards than by blindly reverting.</p>
+<hr />
+<h1 id="transition-events">Transition events<a class="headerlink" href="#transition-events" title="Permanent link">&para;</a></h1>
+<p>The FSM exposes events for observing state changes.</p>
+<h2 id="ontransition"><code>OnTransition</code><a class="headerlink" href="#ontransition" title="Permanent link">&para;</a></h2>
+<p>Raised after a transition completes.</p>
+<pre><code class="language-csharp">Fsm.OnTransition += (
+    previousState,
+    nextState,
+    reason) =&gt;
+{
+    Logger.Info(
+        &quot;{0} -&gt; {1}: {2}&quot;,
+        previousState?.Name ?? &quot;None&quot;,
+        nextState.Name,
+        reason ?? &quot;No reason&quot;);
+};
+</code></pre>
+<p>Use it for:</p>
+<ul>
+<li>Debug logging</li>
+<li>Analytics</li>
+<li>Animation coordination</li>
+<li>State visualizers</li>
+<li>Development overlays</li>
+</ul>
+<hr />
+<h2 id="onstateentered"><code>OnStateEntered</code><a class="headerlink" href="#onstateentered" title="Permanent link">&para;</a></h2>
+<p>Raised when a state becomes active.</p>
+<pre><code class="language-csharp">Fsm.OnStateEntered += stateType =&gt;
+{
+    Logger.Info(
+        &quot;Entered {0}&quot;,
+        stateType.Name);
+};
+</code></pre>
+<hr />
+<h2 id="onstateexited"><code>OnStateExited</code><a class="headerlink" href="#onstateexited" title="Permanent link">&para;</a></h2>
+<p>Raised when a state stops being active.</p>
+<pre><code class="language-csharp">Fsm.OnStateExited += stateType =&gt;
+{
+    Logger.Info(
+        &quot;Exited {0}&quot;,
+        stateType.Name);
+};
+</code></pre>
+<p>Always unsubscribe when the owning component is destroyed:</p>
+<pre><code class="language-csharp">public override void OnDestroyed()
+{
+    Fsm.OnTransition -= HandleTransition;
+
+    base.OnDestroyed();
+}
+</code></pre>
+<hr />
+<h1 id="transition-guards">Transition guards<a class="headerlink" href="#transition-guards" title="Permanent link">&para;</a></h1>
+<p>A transition guard should usually:</p>
+<ol>
+<li>Read blackboard values.</li>
+<li>Evaluate a condition.</li>
+<li>Return <code>true</code> or <code>false</code>.</li>
+</ol>
+<p>Good:</p>
+<pre><code class="language-csharp">machine =&gt;
+{
+    var data =
+        machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+    return data.IsGrounded.Value &amp;&amp;
+           data.JumpRequested.Value;
+}
+</code></pre>
+<p>Avoid guards that perform unrelated gameplay actions:</p>
+<pre><code class="language-csharp">machine =&gt;
+{
+    SpawnParticleEffect();
+    PlaySound();
+    DealDamage();
+
+    return true;
+}
+</code></pre>
+<p>Those actions belong in:</p>
+<ul>
+<li><code>OnEnter</code></li>
+<li><code>OnExecute</code></li>
+<li><code>OnEnd</code></li>
+<li>The gameplay system that caused the condition</li>
+</ul>
+<p>Consuming a queued FSM event is an acceptable guard-side effect because it is part of deciding whether the transition should occur.</p>
+<hr />
+<h1 id="unconditional-transitions">Unconditional transitions<a class="headerlink" href="#unconditional-transitions" title="Permanent link">&para;</a></h1>
+<p>A transition guard is optional.</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerHurtState,
+    PlayerIdleState&gt;();
+</code></pre>
+<p>A transition without a guard always passes whenever it is evaluated.</p>
+<p>Use unconditional transitions carefully.</p>
+<p>This setup is problematic:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;();
+
+Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+        CanJump);
+</code></pre>
+<p>The unconditional transition always wins, so the jump transition is never reached.</p>
+<p>Put unconditional transitions last, or use explicit state changes instead.</p>
+<hr />
+<h1 id="common-movement-transition-patterns">Common movement transition patterns<a class="headerlink" href="#common-movement-transition-patterns" title="Permanent link">&para;</a></h1>
+<h2 id="idle-to-run">Idle to run<a class="headerlink" href="#idle-to-run" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return MathF.Abs(
+            data.MoveInputX.Value) &gt; 0.01f;
+    });
+</code></pre>
+<hr />
+<h2 id="run-to-idle">Run to idle<a class="headerlink" href="#run-to-idle" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerRunState,
+    PlayerIdleState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return MathF.Abs(
+            data.MoveInputX.Value) &lt;= 0.01f;
+    });
+</code></pre>
+<hr />
+<h2 id="grounded-to-jump">Grounded to jump<a class="headerlink" href="#grounded-to-jump" title="Permanent link">&para;</a></h2>
+<p>Register this transition from every grounded movement state:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+    CanJump);
+
+Fsm.AddTransition&lt;
+    PlayerRunState,
+    PlayerJumpState&gt;(
+    CanJump);
+</code></pre>
+<pre><code class="language-csharp">private static bool CanJump(FSM machine)
+{
+    var data =
+        machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+    return data.IsGrounded.Value &amp;&amp;
+           data.JumpRequested.Value;
+}
+</code></pre>
+<hr />
+<h2 id="jump-to-fall">Jump to fall<a class="headerlink" href="#jump-to-fall" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerJumpState,
+    PlayerFallState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return data.VerticalVelocity.Value &lt;= 0f;
+    });
+</code></pre>
+<hr />
+<h2 id="fall-to-idle">Fall to idle<a class="headerlink" href="#fall-to-idle" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerFallState,
+    PlayerIdleState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        var hasMovement =
+            MathF.Abs(data.MoveInputX.Value) &gt; 0.01f;
+
+        return data.IsGrounded.Value &amp;&amp;
+               !hasMovement;
+    });
+</code></pre>
+<hr />
+<h2 id="fall-to-run">Fall to run<a class="headerlink" href="#fall-to-run" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerFallState,
+    PlayerRunState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        var hasMovement =
+            MathF.Abs(data.MoveInputX.Value) &gt; 0.01f;
+
+        return data.IsGrounded.Value &amp;&amp;
+               hasMovement;
+    });
+</code></pre>
+<hr />
+<h2 id="any-state-to-dead">Any state to dead<a class="headerlink" href="#any-state-to-dead" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        return data.Health.Value &lt;= 0;
+    });
+</code></pre>
+<hr />
+<h1 id="debugging-transitions">Debugging transitions<a class="headerlink" href="#debugging-transitions" title="Permanent link">&para;</a></h1>
+<p>When a transition does not work, check the entire chain.</p>
+<h2 id="confirm-the-source-state-is-active">Confirm the source state is active<a class="headerlink" href="#confirm-the-source-state-is-active" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Logger.Info(
+    &quot;Current state: {0}&quot;,
+    Fsm.CurrentState?.GetType().Name ?? &quot;None&quot;);
+</code></pre>
+<p>A transition from <code>PlayerIdleState</code> is only considered while <code>PlayerIdleState</code> is active.</p>
+<hr />
+<h2 id="confirm-all-states-are-registered">Confirm all states are registered<a class="headerlink" href="#confirm-all-states-are-registered" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.Register(
+    typeof(PlayerIdleState),
+    typeof(PlayerRunState));
+</code></pre>
+<p>A transition cannot reference an unregistered state.</p>
+<hr />
+<h2 id="confirm-the-fsm-has-started">Confirm the FSM has started<a class="headerlink" href="#confirm-the-fsm-has-started" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.SetDefaultState&lt;PlayerIdleState&gt;();
+Fsm.GoToDefault();
+</code></pre>
+<p>If <code>CurrentState</code> is <code>null</code>, no state-specific transition can run.</p>
+<hr />
+<h2 id="confirm-the-blackboard-is-installed">Confirm the blackboard is installed<a class="headerlink" href="#confirm-the-blackboard-is-installed" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">_blackboard =
+    Fsm.SetBlackboard&lt;PlayerBlackboard&gt;();
+</code></pre>
+<p>Then verify required references:</p>
+<pre><code class="language-csharp">_blackboard.Motor.Value =
+    playerMotor;
+</code></pre>
+<p>A null movement component may cause the destination state's <code>OnEnter</code> or <code>OnExecute</code> to fail.</p>
+<hr />
+<h2 id="confirm-the-blackboard-is-updated-before-the-fsm">Confirm the blackboard is updated before the FSM<a class="headerlink" href="#confirm-the-blackboard-is-updated-before-the-fsm" title="Permanent link">&para;</a></h2>
+<p>The transition guard can only observe the latest values that have been written.</p>
+<p>Incorrect order:</p>
+<pre><code class="language-text">1. FSM update
+2. Read input
+3. Update blackboard
+</code></pre>
+<p>Correct order:</p>
+<pre><code class="language-text">1. Read input
+2. Update blackboard
+3. FSM update
+</code></pre>
+<hr />
+<h2 id="log-guard-values">Log guard values<a class="headerlink" href="#log-guard-values" title="Permanent link">&para;</a></h2>
+<p>Temporarily inspect the values used by a guard:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+    machine =&gt;
+    {
+        var data =
+            machine.GetBlackboard&lt;PlayerBlackboard&gt;();
+
+        Logger.Info(
+            &quot;Jump guard: Grounded={0}, Requested={1}&quot;,
+            data.IsGrounded.Value,
+            data.JumpRequested.Value);
+
+        return data.IsGrounded.Value &amp;&amp;
+               data.JumpRequested.Value;
+    });
+</code></pre>
+<p>Remove per-frame guard logging after debugging. Otherwise, the log file may achieve sentience.</p>
+<hr />
+<h2 id="check-transition-ordering">Check transition ordering<a class="headerlink" href="#check-transition-ordering" title="Permanent link">&para;</a></h2>
+<p>The first passing transition in the same category wins.</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    CanRun);
+
+Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+    CanJump);
+</code></pre>
+<p>If both pass, the player enters <code>PlayerRunState</code>.</p>
+<p>Register jump first when it should have higher priority:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+    CanJump);
+
+Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    CanRun);
+</code></pre>
+<hr />
+<h2 id="check-the-destination-states-lifecycle-methods">Check the destination state's lifecycle methods<a class="headerlink" href="#check-the-destination-states-lifecycle-methods" title="Permanent link">&para;</a></h2>
+<p>A transition may succeed but appear broken when <code>OnEnter</code> throws an exception.</p>
+<p>Validate required references:</p>
+<pre><code class="language-csharp">public override void OnEnter()
+{
+    if (Motor == null)
+    {
+        Logger.Error(
+            &quot;Cannot enter PlayerJumpState: Motor is null.&quot;);
+
+        Fsm.SetNextState&lt;PlayerIdleState&gt;(
+            &quot;Missing PlayerMotor&quot;);
+
+        return;
+    }
+
+    Motor.BeginJump();
+}
+</code></pre>
+<hr />
+<h2 id="check-one-frame-flags">Check one-frame flags<a class="headerlink" href="#check-one-frame-flags" title="Permanent link">&para;</a></h2>
+<p>A jump request may be cleared too early.</p>
+<p>Problematic:</p>
+<pre><code class="language-csharp">_blackboard.JumpRequested.Value =
+    Input.IsActionPressed(&quot;Jump&quot;);
+
+_blackboard.JumpRequested.Value = false;
+</code></pre>
+<p>The FSM never sees the request.</p>
+<p>Prefer clearing it when the jump is accepted:</p>
+<pre><code class="language-csharp">public override void OnEnter()
+{
+    Data.JumpRequested.Value = false;
+    Motor.BeginJump();
+}
+</code></pre>
+<hr />
+<h1 id="best-practices">Best practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h1>
+<h2 id="keep-each-state-focused">Keep each state focused<a class="headerlink" href="#keep-each-state-focused" title="Permanent link">&para;</a></h2>
+<p>Good platformer states:</p>
+<pre><code class="language-text">PlayerIdleState
+PlayerRunState
+PlayerJumpState
+PlayerFallState
+PlayerWallSlideState
+PlayerDashState
+PlayerHurtState
+PlayerDeadState
+</code></pre>
+<p>Avoid one large <code>PlayerMovementState</code> containing every behavior and a forest of nested conditions. That is just an FSM wearing a trench coat.</p>
+<hr />
+<h2 id="separate-movement-from-state-decisions">Separate movement from state decisions<a class="headerlink" href="#separate-movement-from-state-decisions" title="Permanent link">&para;</a></h2>
+<p>The state should decide which movement behavior is active.</p>
+<p>A dedicated movement component should perform the actual physics:</p>
+<pre><code class="language-text">FSM state
+    |
+    v
+PlayerMotor
+    |
+    v
+Velocity, collision, and movement
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-csharp">public override void OnExecute()
+{
+    Motor.ApplyAirMovement(
+        Data.MoveInputX.Value);
+
+    Motor.ApplyGravity();
+}
+</code></pre>
+<p>This keeps state classes small and testable.</p>
+<hr />
+<h2 id="keep-shared-facts-in-the-blackboard">Keep shared facts in the blackboard<a class="headerlink" href="#keep-shared-facts-in-the-blackboard" title="Permanent link">&para;</a></h2>
+<p>Good blackboard values include:</p>
+<ul>
+<li>Movement input</li>
+<li>Grounded status</li>
+<li>Vertical velocity</li>
+<li>Health</li>
+<li>Jump request</li>
+<li>Dash availability</li>
+<li>Current movement component</li>
+</ul>
+<p>State-local values should remain private fields when no other state or guard needs them.</p>
+<p>For example, a hurt-state recovery timer can remain inside <code>PlayerHurtState</code>.</p>
+<hr />
+<h2 id="consume-transient-requests-once">Consume transient requests once<a class="headerlink" href="#consume-transient-requests-once" title="Permanent link">&para;</a></h2>
+<p>Inputs such as jump, dash, or attack are requests rather than permanent facts.</p>
+<p>Set the request:</p>
+<pre><code class="language-csharp">data.JumpRequested.Value = true;
+</code></pre>
+<p>Consume or clear it when the destination state accepts it:</p>
+<pre><code class="language-csharp">public override void OnEnter()
+{
+    Data.JumpRequested.Value = false;
+}
+</code></pre>
+<p>This prevents the player from repeatedly entering the same action state.</p>
+<hr />
+<h2 id="use-any-state-transitions-sparingly">Use any-state transitions sparingly<a class="headerlink" href="#use-any-state-transitions-sparingly" title="Permanent link">&para;</a></h2>
+<p>Good uses:</p>
+<ul>
+<li>Death</li>
+<li>Forced stun</li>
+<li>Despawn</li>
+<li>Global disable</li>
+<li>Game over</li>
+</ul>
+<p>Poor uses:</p>
+<ul>
+<li>Idle to run</li>
+<li>Run to idle</li>
+<li>Jump to fall</li>
+<li>Ordinary animation changes</li>
+</ul>
+<p>Ordinary transitions should identify their valid source state.</p>
+<hr />
+<h2 id="give-important-transitions-priority">Give important transitions priority<a class="headerlink" href="#give-important-transitions-priority" title="Permanent link">&para;</a></h2>
+<p>Register urgent or specific conditions first.</p>
+<p>Recommended:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerJumpState&gt;(
+    CanJump);
+
+Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    CanRun);
+</code></pre>
+<p>Any-state transitions such as death should have higher priority than ordinary locomotion.</p>
+<hr />
+<h2 id="use-transition-reasons">Use transition reasons<a class="headerlink" href="#use-transition-reasons" title="Permanent link">&para;</a></h2>
+<p>Reasons make logs and debugging tools easier to understand.</p>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerFallState&gt;(
+    &quot;Ground disappeared&quot;);
+</code></pre>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerIdleState&gt;(
+    &quot;Hurt recovery completed&quot;);
+</code></pre>
+<hr />
+<h2 id="avoid-hidden-state-changes">Avoid hidden state changes<a class="headerlink" href="#avoid-hidden-state-changes" title="Permanent link">&para;</a></h2>
+<p>Do not update major blackboard facts inside unrelated transition guards.</p>
+<p>Avoid:</p>
+<pre><code class="language-csharp">machine =&gt;
+{
+    data.Health.Value--;
+    return data.Health.Value &lt;= 0;
+}
+</code></pre>
+<p>Prefer:</p>
+<pre><code class="language-csharp">public void ApplyDamage(int amount)
+{
+    data.Health.Value -= amount;
+}
+</code></pre>
+<p>Then let the transition guard observe health:</p>
+<pre><code class="language-csharp">return data.Health.Value &lt;= 0;
+</code></pre>
+<hr />
+<h1 id="api-quick-reference">API quick reference<a class="headerlink" href="#api-quick-reference" title="Permanent link">&para;</a></h1>
+<h2 id="register-states">Register states<a class="headerlink" href="#register-states" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.Register(
+    typeof(PlayerIdleState),
+    typeof(PlayerRunState));
+</code></pre>
+<hr />
+<h2 id="set-a-blackboard">Set a blackboard<a class="headerlink" href="#set-a-blackboard" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">var data =
+    Fsm.SetBlackboard&lt;PlayerBlackboard&gt;();
+</code></pre>
+<hr />
+<h2 id="retrieve-a-blackboard">Retrieve a blackboard<a class="headerlink" href="#retrieve-a-blackboard" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">var data =
+    Fsm.GetBlackboard&lt;PlayerBlackboard&gt;();
+</code></pre>
+<hr />
+<h2 id="set-the-initial-state">Set the initial state<a class="headerlink" href="#set-the-initial-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.SetDefaultState&lt;PlayerIdleState&gt;();
+Fsm.GoToDefault();
+</code></pre>
+<hr />
+<h2 id="add-a-state-specific-transition">Add a state-specific transition<a class="headerlink" href="#add-a-state-specific-transition" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    machine =&gt; condition);
+</code></pre>
+<hr />
+<h2 id="add-an-any-state-transition">Add an any-state transition<a class="headerlink" href="#add-an-any-state-transition" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+    machine =&gt; condition);
+</code></pre>
+<hr />
+<h2 id="request-a-direct-transition">Request a direct transition<a class="headerlink" href="#request-a-direct-transition" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerFallState&gt;();
+</code></pre>
+<hr />
+<h2 id="request-a-direct-transition-with-a-reason">Request a direct transition with a reason<a class="headerlink" href="#request-a-direct-transition-with-a-reason" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.SetNextState&lt;PlayerFallState&gt;(
+    &quot;Walked off platform&quot;);
+</code></pre>
+<hr />
+<h2 id="queue-an-event">Queue an event<a class="headerlink" href="#queue-an-event" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.Trigger(&quot;PlayerDamaged&quot;);
+</code></pre>
+<hr />
+<h2 id="consume-an-event">Consume an event<a class="headerlink" href="#consume-an-event" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">machine.TryConsumeEvent(&quot;PlayerDamaged&quot;);
+</code></pre>
+<hr />
+<h2 id="return-to-the-previous-state">Return to the previous state<a class="headerlink" href="#return-to-the-previous-state" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.Revert();
+</code></pre>
+<hr />
+<h2 id="clear-queued-events">Clear queued events<a class="headerlink" href="#clear-queued-events" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.ClearEvents();
+</code></pre>
+<hr />
+<h2 id="observe-transitions">Observe transitions<a class="headerlink" href="#observe-transitions" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">Fsm.OnTransition += HandleTransition;
+</code></pre>
+<hr />
+<h1 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h1>
+<p>The core pattern is:</p>
+<pre><code class="language-text">States perform behavior.
+The blackboard stores shared facts.
+Transition guards inspect those facts every frame.
+The FSM changes state when a guard returns true.
+</code></pre>
+<p>A state-specific transition:</p>
+<pre><code class="language-csharp">Fsm.AddTransition&lt;
+    PlayerIdleState,
+    PlayerRunState&gt;(
+    condition);
+</code></pre>
+<p>means:</p>
+<blockquote>
+<p>While <code>PlayerIdleState</code> is active, enter <code>PlayerRunState</code> when the condition returns <code>true</code>.</p>
+</blockquote>
+<p>An any-state transition:</p>
+<pre><code class="language-csharp">Fsm.AddAnyTransition&lt;PlayerDeadState&gt;(
+    condition);
+</code></pre>
+<p>means:</p>
+<blockquote>
+<p>Enter <code>PlayerDeadState</code> from any active state when the condition returns <code>true</code>.</p>
+</blockquote>
+<p>A complete FSM requires:</p>
+<ol>
+<li>A blackboard</li>
+<li>Registered states</li>
+<li>Registered transitions</li>
+<li>A default or explicitly selected initial state</li>
+<li>Updated blackboard data</li>
+<li>An active FSM update loop</li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../" class="btn btn-neutral float-left" title="Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../tiled/" class="btn btn-neutral float-right" title="Overview and quick start">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../tiled/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -606,7 +606,7 @@
     },
     {
       "index": 46,
-      "icon": "light_bulb",
+      "icon": "flag",
       "category": "06_Components",
       "x": 192,
       "y": 160,
@@ -619,7 +619,7 @@
     },
     {
       "index": 47,
-      "icon": "light_mode",
+      "icon": "flag_1",
       "category": "06_Components",
       "x": 224,
       "y": 160,
@@ -632,7 +632,7 @@
     },
     {
       "index": 48,
-      "icon": "science",
+      "icon": "light_bulb",
       "category": "06_Components",
       "x": 0,
       "y": 192,
@@ -645,7 +645,7 @@
     },
     {
       "index": 49,
-      "icon": "settings",
+      "icon": "light_mode",
       "category": "06_Components",
       "x": 32,
       "y": 192,
@@ -658,8 +658,8 @@
     },
     {
       "index": 50,
-      "icon": "analytics",
-      "category": "07_Dev_Tools",
+      "icon": "path",
+      "category": "06_Components",
       "x": 64,
       "y": 192,
       "width": 32,
@@ -671,8 +671,8 @@
     },
     {
       "index": 51,
-      "icon": "bug_report",
-      "category": "07_Dev_Tools",
+      "icon": "science",
+      "category": "06_Components",
       "x": 96,
       "y": 192,
       "width": 32,
@@ -684,8 +684,8 @@
     },
     {
       "index": 52,
-      "icon": "build",
-      "category": "07_Dev_Tools",
+      "icon": "settings",
+      "category": "06_Components",
       "x": 128,
       "y": 192,
       "width": 32,
@@ -697,7 +697,7 @@
     },
     {
       "index": 53,
-      "icon": "check_circle",
+      "icon": "analytics",
       "category": "07_Dev_Tools",
       "x": 160,
       "y": 192,
@@ -710,7 +710,7 @@
     },
     {
       "index": 54,
-      "icon": "download",
+      "icon": "bug_report",
       "category": "07_Dev_Tools",
       "x": 192,
       "y": 192,
@@ -723,7 +723,7 @@
     },
     {
       "index": 55,
-      "icon": "error",
+      "icon": "build",
       "category": "07_Dev_Tools",
       "x": 224,
       "y": 192,
@@ -736,7 +736,7 @@
     },
     {
       "index": 56,
-      "icon": "info",
+      "icon": "check_circle",
       "category": "07_Dev_Tools",
       "x": 0,
       "y": 224,
@@ -749,7 +749,7 @@
     },
     {
       "index": 57,
-      "icon": "terminal",
+      "icon": "download",
       "category": "07_Dev_Tools",
       "x": 32,
       "y": 224,
@@ -762,7 +762,7 @@
     },
     {
       "index": 58,
-      "icon": "upload_file",
+      "icon": "error",
       "category": "07_Dev_Tools",
       "x": 64,
       "y": 224,
@@ -775,7 +775,7 @@
     },
     {
       "index": 59,
-      "icon": "warning",
+      "icon": "info",
       "category": "07_Dev_Tools",
       "x": 96,
       "y": 224,
@@ -784,6 +784,45 @@
       "u0": 0.375,
       "v0": 0.875,
       "u1": 0.5,
+      "v1": 1.0
+    },
+    {
+      "index": 60,
+      "icon": "terminal",
+      "category": "07_Dev_Tools",
+      "x": 128,
+      "y": 224,
+      "width": 32,
+      "height": 32,
+      "u0": 0.5,
+      "v0": 0.875,
+      "u1": 0.625,
+      "v1": 1.0
+    },
+    {
+      "index": 61,
+      "icon": "upload_file",
+      "category": "07_Dev_Tools",
+      "x": 160,
+      "y": 224,
+      "width": 32,
+      "height": 32,
+      "u0": 0.625,
+      "v0": 0.875,
+      "u1": 0.75,
+      "v1": 1.0
+    },
+    {
+      "index": 62,
+      "icon": "warning",
+      "category": "07_Dev_Tools",
+      "x": 192,
+      "y": 224,
+      "width": 32,
+      "height": 32,
+      "u0": 0.75,
+      "v0": 0.875,
+      "u1": 0.875,
       "v1": 1.0
     }
   ]

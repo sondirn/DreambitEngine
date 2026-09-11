@@ -24,24 +24,63 @@ public abstract class RenderPass : IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+            return;
 
+        // Always sever static roots first.
         Window.WindowResized -= OnWindowResized;
-        OnDisposing();
-        // Resources owns the shared effect cache. A render pass owns only its
-        // scene-specific state and must not invalidate effects used by other scenes.
-        DefaultEffect = null;
 
-        _isDisposed = true;
+        try
+        {
+            OnDisposing();
+        }
+        finally
+        {
+            // Resources owns cached effects.
+            DefaultEffect = null;
 
-        GC.SuppressFinalize(this);
+            // Disposal is terminal even if custom OnDisposing throws.
+            _isDisposed = true;
+
+            GC.SuppressFinalize(this);
+        }
     }
 
     internal void InitializeInternals()
     {
-        Window.WindowResized += OnWindowResized;
-        DefaultEffect = Resources.LoadAsset<Effect>("Effects/ForwardDiffuse");
-        Initialize();
+        ObjectDisposedException.ThrowIf(
+            _isDisposed,
+            this);
+
+        try
+        {
+            Window.WindowResized += OnWindowResized;
+
+            DefaultEffect =
+                Resources.LoadAsset<Effect>(
+                    "Effects/ForwardDiffuse");
+
+            Initialize();
+        }
+        catch (Exception initializationException)
+        {
+            try
+            {
+                Dispose();
+            }
+            catch (Exception cleanupException)
+            {
+                throw new AggregateException(
+                    "Render pass initialization failed and cleanup also failed.",
+                    new[]
+                    {
+                        initializationException,
+                        cleanupException
+                    });
+            }
+
+            throw;
+        }
     }
 
     internal void ResizeInternals()

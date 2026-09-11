@@ -54,6 +54,41 @@ public class Resources : Singleton<Resources>
     public static string PakName { get; set; } = "content.pak";
     public static IAssetRegistry AssetRegistry { get; set; }
 
+    /// <summary>
+    /// Fingerprint emitted by the active baked-content source, or null for loose/legacy content.
+    /// </summary>
+    public static string? ContentFingerprint
+    {
+        get
+        {
+            if (_contentMode == AssetContentMode.LooseFiles)
+                return null;
+            var contentDirectory = ContentDirectory;
+            var pakPath = Path.GetFullPath(Path.Combine(contentDirectory, PakName));
+            if (_contentMode is AssetContentMode.Pak ||
+                (_contentMode == AssetContentMode.Auto && File.Exists(pakPath)))
+            {
+                var fingerprintPath = pakPath + ".fingerprint";
+                return File.Exists(fingerprintPath)
+                    ? NormalizeFingerprint(File.ReadAllText(fingerprintPath))
+                    : null;
+            }
+
+            var manifestPath = Path.Combine(contentDirectory, BlobContentManifest.FileName);
+            if (_contentMode == AssetContentMode.Blobs || File.Exists(manifestPath))
+            {
+                var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contentDirectory));
+                if (!Instance._blobReaders.TryGetValue(root, out var reader))
+                {
+                    reader = new BlobContentReader(root);
+                    Instance._blobReaders.Add(root, reader);
+                }
+                return reader.Fingerprint;
+            }
+            return null;
+        }
+    }
+
     public DreambitContentCollection ContentCollection { get; } = new();
 
     /// <summary>The directory currently used for PAK and loose content loading.</summary>
@@ -87,20 +122,54 @@ public class Resources : Singleton<Resources>
     /// <summary>Restores the game's default Content directory and automatic source selection.</summary>
     public static void ResetContentSource()
     {
-        RefreshContent();
-        _contentDirectoryOverride = null;
-        PakName = "content.pak";
-        _contentMode = AssetContentMode.Auto;
+        try
+        {
+            RefreshContent();
+        }
+        finally
+        {
+            // RefreshContent drains ownership even when one Dispose reports failure,
+            // so leaving the old source configured would be misleading.
+            _contentDirectoryOverride = null;
+            PakName = "content.pak";
+            _contentMode = AssetContentMode.Auto;
+        }
     }
 
     /// <summary>Releases cached assets and PAK readers so newly baked content can be opened.</summary>
     public static void RefreshContent()
     {
-        Instance.ReleaseEntries(Instance.ContentCollection.Drain());
+        var cleanupErrors =
+            new List<Exception>();
+
+        var entries =
+            Instance.ContentCollection.Drain();
+
+        try
+        {
+            Instance.ReleaseEntries(entries);
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
+        }
+
         foreach (var reader in Instance._pakReaders.Values)
-            reader.Dispose();
+        {
+            TryDispose(
+                cleanupErrors,
+                reader);
+        }
+
         Instance._pakReaders.Clear();
         Instance._blobReaders.Clear();
+
+        if (cleanupErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "One or more cached resources failed while refreshing content.",
+                cleanupErrors);
+        }
     }
 
     public void Init()
@@ -181,31 +250,9 @@ public class Resources : Singleton<Resources>
         if (!type.IsSubclassOf(typeof(DreambitAsset)))
             return null;
 
-        if (Instance.ContentCollection.TryGet(assetName, type, out var cachedAsset))
-            return cachedAsset;
-
         try
         {
-            Instance.Logger.Trace("Loading {0} - {1}", type.Name, assetName);
-
-            var loader = ResolveLoader(type);
-            if (loader is null)
-                throw new ContentLoadException($"No Dreambit loader is registered for {type.FullName}.");
-
-            var asset = loader.Load(assetName, PakName, UsePak, ContentDirectory);
-            if (asset is null || !type.IsInstanceOfType(asset))
-                throw new ContentLoadException(
-                    $"The loader for '{assetName}' did not return {type.FullName}.");
-
-            Instance.ContentCollection.TryAdd(
-                assetName,
-                type,
-                asset,
-                loader.AddToDisposableList);
-
-            AssignDreambitAssetIdentity(asset, assetName);
-
-            return asset;
+            return LoadDreambitAssetCore(assetName, type);
         }
         catch (Exception e)
         {
@@ -214,6 +261,78 @@ public class Resources : Singleton<Resources>
 
             return null;
         }
+    }
+
+    /// <summary>
+    /// Finds authored assets assignable to TAsset without opening content. Legacy/untyped
+    /// entries are excluded. Unknown non-empty type IDs fail because compatibility cannot be
+    /// determined safely. Results are snapshots, so assembly reloads cannot stale a type cache.
+    /// </summary>
+    public static IReadOnlyList<AssetCatalogEntry> FindAssets<TAsset>() where TAsset : DreambitAsset
+    {
+        var matches = new List<AssetCatalogEntry>();
+        foreach (var entry in GetAssetCatalog())
+        {
+            if (string.IsNullOrWhiteSpace(entry.TypeId))
+                continue;
+            var actualType = ResolveCatalogAssetType(entry);
+            if (typeof(TAsset).IsAssignableFrom(actualType))
+                matches.Add(entry);
+        }
+        return matches.AsReadOnly();
+    }
+
+    internal static IReadOnlyList<AssetCatalogEntry> GetAssetCatalog() =>
+        AssetRegistry?.GetAssets() ?? throw new InvalidOperationException(
+            "No asset catalog is installed. Build content with a Dreambit asset registry before discovering assets.");
+
+    internal static Type ResolveCatalogAssetType(AssetCatalogEntry entry)
+    {
+        if (!DreambitAssetTypeRegistry.TryResolve(entry.TypeId, out var actualType))
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) has unresolved Dreambit type ID '{entry.TypeId ?? "<none>"}'.");
+        return actualType;
+    }
+
+    /// <summary>
+    /// Loads a catalog entry through its concrete loader and the shared Resources cache.
+    /// Unlike the legacy path overload, required catalog loads propagate failures to the caller.
+    /// </summary>
+    public static TAsset LoadDreambitAsset<TAsset>(AssetCatalogEntry entry) where TAsset : DreambitAsset
+    {
+        if (entry.Id.IsEmpty || string.IsNullOrWhiteSpace(entry.AssetName))
+            throw new ContentLoadException($"Invalid asset catalog entry '{entry.AssetName}' ({entry.Id}).");
+        var actualType = ResolveCatalogAssetType(entry);
+        if (!typeof(TAsset).IsAssignableFrom(actualType))
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) has type '{actualType.FullName}', " +
+                $"which is incompatible with '{typeof(TAsset).FullName}'.");
+
+        var asset = LoadDreambitAssetCore(entry.AssetName, actualType);
+        if (asset is not TAsset typedAsset)
+            throw new ContentLoadException(
+                $"Asset '{entry.AssetName}' ({entry.Id}) did not load as '{typeof(TAsset).FullName}'.");
+        typedAsset.AssetId = entry.Id;
+        return typedAsset;
+    }
+
+    private static object LoadDreambitAssetCore(string assetName, Type type)
+    {
+        if (Instance.ContentCollection.TryGet(assetName, type, out var cachedAsset))
+            return cachedAsset;
+
+        Instance.Logger.Trace("Loading {0} - {1}", type.Name, assetName);
+        var loader = ResolveLoader(type);
+        if (loader is null)
+            throw new ContentLoadException($"No Dreambit loader is registered for {type.FullName}.");
+
+        var asset = loader.Load(assetName, PakName, UsePak, ContentDirectory);
+        if (asset is null || !type.IsInstanceOfType(asset))
+            throw new ContentLoadException($"The loader for '{assetName}' did not return {type.FullName}.");
+
+        Instance.ContentCollection.TryAdd(assetName, type, asset, loader.AddToDisposableList);
+        AssignDreambitAssetIdentity(asset, assetName);
+        return asset;
     }
 
     public static void UnloadAsset(string assetName)
@@ -382,6 +501,51 @@ public class Resources : Singleton<Resources>
         return reader.Open(assetName);
     }
 
+    internal static bool TryOpenAssetStream(
+        string assetName,
+        string pakName,
+        bool usePak,
+        string contentDirectory,
+        out Stream? stream)
+    {
+        var mode = _contentMode;
+        if (mode == AssetContentMode.Blobs)
+            return TryOpenBlobStream(assetName, contentDirectory, out stream);
+
+        if (!usePak)
+        {
+            var path = Path.Combine(contentDirectory, assetName);
+            if (!File.Exists(path))
+            {
+                stream = null;
+                return false;
+            }
+
+            stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            return true;
+        }
+
+        var pakPath = Path.GetFullPath(Path.Combine(contentDirectory, pakName));
+        if (mode == AssetContentMode.Auto && !File.Exists(pakPath))
+        {
+            var manifestPath = Path.Combine(contentDirectory, BlobContentManifest.FileName);
+            if (File.Exists(manifestPath))
+                return TryOpenBlobStream(assetName, contentDirectory, out stream);
+        }
+
+        if (!Instance._pakReaders.TryGetValue(pakPath, out var reader))
+        {
+            reader = new PakReader(pakPath);
+            Instance._pakReaders.Add(pakPath, reader);
+        }
+
+        return reader.TryOpen(assetName, out stream, out _);
+    }
+
     private static Stream OpenBlobStream(string assetName, string contentDirectory)
     {
         var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contentDirectory));
@@ -394,11 +558,59 @@ public class Resources : Singleton<Resources>
         return reader.Open(assetName);
     }
 
+    private static bool TryOpenBlobStream(
+        string assetName,
+        string contentDirectory,
+        out Stream? stream)
+    {
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contentDirectory));
+        if (!Instance._blobReaders.TryGetValue(root, out var reader))
+        {
+            reader = new BlobContentReader(root);
+            Instance._blobReaders.Add(root, reader);
+        }
+
+        return reader.TryOpen(assetName, out stream);
+    }
+
+    private static string? NormalizeFingerprint(string value)
+    {
+        var normalized = value.Trim();
+        return normalized.Length == 0 ? null : normalized;
+    }
+
     internal void CleanUp()
     {
-        ResetContentSource();
-        _xnbReader?.Dispose();
+        var cleanupErrors =
+            new List<Exception>();
+
+        try
+        {
+            ResetContentSource();
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
+        }
+
+        var xnbReader =
+            _xnbReader;
+
         _xnbReader = null;
+
+        if (xnbReader is not null)
+        {
+            TryDispose(
+                cleanupErrors,
+                xnbReader);
+        }
+
+        if (cleanupErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "One or more resource-system objects failed during shutdown.",
+                cleanupErrors);
+        }
     }
 
     internal static void ReleaseAssembly(Assembly assembly)
@@ -428,21 +640,66 @@ public class Resources : Singleton<Resources>
         return $"{assetName}#font-size={fontSize:R}";
     }
 
-    private void ReleaseEntries(IReadOnlyList<DreambitContentCollection.Entry> entries)
+    private void ReleaseEntries(
+        IReadOnlyList<DreambitContentCollection.Entry> entries)
     {
-        var disposed = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var disposed =
+            new HashSet<object>(
+                ReferenceEqualityComparer.Instance);
+
+        var cleanupErrors =
+            new List<Exception>();
 
         foreach (var entry in entries)
         {
             if (entry.OwnedDisposables != null)
-                foreach (var ownedDisposable in entry.OwnedDisposables)
-                    if (ownedDisposable != null && disposed.Add(ownedDisposable))
-                        ownedDisposable.Dispose();
+            {
+                foreach (var ownedDisposable in
+                         entry.OwnedDisposables)
+                {
+                    if (ownedDisposable == null ||
+                        !disposed.Add(ownedDisposable))
+                    {
+                        continue;
+                    }
 
-            if (entry.OwnsAsset &&
-                entry.Asset is IDisposable disposable &&
-                disposed.Add(entry.Asset))
-                disposable.Dispose();
+                    TryDispose(
+                        cleanupErrors,
+                        ownedDisposable);
+                }
+            }
+
+            if (!entry.OwnsAsset ||
+                entry.Asset is not IDisposable disposable ||
+                !disposed.Add(entry.Asset))
+            {
+                continue;
+            }
+
+            TryDispose(
+                cleanupErrors,
+                disposable);
+        }
+
+        if (cleanupErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "One or more Dreambit-owned assets failed to dispose.",
+                cleanupErrors);
+        }
+    }
+    
+    private static void TryDispose(
+        List<Exception> cleanupErrors,
+        IDisposable disposable)
+    {
+        try
+        {
+            disposable.Dispose();
+        }
+        catch (Exception exception)
+        {
+            cleanupErrors.Add(exception);
         }
     }
 

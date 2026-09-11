@@ -23,13 +23,28 @@ internal sealed class DreambitProjectTestFixture : IDisposable
         File.WriteAllText(Path.Combine(Root, "TestGame.sln"), string.Empty);
         File.WriteAllText(
             Path.Combine(Root, "src", "TestGame", "TestGame.csproj"),
-            "<Project />");
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Dreambit.Editor.Abstractions" PrivateAssets="all" />
+              </ItemGroup>
+            </Project>
+            """);
         File.WriteAllText(
             Path.Combine(Root, "src", "TestGame.Content", "TestGame.Content.csproj"),
             "<Project />");
         File.WriteAllText(
             Path.Combine(Root, "src", "TestGame.VK", "TestGame.VK.csproj"),
             "<Project />");
+        File.WriteAllText(
+            Path.Combine(Root, "Directory.Packages.props"),
+            $$"""
+            <Project><ItemGroup>
+              <PackageVersion Include="DreambitEngine" Version="{{DreambitSdkConstants.CurrentVersion}}" />
+              <PackageVersion Include="Dreambit.Editor.Abstractions" Version="{{DreambitSdkConstants.CurrentVersion}}" />
+              <PackageVersion Include="DreambitEngine.Build" Version="{{DreambitSdkConstants.CurrentVersion}}" />
+            </ItemGroup></Project>
+            """);
 
         var metadata = new DreambitProjectMetadata
         {

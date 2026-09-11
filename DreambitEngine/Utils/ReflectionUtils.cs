@@ -17,7 +17,7 @@ public static class ReflectionUtils
 
     /// <summary>
     ///     gets all subclasses of
-    ///     <paramref name="baseClassType">
+    ///     <paramref name="baseClassType"/>,
     ///         optionally filtering only for those with
     ///         a parameterless constructor. Abstract Types will not be returned.
     /// </summary>
@@ -43,7 +43,7 @@ public static class ReflectionUtils
 
     /// <summary>
     ///     gets all Types assignable from
-    ///     <paramref name="baseClassType">
+    ///     <paramref name="baseClassType"/>,
     ///         optionally filtering only for those with
     ///         a parameterless constructor. Abstract Types will not be returned.
     /// </summary>

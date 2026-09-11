@@ -80,6 +80,13 @@ internal sealed class EditorPanelRegistry : IDisposable
             ? panel
             : throw new KeyNotFoundException($"Panel '{id}' is not registered.");
 
+    public void CaptureVisibility()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        foreach (var panel in _panels)
+            _workspaceState.PanelVisibility[panel.Id] = panel.IsOpen;
+    }
+
     public void Dispose()
     {
         if (_disposed)

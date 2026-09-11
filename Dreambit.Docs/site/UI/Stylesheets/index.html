@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Stylesheets - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Stylesheets";
+        var mkdocs_page_input_path = "UI\\Stylesheets.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/logging/">Logging and debugging</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Overview</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Stylesheets</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#basic-use">Basic use</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#supported-selectors">Supported selectors</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cascade-and-component-scope">Cascade and component scope</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#supported-values-and-property-mappings">Supported values and property mappings</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#runtime-created-components">Runtime-created components</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#assets-and-errors">Assets and errors</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../networking/">Networking</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ai/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ai/fsm/">State machines and blackboards</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tiled</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tiled/">Overview and quick start</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">User interface</li>
+      <li class="breadcrumb-item active">Stylesheets</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="ui-stylesheets">UI stylesheets<a class="headerlink" href="#ui-stylesheets" title="Permanent link">&para;</a></h1>
+<p>Dreambit stylesheets remove repeated presentation and layout attributes from
+UXML. They are a small, construction-time subset of CSS, not a browser CSS
+engine. Rules are resolved once while <code>UiLoader</code> creates retained <code>UiElement</code>
+instances. Update, layout, and draw do not reevaluate styles, so later C#
+property changes remain authoritative.</p>
+<h2 id="basic-use">Basic use<a class="headerlink" href="#basic-use" title="Permanent link">&para;</a></h2>
+<p>Create a global stylesheet for a <code>UiFrame</code> and keep a layout-specific file next
+to the UXML:</p>
+<pre><code class="language-text">Assets/Ui/Stylesheets/master.ucss
+Assets/Ui/MainMenu/main-menu.uxml
+Assets/Ui/MainMenu/main-menu.ucss
+</code></pre>
+<pre><code class="language-csharp">var frame = CreateEntity(&quot;ui-frame&quot;)
+    .AttachComponent&lt;UiFrame&gt;()
+    .WithCss(&quot;Ui/Stylesheets/master.ucss&quot;)
+    .WithLayout(&quot;Ui/MainMenu/main-menu.uxml&quot;);
+</code></pre>
+<pre><code class="language-css">Text {
+    font-family: monogram;
+    color: #FFFFFF;
+}
+
+.h1 {
+    font-size: 32px;
+}
+
+Button.primary {
+    width: 180px;
+    height: 48px;
+    padding: 8px 16px;
+    background-color: #355E3B;
+}
+</code></pre>
+<pre><code class="language-xml">&lt;Ui&gt;
+  &lt;Text class=&quot;h1 centered&quot; text=&quot;Rootbound&quot; /&gt;
+  &lt;Button class=&quot;primary&quot; /&gt;
+&lt;/Ui&gt;
+</code></pre>
+<p><code>UiElement.StyleClasses</code> exposes the authored class tokens as a read-only list.
+Classes are metadata for construction-time matching; changing them at runtime
+and recomputing styles is not supported.</p>
+<h2 id="supported-selectors">Supported selectors<a class="headerlink" href="#supported-selectors" title="Permanent link">&para;</a></h2>
+<p>Only three selector forms are supported, and element and class names are
+case-sensitive:</p>
+<pre><code class="language-css">Text { }
+.h1 { }
+Text.h1 { }
+</code></pre>
+<p>Within one stylesheet, specificity is:</p>
+<pre><code class="language-text">Text &lt; .h1 &lt; Text.h1
+</code></pre>
+<p>For equal specificity, the later rule wins. Within a rule, a later declaration
+of the same Dreambit property wins. Selector lists, descendant/child/attribute
+selectors, pseudo selectors, state selectors, media queries, variables,
+functions, animations, transitions, and inheritance are not supported.</p>
+<h2 id="cascade-and-component-scope">Cascade and component scope<a class="headerlink" href="#cascade-and-component-scope" title="Permanent link">&para;</a></h2>
+<p>Stylesheet layers are stronger by locality before selector specificity is
+considered:</p>
+<pre><code class="language-text">C# defaults
+→ UiFrame global stylesheet
+→ layout sibling stylesheet
+→ outer component sibling stylesheet
+→ nested component sibling stylesheet
+→ explicit XML attributes
+→ component instance attributes
+</code></pre>
+<p>For example, a plain <code>Text</code> rule in a component stylesheet beats a
+<code>Text.warning</code> rule in the global stylesheet. Explicit XML is always stronger,
+including values such as <code>width="0"</code> and <code>is-visible="false"</code>.</p>
+<p>For <code>Ui/MainMenu/main-menu.uxml</code>, Dreambit optionally loads
+<code>Ui/MainMenu/main-menu.ucss</code>. For a component at
+<code>Ui/Components/menu-button.uxml</code>, it optionally loads
+<code>Ui/Components/menu-button.ucss</code>. A component stylesheet is active only while
+constructing that component subtree. Nested component boundaries add nested
+layers, and local styles never leak to host siblings. A missing automatic
+sibling is normal.</p>
+<p>Component template and instance classes are merged in template-then-instance
+order with duplicate tokens removed. Instance attributes are applied to the
+expanded component XML before style resolution, so they remain final authored
+overrides.</p>
+<h2 id="supported-values-and-property-mappings">Supported values and property mappings<a class="headerlink" href="#supported-values-and-property-mappings" title="Permanent link">&para;</a></h2>
+<p>Stylesheet values use CSS notation. XML-only value syntax is normalized
+internally but is not accepted as public CSS syntax.</p>
+<table>
+<thead>
+<tr>
+<th>CSS</th>
+<th>Dreambit meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>width: 180px</code></td>
+<td>fixed pixel width</td>
+</tr>
+<tr>
+<td><code>width: 50%</code></td>
+<td>parent-relative width</td>
+</tr>
+<tr>
+<td><code>width: auto</code></td>
+<td>automatic/content width</td>
+</tr>
+<tr>
+<td><code>width: 0</code></td>
+<td>zero width; nonzero unitless lengths are rejected</td>
+</tr>
+<tr>
+<td><code>x: -20px</code></td>
+<td>signed pixel offset</td>
+</tr>
+<tr>
+<td><code>font-size: 16px</code></td>
+<td>pixel font size</td>
+</tr>
+<tr>
+<td><code>padding: 8px 16px</code></td>
+<td>CSS top/right/bottom/left shorthand, with 1–4 values</td>
+</tr>
+<tr>
+<td><code>color: #RRGGBB</code></td>
+<td><code>text-color</code> on elements that support it</td>
+</tr>
+<tr>
+<td><code>color: #RRGGBBAA</code></td>
+<td><code>text-color</code> including alpha</td>
+</tr>
+<tr>
+<td><code>background-color: #RRGGBB</code></td>
+<td>a <code>SolidColorBrush</code> background on content controls</td>
+</tr>
+<tr>
+<td><code>font-family: monogram</code></td>
+<td>Dreambit <code>font</code> asset name</td>
+</tr>
+<tr>
+<td><code>font-family: "Font Name"</code></td>
+<td>quoted font asset name</td>
+</tr>
+<tr>
+<td><code>z-index: 4</code></td>
+<td>Dreambit <code>z</code></td>
+</tr>
+</tbody>
+</table>
+<p>Dreambit-specific declarations use normal CSS declaration grammar and are
+passed through the existing element parser. Examples include:</p>
+<pre><code class="language-css">Panel {
+    anchor: center;
+    origin: bottomright;
+    is-enabled: true;
+    is-focusable: false;
+    grid-row: 2;
+    grid-column: 1;
+}
+</code></pre>
+<p>The built-in length normalization also applies to <code>x</code> and <code>y</code>. Other custom
+values preserve identifier, quoted string, number, hash, dimension, percentage,
+and comma tokens in a normalized authored form. The target element's existing
+XML parser remains the final authority. Structural XML attributes <code>id</code>,
+<code>class</code>, <code>source</code>, and <code>id-prefix</code> cannot be set from CSS.</p>
+<p><code>width</code>, <code>height</code>, and <code>font-size</code> must be non-negative. <code>x</code> and <code>y</code> are
+offsets and may be negative. CSS token types remain significant when the value
+reaches Dreambit's shared parsing helpers: Boolean and enum properties require
+identifiers, integer/float properties require numbers, and color properties
+require unquoted hash colors. For example, <code>is-enabled: false</code>, <code>grid-row: 2</code>,
+<code>anchor: center</code>, and <code>hover-tint: #FF0000</code> are valid, while quoted versions of
+those values are rejected.</p>
+<p>The standard <code>font</code> shorthand is not implemented and is rejected; use
+<code>font-family</code> for Dreambit's font asset name.</p>
+<p>Comments, whitespace, single- and double-quoted strings, multiple declarations,
+optional final semicolons, and empty declarations are supported. Colors must be
+unquoted hex tokens; quoted <code>"#FFFFFF"</code>, <code>width: *</code>, and <code>width: 180</code> are
+rejected.</p>
+<h2 id="runtime-created-components">Runtime-created components<a class="headerlink" href="#runtime-created-components" title="Permanent link">&para;</a></h2>
+<p>The existing overload automatically uses the frame's global stylesheet, the
+current layout sibling when a layout exists, and the component's own sibling:</p>
+<pre><code class="language-csharp">var inventory = frame.CreateComponent(
+    &quot;Ui/Components/inventory.uxml&quot;,
+    idPrefix: &quot;inventory&quot;);
+</code></pre>
+<p>Supply one additional required stylesheet at construction time with the
+three-argument overload:</p>
+<pre><code class="language-csharp">var inventory = frame.CreateComponent(
+    componentPath: &quot;Ui/Components/inventory.uxml&quot;,
+    idPrefix: null,
+    additionalCssPath: &quot;Ui/Stylesheets/inventory-theme.ucss&quot;);
+</code></pre>
+<p>The runtime component order is global, current layout sibling, root component
+sibling, additional stylesheet, then deeper nested component siblings and
+explicit XML. The returned element is already parsed and detached. Attaching it
+to this or another layout does not restyle it.</p>
+<h2 id="assets-and-errors">Assets and errors<a class="headerlink" href="#assets-and-errors" title="Permanent link">&para;</a></h2>
+<p>The Asset Baker validates source <code>.ucss</code> and emits versioned UTF-8 <code>.cssb</code>.
+Runtime loading always uses baked content in loose-file, blob-manifest, or PAK
+mode; it does not read source <code>.ucss</code> files from <code>Assets</code>.</p>
+<p>Legacy <code>.xml</code>/<code>.css</code> UI pairs remain supported, but new UI assets should use
+<code>.uxml</code>/<code>.ucss</code>.</p>
+<p>An explicitly configured <code>CssPath</code> or <code>additionalCssPath</code> is required and fails
+clearly when missing. Automatic layout and component siblings are optional.
+Syntax and application errors report the stylesheet path, selector/property
+context, target element type when applicable, and line/column.</p>
+<p>Unknown properties are target-dependent: an unmatched rule is harmless, but a
+matching element must consume the declaration. Custom elements should use
+the typed <code>UiXmlParser</code> helpers, including <code>ParseEnum</code>, so CSS-origin token kinds
+are validated consistently. A custom parser that reads <code>XmlNode.Attributes</code>
+directly must call <code>UiXmlParser.MarkAttributeHandled(node, propertyName)</code> so
+Dreambit can distinguish a consumed CSS declaration from an unsupported
+property.</p>
+<p>Stylesheets and selector indexes are cached only for one top-level UI load.
+Reloading a frame rebuilds a fresh retained tree; there is no live stylesheet
+reload or runtime class recomputation in this version.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../" class="btn btn-neutral float-left" title="Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../Elements/UiElement/" class="btn btn-neutral float-right" title="UiElement">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../Elements/UiElement/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -149,19 +149,12 @@ public abstract class UiStackPanelBase : UiContainer
 
         Spacing = UiXmlParser.ParseInt(node, "spacing");
 
-        var alignment = UiXmlParser.ParseString(
+        CrossAlignment = UiXmlParser.ParseEnum(
             node,
             "cross-alignment",
-            "Start");
-        CrossAlignment = Enum.TryParse(
-            alignment,
-            true,
-            out StackCrossAlignment parsedAlignment)
-            ? parsedAlignment
-            : StackCrossAlignment.Start;
+            StackCrossAlignment.Start);
 
-        GrowDirection = ParseGrowDirection(
-            UiXmlParser.ParseString(node, "grow-direction", "Start"));
+        GrowDirection = ParseGrowDirection(node);
     }
 
     private int MeasureChildren(Rectangle innerBounds)
@@ -306,24 +299,24 @@ public abstract class UiStackPanelBase : UiContainer
             Math.Max(0, bounds.Height - PaddingTop - PaddingBottom));
     }
 
-    private StackGrowDirection ParseGrowDirection(string value)
+    private StackGrowDirection ParseGrowDirection(XmlNode node)
     {
-        if (Enum.TryParse(value, true, out StackGrowDirection direction))
-        {
-            if (LayoutOrientation == StackOrientation.Vertical &&
-                (string.Equals(value, "Left", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(value, "Right", StringComparison.OrdinalIgnoreCase)))
-                return StackGrowDirection.Start;
+        var value = UiXmlParser.ParseString(node, "grow-direction", "Start");
+        var direction = UiXmlParser.ParseEnum(
+            node,
+            "grow-direction",
+            StackGrowDirection.Start);
+        if (LayoutOrientation == StackOrientation.Vertical &&
+            (string.Equals(value, "Left", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(value, "Right", StringComparison.OrdinalIgnoreCase)))
+            return StackGrowDirection.Start;
 
-            if (LayoutOrientation == StackOrientation.Horizontal &&
-                (string.Equals(value, "Top", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(value, "Bottom", StringComparison.OrdinalIgnoreCase)))
-                return StackGrowDirection.Start;
+        if (LayoutOrientation == StackOrientation.Horizontal &&
+            (string.Equals(value, "Top", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(value, "Bottom", StringComparison.OrdinalIgnoreCase)))
+            return StackGrowDirection.Start;
 
-            return direction;
-        }
-
-        return StackGrowDirection.Start;
+        return direction;
     }
 }
 
@@ -359,16 +352,10 @@ public class UiStackPanel : UiStackPanelBase
     /// <inheritdoc />
     public override void Parse(XmlNode node)
     {
-        var orientation = UiXmlParser.ParseString(
+        Orientation = UiXmlParser.ParseEnum(
             node,
             "orientation",
-            "Vertical");
-        Orientation = string.Equals(
-            orientation,
-            "Horizontal",
-            StringComparison.OrdinalIgnoreCase)
-            ? StackOrientation.Horizontal
-            : StackOrientation.Vertical;
+            StackOrientation.Vertical);
 
         base.Parse(node);
     }

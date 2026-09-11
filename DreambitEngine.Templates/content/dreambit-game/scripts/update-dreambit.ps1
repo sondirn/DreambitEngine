@@ -65,24 +65,72 @@ function Set-DreambitPackageVersion {
     return $Content
 }
 
+function Enable-EditorApiRuntimeReference {
+    param([Parameter(Mandatory = $true)][string] $Content)
+
+    $referencePattern = '(?is)<PackageReference\b(?=[^>]*\bInclude\s*=\s*["'']Dreambit\.Editor\.Abstractions["''])[^>]*(?:/\s*>|>.*?</PackageReference\s*>)'
+    $reference = [System.Text.RegularExpressions.Regex]::Match($Content, $referencePattern)
+    if (-not $reference.Success) {
+        return $Content
+    }
+
+    $updatedReference = [System.Text.RegularExpressions.Regex]::Replace(
+        $reference.Value,
+        '\s+PrivateAssets\s*=\s*(?:"[^"]*"|''[^'']*'')',
+        '',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    $updatedReference = [System.Text.RegularExpressions.Regex]::Replace(
+        $updatedReference,
+        '(?is)\s*<PrivateAssets\b[^>]*>.*?</PrivateAssets\s*>',
+        '')
+
+    return $Content.Substring(0, $reference.Index) +
+        $updatedReference +
+        $Content.Substring($reference.Index + $reference.Length)
+}
+
 $originalPackageVersions = [System.IO.File]::ReadAllText($packageVersionsPath)
 $originalMetadata = [System.IO.File]::ReadAllText($metadataPath)
+$metadata = $originalMetadata | ConvertFrom-Json
+if ($null -eq $metadata.sdk) {
+    throw "Dreambit project metadata does not contain an SDK version."
+}
+if ([string]::IsNullOrWhiteSpace($metadata.solution)) {
+    throw "Dreambit project metadata does not contain a solution path."
+}
+if ([string]::IsNullOrWhiteSpace($metadata.gameProject)) {
+    throw "Dreambit project metadata does not contain a game project path."
+}
+
+$gameProjectPath = [System.IO.Path]::GetFullPath(
+    [System.IO.Path]::Combine($projectRoot, $metadata.gameProject))
+$projectRootPrefix = $projectRoot.TrimEnd(
+    [System.IO.Path]::DirectorySeparatorChar,
+    [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $gameProjectPath.StartsWith(
+        $projectRootPrefix,
+        [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "The game project path must remain inside the Dreambit project."
+}
+if (-not (Test-Path -LiteralPath $gameProjectPath -PathType Leaf)) {
+    throw "The game project '$gameProjectPath' does not exist."
+}
+$originalGameProject = [System.IO.File]::ReadAllText($gameProjectPath)
 
 try {
     $updatedPackageVersions = Set-DreambitPackageVersion -Content $originalPackageVersions
-    $metadata = $originalMetadata | ConvertFrom-Json
-    if ($null -eq $metadata.sdk) {
-        throw "Dreambit project metadata does not contain an SDK version."
-    }
-    if ([string]::IsNullOrWhiteSpace($metadata.solution)) {
-        throw "Dreambit project metadata does not contain a solution path."
-    }
+    $updatedGameProject = Enable-EditorApiRuntimeReference -Content $originalGameProject
     $metadata.sdk.version = $SdkVersion
 
     Write-Utf8File -Path $packageVersionsPath -Content $updatedPackageVersions
     Write-Utf8File -Path $metadataPath -Content ($metadata | ConvertTo-Json -Depth 10)
+    Write-Utf8File -Path $gameProjectPath -Content $updatedGameProject
 
-    $restoreArguments = @('restore', (Join-Path $projectRoot $metadata.solution), '--nologo')
+    $restoreArguments = @(
+        'restore',
+        (Join-Path $projectRoot $metadata.solution),
+        '--nologo',
+        '--force-evaluate')
     if (-not [string]::IsNullOrWhiteSpace($PackageSource)) {
         $restoreArguments += "-p:RestoreAdditionalProjectSources=$PackageSource"
     }
@@ -95,6 +143,7 @@ try {
 catch {
     Write-Utf8File -Path $packageVersionsPath -Content $originalPackageVersions
     Write-Utf8File -Path $metadataPath -Content $originalMetadata
+    Write-Utf8File -Path $gameProjectPath -Content $originalGameProject
     throw
 }
 

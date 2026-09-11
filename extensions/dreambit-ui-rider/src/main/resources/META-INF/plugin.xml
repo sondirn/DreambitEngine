@@ -1,0 +1,48 @@
+<idea-plugin>
+    <id>com.sondirn.dreambit.ui</id>
+    <name>Dreambit UI</name>
+    <vendor>Dreambit</vendor>
+
+    <description><![CDATA[
+        Dreambit UXML/UCSS editing support for JetBrains Rider.
+        Provides Dreambit-specific completion, documentation, navigation,
+        color editing, component/include path completion, and workspace-aware
+        discovery of custom UiElement/IUiBrush types.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.xml</depends>
+    <depends>com.intellij.css</depends>
+    <depends>com.intellij.modules.rider</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="Dreambit UXML"
+                  implementationClass="com.dreambit.rider.ui.DreambitUxmlFileType"
+                  fieldName="INSTANCE"
+                  language="XML"
+                  extensions="uxml"/>
+
+        <fileType name="Dreambit UCSS"
+                  implementationClass="com.dreambit.rider.ui.DreambitUcssFileType"
+                  fieldName="INSTANCE"
+                  language="CSS"
+                  extensions="ucss"/>
+
+        <completion.contributor language="XML"
+                                implementationClass="com.dreambit.rider.ui.DreambitUxmlCompletionContributor"
+                                order="first"/>
+        <completion.contributor language="CSS"
+                                implementationClass="com.dreambit.rider.ui.DreambitUcssCompletionContributor"
+                                order="first"/>
+
+        <lang.documentationProvider language="XML"
+                                    implementationClass="com.dreambit.rider.ui.DreambitDocumentationProvider"/>
+        <lang.documentationProvider language="CSS"
+                                    implementationClass="com.dreambit.rider.ui.DreambitDocumentationProvider"/>
+
+        <gotoDeclarationHandler implementation="com.dreambit.rider.ui.DreambitGotoDeclarationHandler"/>
+        <colorProvider implementation="com.dreambit.rider.ui.DreambitColorProvider"/>
+        <lang.inspectionSuppressor language="CSS"
+                                  implementationClass="com.dreambit.rider.ui.DreambitUcssInspectionSuppressor"/>
+    </extensions>
+</idea-plugin>

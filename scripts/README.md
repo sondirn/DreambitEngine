@@ -2,7 +2,8 @@
 
 `Publish-DreambitSdk.ps1` is the supported release entry point. It updates every
 engine, Editor, build-package, documentation, and project-template version,
-restores once, runs the Editor test suite, creates all four NuGet packages, and
+restores once, runs the Editor test suite, creates all four NuGet packages,
+updates the `Dreambit-local` NuGet source to the new package directory, and
 installs the new project template locally. It does not publish to NuGet.org by
 default.
 
@@ -22,6 +23,9 @@ Set-ExecutionPolicy Unrestricted -Scope CurrentUser
 The `.cmd` entry point applies a process-only PowerShell execution-policy
 bypass, so it also works on Windows systems where local scripts are disabled.
 It forwards any additional switches to `Publish-DreambitSdk.ps1`.
+
+Pass `-SkipLocalSourceUpdate` to leave the registered local NuGet source
+unchanged, or `-LocalSourceName MyFeed` to use a different local source name.
 
 To publish to a registry, opt in with `-Push` and provide `-ApiKey` or the
 `NUGET_API_KEY` environment variable. Pass `-NuGetSource` for another

@@ -20,11 +20,25 @@ public static class UiXmlParser
     /// <returns>The attribute value or <paramref name="defaultValue" />.</returns>
     public static string ParseString(XmlNode node, string name, string defaultValue)
     {
+        MarkAttributeHandled(node, name);
         if (node.Attributes == null)
             return defaultValue;
 
         var attribute = node.Attributes[name];
         return attribute?.Value ?? defaultValue;
+    }
+
+    /// <summary>
+    ///     Marks an attribute as handled by a custom parser. Custom UI elements
+    ///     only need this when they inspect <see cref="XmlNode.Attributes" />
+    ///     directly instead of using the standard parsing helpers.
+    /// </summary>
+    public static void MarkAttributeHandled(XmlNode node, string name)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (node.OwnerDocument is UiTrackedXmlDocument trackedDocument)
+            trackedDocument.MarkAttributeHandled(node, name);
     }
 
     /// <summary>Reads an invariant-culture floating-point attribute.</summary>
@@ -37,12 +51,19 @@ public static class UiXmlParser
         string attribute,
         float defaultValue = 0.0f)
     {
-        return float.Parse(
-            ParseString(
-                node,
-                attribute,
-                defaultValue.ToString(CultureInfo.InvariantCulture)),
+        var value = ParseString(
+            node,
+            attribute,
+            defaultValue.ToString(CultureInfo.InvariantCulture));
+        RequireCssValueKind(node, attribute, UiCssValueKind.Number, "a number");
+        var parsed = float.Parse(
+            value,
             CultureInfo.InvariantCulture);
+        if (TryGetCssDeclaration(node, attribute, out _) &&
+            !float.IsFinite(parsed))
+            throw new FormatException(
+                $"CSS property '{attribute}' requires a finite number.");
+        return parsed;
     }
 
     /// <summary>Reads an invariant-culture integer attribute.</summary>
@@ -55,11 +76,13 @@ public static class UiXmlParser
         string attribute,
         int defaultValue = 0)
     {
+        var value = ParseString(
+            node,
+            attribute,
+            defaultValue.ToString(CultureInfo.InvariantCulture));
+        RequireCssValueKind(node, attribute, UiCssValueKind.Number, "a number");
         return int.Parse(
-            ParseString(
-                node,
-                attribute,
-                defaultValue.ToString(CultureInfo.InvariantCulture)),
+            value,
             CultureInfo.InvariantCulture);
     }
 
@@ -73,11 +96,12 @@ public static class UiXmlParser
         string attribute,
         bool defaultValue = false)
     {
-        return bool.Parse(
-            ParseString(
-                node,
-                attribute,
-                defaultValue.ToString(CultureInfo.InvariantCulture)));
+        var value = ParseString(
+            node,
+            attribute,
+            defaultValue.ToString(CultureInfo.InvariantCulture));
+        RequireCssValueKind(node, attribute, UiCssValueKind.Identifier, "true or false");
+        return bool.Parse(value);
     }
 
     /// <summary>
@@ -89,7 +113,56 @@ public static class UiXmlParser
     /// <returns>The parsed color.</returns>
     public static Color ParseColor(XmlNode node, string attribute)
     {
-        return ColorExt.FromHex(ParseString(node, attribute, "#ff00dc"));
+        var value = ParseString(node, attribute, "#ff00dc");
+        RequireCssValueKind(node, attribute, UiCssValueKind.Hash, "a hexadecimal color");
+        return ColorExt.FromHex(value);
+    }
+
+    /// <summary>
+    ///     Reads a case-insensitive enum attribute. Invalid legacy XML values use
+    ///     <paramref name="defaultValue" />; invalid stylesheet values fail.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type to parse.</typeparam>
+    /// <param name="node">The XML node containing the attribute.</param>
+    /// <param name="attribute">The attribute name.</param>
+    /// <param name="defaultValue">The value used when the attribute is absent or invalid XML.</param>
+    /// <returns>The parsed enum or <paramref name="defaultValue" />.</returns>
+    public static TEnum ParseEnum<TEnum>(
+        XmlNode node,
+        string attribute,
+        TEnum defaultValue)
+        where TEnum : struct, Enum
+    {
+        return ParseEnum(node, attribute, defaultValue, defaultValue);
+    }
+
+    /// <summary>
+    ///     Reads a case-insensitive enum attribute with distinct absent and
+    ///     invalid-legacy-XML fallback values. Invalid stylesheet values fail.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type to parse.</typeparam>
+    /// <param name="node">The XML node containing the attribute.</param>
+    /// <param name="attribute">The attribute name.</param>
+    /// <param name="defaultValue">The value used when the attribute is absent.</param>
+    /// <param name="invalidXmlValue">The value used for invalid legacy XML.</param>
+    /// <returns>The parsed enum or the applicable fallback value.</returns>
+    public static TEnum ParseEnum<TEnum>(
+        XmlNode node,
+        string attribute,
+        TEnum defaultValue,
+        TEnum invalidXmlValue)
+        where TEnum : struct, Enum
+    {
+        var value = ParseString(node, attribute, defaultValue.ToString());
+        RequireCssValueKind(node, attribute, UiCssValueKind.Identifier, "an identifier");
+        if (Enum.TryParse<TEnum>(value, true, out var parsed))
+            return parsed;
+
+        if (TryGetCssDeclaration(node, attribute, out _))
+            throw new FormatException(
+                $"'{value}' is not a valid {typeof(TEnum).Name} value.");
+
+        return invalidXmlValue;
     }
 
     /// <summary>Reads two invariant-culture floating-point attributes as a vector.</summary>
@@ -257,5 +330,49 @@ public static class UiXmlParser
             throw new XmlException($"{valueName} must be a non-negative number.");
 
         return result;
+    }
+
+    private static void RequireCssValueKind(
+        XmlNode node,
+        string attribute,
+        UiCssValueKind expected,
+        string expectedDescription)
+    {
+        if (TryGetCssDeclaration(node, attribute, out var declaration) &&
+            declaration.ValueKind != expected)
+        {
+            throw new FormatException(
+                $"CSS property '{declaration.CssPropertyName}' requires " +
+                $"{expectedDescription}, not {Describe(declaration.ValueKind)}.");
+        }
+    }
+
+    private static bool TryGetCssDeclaration(
+        XmlNode node,
+        string attribute,
+        out UiStyleDeclaration declaration)
+    {
+        if (node.OwnerDocument is UiTrackedXmlDocument document)
+            return document.TryGetStyleDeclaration(node, attribute, out declaration);
+
+        declaration = null!;
+        return false;
+    }
+
+    private static string Describe(UiCssValueKind kind)
+    {
+        return kind switch
+        {
+            UiCssValueKind.Identifier => "an identifier",
+            UiCssValueKind.String => "a quoted string",
+            UiCssValueKind.Number => "a number",
+            UiCssValueKind.Dimension => "a dimension",
+            UiCssValueKind.Percentage => "a percentage",
+            UiCssValueKind.Hash => "a hash value",
+            UiCssValueKind.Sequence => "a value sequence",
+            UiCssValueKind.Length => "a length",
+            UiCssValueKind.Thickness => "a thickness",
+            _ => "an unsupported value"
+        };
     }
 }

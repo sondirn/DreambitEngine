@@ -31,7 +31,7 @@
       "datatype": "text",
       "displayName": "Dreambit SDK version",
       "description": "Coordinated Dreambit NuGet package version used by the generated game.",
-      "defaultValue": "0.3.14",
+      "defaultValue": "0.9.4",
       "replaces": "__DREAMBIT_SDK_VERSION__"
     },
     "targetRenderer": {

@@ -313,19 +313,12 @@ public class UiText : UiElement
         if (AutoResizeHeight)
             Height = UiLength.Auto();
 
-        HorizontalAlignment = ParseHAlignment(
-            UiXmlParser.ParseString(
-                node,
-                "horizontal-alignment",
-                "Center"));
+        HorizontalAlignment = UiXmlParser.ParseEnum(
+            node,
+            "horizontal-alignment",
+            HorizontalAlignment.Center);
         if (node.Attributes?["text-color"] is not null)
             TextColor = UiXmlParser.ParseColor(node, "text-color");
     }
 
-    private static HorizontalAlignment ParseHAlignment(string value)
-    {
-        return Enum.TryParse<HorizontalAlignment>(value, true, out var alignment)
-            ? alignment
-            : HorizontalAlignment.Center;
-    }
 }

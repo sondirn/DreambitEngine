@@ -13,15 +13,23 @@ public class Sprite : DreambitAsset
 
     private float _pixelsPerUnit = 1f;
 
-    [JsonIgnore] public Texture2D Texture => TextureAsset?.Texture;
+    [JsonIgnore] public Texture2D? Texture => TextureAsset?.Texture;
 
     [DreambitSerialize]
     [JsonProperty("texture")]
-    public TextureAsset TextureAsset { get; set; }
+    public TextureAsset? TextureAsset { get; set; }
 
 
     [DreambitSerialize]
     [JsonProperty("source")] public Rectangle SourceRect { get; init; }
+
+    [DreambitSerialize("PivotType")]
+    [JsonProperty("pivot_type")]
+    public PivotType PivotType { get; init; } = PivotType.Center;
+
+    [DreambitSerialize]
+    [JsonProperty("pivot")]
+    public Vector2 Pivot { get; set; }
 
     [DreambitSerialize]
     [JsonProperty("pixels_per_unit")]
@@ -40,7 +48,7 @@ public class Sprite : DreambitAsset
         }
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         string texturePath,
         int sourceX,
         int sourceY,
@@ -65,7 +73,7 @@ public class Sprite : DreambitAsset
         return sprite;
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         Texture2D texture,
         int sourceX,
         int sourceY,
@@ -85,7 +93,7 @@ public class Sprite : DreambitAsset
         return sprite;
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         Texture2D texture,
         Rectangle sourceRect,
         float pixelsPerUnit = 1f)
@@ -102,7 +110,7 @@ public class Sprite : DreambitAsset
         return sprite;
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         string texturePath,
         Rectangle sourceRect,
         float pixelsPerUnit = 1f)
@@ -122,7 +130,7 @@ public class Sprite : DreambitAsset
         return sprite;
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         Texture2D texture,
         float pixelsPerUnit = 1f)
     {
@@ -134,7 +142,7 @@ public class Sprite : DreambitAsset
         };
     }
 
-    public static Sprite Create(
+    public static Sprite? Create(
         string texturePath,
         float pixelsPerUnit = 1f)
     {
@@ -149,7 +157,7 @@ public class Sprite : DreambitAsset
         };
     }
 
-    private static TextureAsset LoadTextureAsset(string texturePath)
+    private static TextureAsset? LoadTextureAsset(string texturePath)
     {
         if (string.IsNullOrWhiteSpace(texturePath))
             return null;

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Dreambit.ECS;
-using Dreambit.LDtk;
 
 namespace Dreambit;
 
@@ -19,7 +18,6 @@ public static class DreambitAssemblyCaches
         PropertyConverterRegistry.ReleaseAssembly(assembly);
         BlueprintResolver.ReleaseAssembly(assembly);
         ComponentRepository.ReleaseAssembly(assembly);
-        LDtkEntityBuilderRepository.ReleaseAssembly(assembly);
         Resources.ReleaseAssembly(assembly);
     }
 
@@ -28,23 +26,25 @@ public static class DreambitAssemblyCaches
         DreambitAssetTypeRegistry.Refresh();
         DreambitJson.RefreshConverters();
         BlueprintResolver.RebuildComponentTypeRegistry();
-        LDtkEntityBuilderRepository.Refresh();
         Resources.RefreshLoaders();
     }
 
     /// <summary>
-    /// Refreshes reflection caches using an explicit set of non-engine asset types. Editors use
-    /// this overload to avoid rediscovering an assembly that is leaving a collectible context.
+    /// Refreshes reflection caches using explicit non-engine types. Editors use this overload to
+    /// avoid rediscovering an assembly that is leaving a collectible context.
     /// </summary>
     public static void Refresh(
         IEnumerable<Type> assetTypes,
-        IEnumerable<Type>? assetLoaderTypes = null)
+        IEnumerable<Type>? assetLoaderTypes = null,
+        IEnumerable<Type>? componentTypes = null)
     {
         ArgumentNullException.ThrowIfNull(assetTypes);
         DreambitAssetTypeRegistry.Refresh(assetTypes);
         DreambitJson.RefreshConverters();
-        BlueprintResolver.RebuildComponentTypeRegistry();
-        LDtkEntityBuilderRepository.Refresh();
+        if (componentTypes is null)
+            BlueprintResolver.RebuildComponentTypeRegistry();
+        else
+            BlueprintResolver.RebuildComponentTypeRegistry(componentTypes);
         Resources.RefreshLoaders(assetLoaderTypes);
     }
 }

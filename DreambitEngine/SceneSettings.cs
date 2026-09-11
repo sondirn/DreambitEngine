@@ -14,7 +14,7 @@ public sealed class SceneSettings
     {
         AmbientLightIntensity = AmbientLightIntensity,
         AmbientLightColor = AmbientLightColor,
-        PostProcessing = PostProcessing?.Clone() ?? new PostProcessSettings(),
-        Exposure = Exposure
+        Exposure = Exposure,
+        PostProcessing = PostProcessing?.Clone() ?? new PostProcessSettings()
     };
 }

@@ -5,31 +5,30 @@ using Dreambit.Editor.Scenes;
 using Dreambit.Editor.UI.Panels;
 using Dreambit.EditorApi;
 using ImGuiNET;
-using Microsoft.Xna.Framework;
 using Vector2 = System.Numerics.Vector2;
-using Vector4 = System.Numerics.Vector4;
 using XnaVector2 = Microsoft.Xna.Framework.Vector2;
 
 namespace Dreambit.Editor.UI.Viewport;
 
 /// <summary>
-/// Stable viewport workflow shared by Scene View and Blueprint View. Derived panels provide
-/// document ownership, camera persistence, pick interpretation, and asset-specific actions;
-/// rendering and input mechanics live here once.
+///     Stable viewport workflow shared by Scene View and Blueprint View. Derived panels provide
+///     document ownership, camera persistence, pick interpretation, and asset-specific actions;
+///     rendering and input mechanics live here once.
 /// </summary>
 internal abstract class SceneViewportPanel : EditorPanel
 {
-    private readonly EditorWorkspaceState _workspace;
-    private readonly SceneViewportRenderer _renderer;
-    private readonly EditorIconService _icons;
-    private readonly EditorTransformGizmo _transformGizmo;
     private readonly EditorComponentGizmoSystem _componentGizmos;
+    private readonly EditorIconService _icons;
+    private readonly EditorPickProxyBuffer _pickProxies = new();
+    private readonly SceneViewportRenderer _renderer;
     private readonly Action<string, Exception?>? _reportError;
     private readonly HashSet<Guid> _selectedIds = [];
+    private readonly EditorTransformGizmo _transformGizmo;
+    private readonly EditorWorkspaceState _workspace;
     private SceneDocument? _lastDocument;
+    private string? _lastReportedTransformFailure;
     private int _lastSceneGeneration = -1;
     private string? _transformError;
-    private string? _lastReportedTransformFailure;
     private bool _viewSettingsRequested;
 
     protected SceneViewportPanel(
@@ -56,6 +55,13 @@ internal abstract class SceneViewportPanel : EditorPanel
     protected override ImGuiWindowFlags WindowFlags =>
         ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
+    protected virtual string? ViewportError => null;
+    protected abstract string EmptyTitle { get; }
+    protected abstract string EmptyDetail { get; }
+    protected abstract float CameraX { get; set; }
+    protected abstract float CameraY { get; set; }
+    protected abstract float CameraZoom { get; set; }
+
     protected sealed override void DrawContents()
     {
         BeforeDocumentResolution();
@@ -64,9 +70,7 @@ internal abstract class SceneViewportPanel : EditorPanel
 
         if (document is not null &&
             ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
-        {
             ActivateDocument(document);
-        }
 
         using var idScope = EditorGui.PushId(Id);
         DrawToolbar(document);
@@ -109,23 +113,20 @@ internal abstract class SceneViewportPanel : EditorPanel
                 canvasPosition + canvasSize,
                 ImGui.GetColorU32(EditorGuiTheme.ViewportBackground));
         }
+
         if (_renderer.LastError is { } renderError)
         {
             // The display target can contain an older frame when allocation or drawing
             // fails. Settle live transactions and reject input rather than applying an
             // edit through camera/image coordinates that may no longer correspond.
             if (_transformGizmo.HasActiveInteraction)
-            {
                 TryCleanup(
                     _transformGizmo.CancelActiveInteraction,
                     "Could not cancel the transform interaction after a viewport render failure.");
-            }
             if (_componentGizmos.HasActiveInteraction)
-            {
                 TryCleanup(
                     _componentGizmos.CancelActiveInteraction,
                     "Could not cancel the component interaction after a viewport render failure.");
-            }
             DrawErrorOverlay(
                 ImGui.GetWindowDrawList(),
                 canvasPosition,
@@ -133,6 +134,7 @@ internal abstract class SceneViewportPanel : EditorPanel
                 renderError);
             return;
         }
+
         var hovered = ImGui.IsItemHovered();
         var active = ImGui.IsItemActive();
         var mouseLocal = ImGui.GetMousePos() - canvasPosition;
@@ -140,37 +142,38 @@ internal abstract class SceneViewportPanel : EditorPanel
             (ImGui.IsMouseClicked(ImGuiMouseButton.Left) ||
              ImGui.IsMouseClicked(ImGuiMouseButton.Middle) ||
              ImGui.IsMouseClicked(ImGuiMouseButton.Right)))
-        {
             ActivateDocument(document);
-        }
 
         DrawCanvasDropTarget(document, camera, mouseLocal);
         var drawList = ImGui.GetWindowDrawList();
         if (_workspace.ShowGrid)
-        {
             EditorViewportUi.DrawGrid(
                 drawList,
                 camera,
                 canvasPosition,
                 canvasSize,
                 _workspace.GridSize);
-        }
 
         _selectedIds.Clear();
         foreach (var id in document.Selection.EntityIds)
             _selectedIds.Add(id);
 
         _componentGizmos.BeginFrame();
+        _pickProxies.BeginFrame();
 
-        scene.DrawEditorGizmos(
+        var editorGizmoContext =
             new ImGuiEditorGizmoContext(
                 drawList,
                 camera,
                 canvasPosition,
                 _componentGizmos,
-                _icons),
-            _selectedIds);
+                _pickProxies,
+                _icons);
 
+        scene.DrawEditorGizmos(
+            editorGizmoContext,
+            _selectedIds);
+        
         SelectionOverlay.Draw(
             drawList,
             document,
@@ -264,6 +267,7 @@ internal abstract class SceneViewportPanel : EditorPanel
                 _lastReportedTransformFailure = failure;
                 ReportErrorSafely("Could not update the transform gizmo.", exception);
             }
+
             return true;
         }
     }
@@ -309,9 +313,36 @@ internal abstract class SceneViewportPanel : EditorPanel
             ImGui.IsMouseClicked(ImGuiMouseButton.Left) &&
             !ImGui.IsMouseDragging(ImGuiMouseButton.Left))
         {
-            var world = camera.ScreenToWorld(new XnaVector2(mouseLocal.X, mouseLocal.Y));
-            var picked = InterpretPick(document, _renderer.Pick(scene, world));
-            document.Selection.Set(picked, io.KeyCtrl);
+            // Semantic editor handles take priority over rendered world geometry.
+            // Their hit areas are screen-space, so lights/emitters remain equally
+            // selectable at every viewport zoom level.
+            var picked =
+                _pickProxies.Pick(
+                    scene,
+                    ImGui.GetMousePos());
+
+            if (picked is null)
+            {
+                var world =
+                    camera.ScreenToWorld(
+                        new XnaVector2(
+                            mouseLocal.X,
+                            mouseLocal.Y));
+
+                picked =
+                    _renderer.Pick(
+                        scene,
+                        world);
+            }
+
+            picked =
+                InterpretPick(
+                    document,
+                    picked);
+
+            document.Selection.Set(
+                picked,
+                io.KeyCtrl);
         }
 
         if (hovered && ImGui.IsKeyPressed(ImGuiKey.F))
@@ -340,8 +371,11 @@ internal abstract class SceneViewportPanel : EditorPanel
             _workspace.GizmoMode = 3;
         EditorGui.Inline();
         using (EditorGui.Disabled(document?.Scene is null))
+        {
             if (_icons.Button("Frame", "center_focus_strong", "Frame selected (F)"))
                 FrameDocument(document!);
+        }
+
         EditorGui.Inline();
         if (_icons.Button("Grid", "grid_on", "Toggle grid", _workspace.ShowGrid))
             _workspace.ShowGrid = !_workspace.ShowGrid;
@@ -451,21 +485,20 @@ internal abstract class SceneViewportPanel : EditorPanel
     {
     }
 
-    protected virtual Entity? InterpretPick(SceneDocument document, Entity? picked) => picked;
+    protected virtual Entity? InterpretPick(SceneDocument document, Entity? picked)
+    {
+        return picked;
+    }
 
-    protected virtual RectangleF? ResolveSelectionBounds(SceneDocument document, Entity entity) =>
-        SelectionOverlay.GetEntityDrawableBounds(entity);
+    protected virtual RectangleF? ResolveSelectionBounds(SceneDocument document, Entity entity)
+    {
+        return SelectionOverlay.GetEntityDrawableBounds(entity);
+    }
 
     protected virtual void DrawToolbarSuffix(SceneDocument? document)
     {
     }
 
-    protected virtual string? ViewportError => null;
-    protected abstract string EmptyTitle { get; }
-    protected abstract string EmptyDetail { get; }
-    protected abstract float CameraX { get; set; }
-    protected abstract float CameraY { get; set; }
-    protected abstract float CameraZoom { get; set; }
     protected abstract SceneDocument? ResolveDocument();
     protected abstract void ActivateDocument(SceneDocument document);
     protected abstract void FrameDocument(SceneDocument document);

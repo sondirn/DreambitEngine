@@ -81,38 +81,54 @@ internal sealed class ProjectUpgradeService
                     .ConfigureAwait(false);
             }
 
+            if (!TryCaptureProjectFiles(candidate.ProjectRoot, out var snapshot, out var snapshotError))
+                return new ProjectUpgradeResult(false, snapshotError);
+
             var shell = OperatingSystem.IsWindows() ? "powershell" : "pwsh";
-            var result = await _processRunner.RunAsync(
-                    new ProcessCommand(
-                        shell,
-                        [
-                            "-NoProfile",
-                            "-ExecutionPolicy",
-                            "Bypass",
-                            "-File",
-                            updateScript,
-                            "-SdkVersion",
-                            DreambitSdkConstants.CurrentVersion,
-                            "-PackageSource",
-                            sdk.PackagesDirectory
-                        ],
-                        candidate.ProjectRoot),
-                    line => LogProcessOutput(line),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (!result.Succeeded)
+            var updatedSuccessfully = false;
+            try
             {
-                return new ProjectUpgradeResult(
-                    false,
-                    $"The update failed with exit code {result.ExitCode}. The project was restored " +
-                    $"to its prior version." + FormatFailureDetails(result));
-            }
+                var result = await _processRunner.RunAsync(
+                        new ProcessCommand(
+                            shell,
+                            [
+                                "-NoProfile",
+                                "-ExecutionPolicy",
+                                "Bypass",
+                                "-File",
+                                updateScript,
+                                "-SdkVersion",
+                                DreambitSdkConstants.CurrentVersion,
+                                "-PackageSource",
+                                sdk.PackagesDirectory
+                            ],
+                            candidate.ProjectRoot),
+                        line => LogProcessOutput(line),
+                        cancellationToken)
+                    .ConfigureAwait(false);
 
-            return new ProjectUpgradeResult(
-                true,
-                $"Updated '{candidate.ProjectName}' to Dreambit SDK " +
-                $"{DreambitSdkConstants.CurrentVersion}.");
+                if (!result.Succeeded)
+                {
+                    return new ProjectUpgradeResult(
+                        false,
+                        $"The update failed with exit code {result.ExitCode}. The project was restored " +
+                        $"to its prior version." + FormatFailureDetails(result));
+                }
+
+                var finalizeResult = await FinalizeScriptedUpgradeAsync(
+                        sdk,
+                        candidate,
+                        snapshot,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                updatedSuccessfully = finalizeResult.Succeeded;
+                return finalizeResult;
+            }
+            finally
+            {
+                if (!updatedSuccessfully)
+                    RestoreProjectFiles(snapshot);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -148,11 +164,30 @@ internal sealed class ProjectUpgradeService
                 "This older project has no updater and is missing files required for an automatic update.");
         }
 
+        if (!_metadataStore.TryLoad(metadataPath, out var metadata, out var diagnostic) ||
+            metadata?.Sdk is null)
+        {
+            return new ProjectUpgradeResult(
+                false,
+                diagnostic?.Message ?? "Could not read the project metadata needed for update.");
+        }
+
+        if (!TryResolveGameProjectPath(
+                candidate.ProjectRoot,
+                metadata.GameProject,
+                out var gameProjectPath,
+                out var gameProjectError))
+        {
+            return new ProjectUpgradeResult(false, gameProjectError);
+        }
+
         var originalPackageVersions = await File.ReadAllTextAsync(
                 packageVersionsPath,
                 cancellationToken)
             .ConfigureAwait(false);
         var originalMetadata = await File.ReadAllTextAsync(metadataPath, cancellationToken)
+            .ConfigureAwait(false);
+        var originalGameProject = await File.ReadAllTextAsync(gameProjectPath, cancellationToken)
             .ConfigureAwait(false);
         var updatedSuccessfully = false;
 
@@ -180,12 +215,12 @@ internal sealed class ProjectUpgradeService
                     "${1}" + DreambitSdkConstants.CurrentVersion + "${2}");
             }
 
-            if (!_metadataStore.TryLoad(metadataPath, out var metadata, out var diagnostic) ||
-                metadata?.Sdk is null)
+            if (!TryEnableEditorApiRuntimeReference(
+                    originalGameProject,
+                    out var updatedGameProject,
+                    out var referenceError))
             {
-                return new ProjectUpgradeResult(
-                    false,
-                    diagnostic?.Message ?? "Could not read the project metadata needed for update.");
+                return new ProjectUpgradeResult(false, referenceError);
             }
 
             metadata.Sdk.Version = DreambitSdkConstants.CurrentVersion;
@@ -200,6 +235,8 @@ internal sealed class ProjectUpgradeService
                     false,
                     metadataError ?? "Could not update project metadata.");
             }
+            await File.WriteAllTextAsync(gameProjectPath, updatedGameProject, cancellationToken)
+                .ConfigureAwait(false);
 
             var restoreResult = await _processRunner.RunAsync(
                     new ProcessCommand(
@@ -208,6 +245,7 @@ internal sealed class ProjectUpgradeService
                             "restore",
                             metadata.Solution,
                             "--nologo",
+                            "--force-evaluate",
                             $"-p:RestoreAdditionalProjectSources={sdk.PackagesDirectory}"
                         ],
                         candidate.ProjectRoot),
@@ -236,8 +274,186 @@ internal sealed class ProjectUpgradeService
                     .ConfigureAwait(false);
                 await File.WriteAllTextAsync(metadataPath, originalMetadata, CancellationToken.None)
                     .ConfigureAwait(false);
+                await File.WriteAllTextAsync(gameProjectPath, originalGameProject, CancellationToken.None)
+                    .ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task<ProjectUpgradeResult> FinalizeScriptedUpgradeAsync(
+        DreambitSdkInstallation sdk,
+        ProjectUpgradeCandidate candidate,
+        ProjectUpgradeSnapshot snapshot,
+        CancellationToken cancellationToken)
+    {
+        var currentGameProject = await File.ReadAllTextAsync(
+                snapshot.GameProjectPath,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!TryEnableEditorApiRuntimeReference(
+                currentGameProject,
+                out var updatedGameProject,
+                out var referenceError))
+        {
+            return new ProjectUpgradeResult(false, referenceError);
+        }
+
+        await File.WriteAllTextAsync(
+                snapshot.GameProjectPath,
+                updatedGameProject,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var restoreResult = await _processRunner.RunAsync(
+                new ProcessCommand(
+                    "dotnet",
+                    [
+                        "restore",
+                        snapshot.Solution,
+                        "--nologo",
+                        "--force-evaluate",
+                        $"-p:RestoreAdditionalProjectSources={sdk.PackagesDirectory}"
+                    ],
+                    candidate.ProjectRoot),
+                LogProcessOutput,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!restoreResult.Succeeded)
+        {
+            return new ProjectUpgradeResult(
+                false,
+                $"The update failed with exit code {restoreResult.ExitCode}. The project was " +
+                $"restored to its prior version." + FormatFailureDetails(restoreResult));
+        }
+
+        return new ProjectUpgradeResult(
+            true,
+            $"Updated '{candidate.ProjectName}' to Dreambit SDK " +
+            $"{DreambitSdkConstants.CurrentVersion}.");
+    }
+
+    private bool TryCaptureProjectFiles(
+        string projectRoot,
+        out ProjectUpgradeSnapshot snapshot,
+        out string error)
+    {
+        snapshot = null!;
+        error = string.Empty;
+        var packageVersionsPath = Path.Combine(projectRoot, "Directory.Packages.props");
+        var metadataPath = Path.Combine(
+            projectRoot,
+            DreambitProjectMetadata.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(packageVersionsPath) || !File.Exists(metadataPath))
+        {
+            error = "The project is missing files required for an automatic update.";
+            return false;
+        }
+
+        if (!_metadataStore.TryLoad(metadataPath, out var metadata, out var diagnostic) ||
+            metadata?.Sdk is null ||
+            string.IsNullOrWhiteSpace(metadata.Solution))
+        {
+            error = diagnostic?.Message ?? "Could not read the project metadata needed for update.";
+            return false;
+        }
+
+        if (!TryResolveGameProjectPath(
+                projectRoot,
+                metadata.GameProject,
+                out var gameProjectPath,
+                out error))
+        {
+            return false;
+        }
+
+        snapshot = new ProjectUpgradeSnapshot(
+            packageVersionsPath,
+            File.ReadAllText(packageVersionsPath),
+            metadataPath,
+            File.ReadAllText(metadataPath),
+            gameProjectPath,
+            File.ReadAllText(gameProjectPath),
+            metadata.Solution);
+        return true;
+    }
+
+    private static bool TryResolveGameProjectPath(
+        string projectRoot,
+        string? relativeGameProjectPath,
+        out string gameProjectPath,
+        out string error)
+    {
+        gameProjectPath = string.Empty;
+        error = string.Empty;
+        if (string.IsNullOrWhiteSpace(relativeGameProjectPath))
+        {
+            error = "Dreambit project metadata does not contain a game project path.";
+            return false;
+        }
+
+        var normalizedRoot = Path.GetFullPath(projectRoot).TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        gameProjectPath = Path.GetFullPath(Path.Combine(projectRoot, relativeGameProjectPath));
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!gameProjectPath.StartsWith(normalizedRoot, comparison))
+        {
+            error = "The game project path must remain inside the Dreambit project.";
+            return false;
+        }
+
+        if (!File.Exists(gameProjectPath))
+        {
+            error = $"The game project '{gameProjectPath}' does not exist.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryEnableEditorApiRuntimeReference(
+        string projectContent,
+        out string updatedContent,
+        out string error)
+    {
+        const string referencePattern =
+            "<PackageReference\\b(?=[^>]*\\bInclude\\s*=\\s*[\"']Dreambit\\.Editor\\.Abstractions[\"'])" +
+            "[^>]*(?:/\\s*>|>.*?</PackageReference\\s*>)";
+        var reference = Regex.Match(
+            projectContent,
+            referencePattern,
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (!reference.Success)
+        {
+            updatedContent = projectContent;
+            error = string.Empty;
+            return true;
+        }
+
+        var updatedReference = Regex.Replace(
+            reference.Value,
+            "\\s+PrivateAssets\\s*=\\s*(?:\"[^\"]*\"|'[^']*')",
+            string.Empty,
+            RegexOptions.IgnoreCase);
+        updatedReference = Regex.Replace(
+            updatedReference,
+            "\\s*<PrivateAssets\\b[^>]*>.*?</PrivateAssets\\s*>",
+            string.Empty,
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        updatedContent = string.Concat(
+            projectContent.AsSpan(0, reference.Index),
+            updatedReference,
+            projectContent.AsSpan(reference.Index + reference.Length));
+        error = string.Empty;
+        return true;
+    }
+
+    private static void RestoreProjectFiles(ProjectUpgradeSnapshot snapshot)
+    {
+        File.WriteAllText(snapshot.PackageVersionsPath, snapshot.PackageVersionsContent);
+        File.WriteAllText(snapshot.MetadataPath, snapshot.MetadataContent);
+        File.WriteAllText(snapshot.GameProjectPath, snapshot.GameProjectContent);
     }
 
     private static string FormatFailureDetails(ProcessRunResult result)
@@ -251,4 +467,13 @@ internal sealed class ProjectUpgradeService
             ? string.Empty
             : Environment.NewLine + string.Join(Environment.NewLine, details);
     }
+
+    private sealed record ProjectUpgradeSnapshot(
+        string PackageVersionsPath,
+        string PackageVersionsContent,
+        string MetadataPath,
+        string MetadataContent,
+        string GameProjectPath,
+        string GameProjectContent,
+        string Solution);
 }

@@ -51,23 +51,29 @@ public sealed class InspectorMetadataTests
     }
 
     [Fact]
-    public void SpriteDrawerExposesSerializedMembersWithNonPublicSetters()
+    public void SpriteAndSpriteDrawerExposeTheirOwnedSerializedMembers()
     {
-        var members = new InspectorMetadataCache().Get(
+        var cache = new InspectorMetadataCache();
+        var spriteMembers = cache.Get(
+            typeof(Sprite),
+            InspectorTargetKind.Asset);
+        var drawerMembers = cache.Get(
             typeof(SpriteDrawer),
             InspectorTargetKind.Component);
 
-        var pivot = Assert.Single(members, member => member.SerializedName == nameof(SpriteDrawer.Pivot));
+        var pivot = Assert.Single(spriteMembers, member => member.SerializedName == "pivot");
         Assert.Equal(typeof(Microsoft.Xna.Framework.Vector2), pivot.ValueType);
         Assert.False(pivot.IsReadOnly);
 
-        var pivotType = Assert.Single(members, member => member.SerializedName == nameof(SpriteDrawer.PivotType));
+        var pivotType = Assert.Single(spriteMembers, member => member.SerializedName == "pivot_type");
         Assert.Equal(typeof(PivotType), pivotType.ValueType);
         Assert.False(pivotType.IsReadOnly);
 
-        Assert.Contains(members, member => member.SerializedName == nameof(SpriteDrawer.Tint));
-        Assert.Contains(members, member => member.SerializedName == nameof(SpriteDrawer.Opacity));
-        Assert.Contains(members, member => member.SerializedName == nameof(DrawableComponent.DrawLayer));
+        Assert.DoesNotContain(drawerMembers, member => member.SerializedName == nameof(Sprite.Pivot));
+        Assert.DoesNotContain(drawerMembers, member => member.SerializedName == nameof(Sprite.PivotType));
+        Assert.Contains(drawerMembers, member => member.SerializedName == nameof(SpriteDrawer.Tint));
+        Assert.Contains(drawerMembers, member => member.SerializedName == nameof(SpriteDrawer.Opacity));
+        Assert.Contains(drawerMembers, member => member.SerializedName == nameof(DrawableComponent.DrawLayer));
     }
 
     [Fact]
@@ -98,6 +104,27 @@ public sealed class InspectorMetadataTests
         Assert.Contains(members, member => member.SerializedName == "title");
         Assert.Contains(members, member => member.SerializedName == nameof(InspectorTestAsset.Count));
         Assert.DoesNotContain(members, member => member.SerializedName == nameof(InspectorTestAsset.Ignored));
+    }
+
+    [Fact]
+    public void VirtualCameraExposesEntityFollowTargetInsteadOfCameraFollowSettings()
+    {
+        var cache = new InspectorMetadataCache();
+
+        var virtualCameraMembers = cache.Get(
+            typeof(VirtualCamera),
+            InspectorTargetKind.Component);
+        var followTarget = Assert.Single(
+            virtualCameraMembers,
+            member => member.SerializedName == nameof(VirtualCamera.EntityToFollow));
+        Assert.Equal(typeof(Entity), followTarget.ValueType);
+
+        var cameraMembers = cache.Get(
+            typeof(Camera2D),
+            InspectorTargetKind.Component);
+        Assert.DoesNotContain(
+            cameraMembers,
+            member => member.SerializedName == nameof(VirtualCamera.LerpSpeed));
     }
 
     [Fact]
@@ -274,13 +301,23 @@ public sealed class InspectorMetadataTests
     [Fact]
     public void AnimationAndSpriteSheetAssetsUseRecognizableSemanticSuffixes()
     {
-        Assert.Equal(".spriteanimation", AssetTypeClassifier.GetFileSuffix(typeof(SpriteSheetAnimation)));
+        Assert.Equal(".spriteanimation", AssetTypeClassifier.GetFileSuffix(typeof(SpriteAnimation)));
         Assert.Equal(".spritesheet", AssetTypeClassifier.GetFileSuffix(typeof(SpriteSheet)));
 
-        var draft = new SpriteSheetAnimation();
-        var restored = DreambitJson.Deserialize<SpriteSheetAnimation>(DreambitJson.Serialize(draft));
+        var draft = new SpriteAnimation();
+        var restored = DreambitJson.Deserialize<SpriteAnimation>(DreambitJson.Serialize(draft));
         Assert.NotNull(restored);
-        Assert.Contains("sprite_sheet is required.", restored.GetValidationErrors());
+        Assert.Contains("frames must contain at least one frame.", restored.GetValidationErrors());
+
+        Assert.Contains(
+            "frames is required.",
+            new SpriteAnimation { Frames = null! }.GetValidationErrors());
+        Assert.Contains(
+            "frames[0].sprite cannot be null.",
+            new SpriteAnimation { Frames = [new SpriteAnimationFrame()] }.GetValidationErrors());
+        Assert.Contains(
+            "frames_per_second must be finite and greater than zero.",
+            new SpriteAnimation { FramesPerSecond = float.NaN }.GetValidationErrors());
 
         var spriteSheetMembers = new InspectorMetadataCache().Get(
             typeof(SpriteSheet),
@@ -300,7 +337,7 @@ public sealed class InspectorMetadataTests
         Assert.Equal(".particlefx", DreambitAssetTypeRegistry.GetFileExtension(typeof(ParticleFxConfig)));
         Assert.Equal(".soundcue", DreambitAssetTypeRegistry.GetFileExtension(typeof(SoundCue)));
         Assert.Equal(".sprite", DreambitAssetTypeRegistry.GetFileExtension(typeof(Sprite)));
-        Assert.Equal(".spriteanimation", DreambitAssetTypeRegistry.GetFileExtension(typeof(SpriteSheetAnimation)));
+        Assert.Equal(".spriteanimation", DreambitAssetTypeRegistry.GetFileExtension(typeof(SpriteAnimation)));
         Assert.Equal(".spritesheet", DreambitAssetTypeRegistry.GetFileExtension(typeof(SpriteSheet)));
         Assert.Equal(".png", DreambitAssetTypeRegistry.GetFileExtension(typeof(TextureAsset)));
         Assert.Equal(".asset", DreambitAssetTypeRegistry.GetFileExtension(typeof(TestCustomAsset)));
@@ -396,21 +433,18 @@ public sealed class InspectorMetadataTests
     }
 
     [Theory]
-    [InlineData(false, true, true, false, "LDtk")]
-    [InlineData(false, true, false, true, "Tiled")]
-    [InlineData(false, true, false, false, "Imported")]
-    [InlineData(true, true, false, true, "Boxed")]
+    [InlineData(false, true, true, "Tiled")]
+    [InlineData(false, true, false, "Imported")]
+    [InlineData(true, true, true, "Boxed")]
     public void ComponentStatusDescribesTheActualSource(
         bool readOnly,
         bool hasGeneratedEntity,
-        bool allLDtkGenerated,
         bool allTiledGenerated,
         string expected)
     {
         Assert.Equal(expected, SceneEntityInspector.GetComponentStatus(
             readOnly,
             hasGeneratedEntity,
-            allLDtkGenerated,
             allTiledGenerated));
     }
 
@@ -420,7 +454,7 @@ public sealed class InspectorMetadataTests
         var animation = CreateAssetRecord(
             "characters/hero.animation.json",
             AssetKind.Animation,
-            typeof(SpriteSheetAnimation));
+            typeof(SpriteAnimation));
         var blueprint = CreateAssetRecord(
             "characters/hero.blueprint.json",
             AssetKind.Blueprint,
@@ -430,10 +464,10 @@ public sealed class InspectorMetadataTests
             AssetKind.Texture,
             typeof(TextureAsset));
 
-        Assert.True(AssetTypeClassifier.IsCompatibleWith(animation, typeof(SpriteSheetAnimation)));
-        Assert.False(AssetTypeClassifier.IsCompatibleWith(blueprint, typeof(SpriteSheetAnimation)));
+        Assert.True(AssetTypeClassifier.IsCompatibleWith(animation, typeof(SpriteAnimation)));
+        Assert.False(AssetTypeClassifier.IsCompatibleWith(blueprint, typeof(SpriteAnimation)));
         Assert.True(AssetTypeClassifier.IsCompatibleWith(texture, typeof(TextureAsset)));
-        Assert.False(AssetTypeClassifier.IsCompatibleWith(texture, typeof(SpriteSheetAnimation)));
+        Assert.False(AssetTypeClassifier.IsCompatibleWith(texture, typeof(SpriteAnimation)));
     }
 
     [Fact]
@@ -507,5 +541,5 @@ public sealed class InspectorCircularRuntimeAsset : DreambitAsset
 public sealed class InspectorAssetReferenceComponent : Component
 {
     [DreambitSerialize]
-    public SpriteSheetAnimation? Animation { get; set; }
+    public SpriteAnimation? Animation { get; set; }
 }

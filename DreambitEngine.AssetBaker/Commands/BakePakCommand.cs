@@ -39,6 +39,9 @@ public class BakePakSettings : CommandSettings
     [CommandOption("--rebuild")]
     [Description("Ignore the incremental cache")]
     public bool RebuildAll { get; set; }
+    [CommandOption("--project-root <DIRECTORY>")]
+    [Description("Dreambit project root used to discover .tiled-project files")]
+    public string? ProjectRoot { get; set; }
 
     public override ValidationResult Validate()
     {
@@ -70,7 +73,10 @@ public sealed class BakePakCommand : Command<BakePakSettings>
                     settings.MaxSize,
                     settings.SRgb,
                     settings.Platform,
-                    !settings.NoBuiltIns),
+                    !settings.NoBuiltIns)
+                {
+                    ProjectRoot = settings.ProjectRoot
+                },
                 progress,
                 cancellationToken);
             AnsiConsole.MarkupLine(

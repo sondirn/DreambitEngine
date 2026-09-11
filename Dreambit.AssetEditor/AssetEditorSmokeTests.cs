@@ -226,12 +226,14 @@ internal static class AssetEditorSmokeTests
 
             var animationFrameTokens = new JArray
             {
-                4,
                 new JObject
                 {
-                    ["sprite"] = 7,
+                    ["sprite"] = "sprites/hero-idle.sprite",
+                },
+                new JObject
+                {
+                    ["sprite"] = "sprites/hero-run.sprite",
                     ["duration"] = 0.25f,
-                    ["pivot"] = new JArray(12f, 20f),
                     ["event"] = new JObject
                     {
                         ["name"] = "footstep",
@@ -239,36 +241,35 @@ internal static class AssetEditorSmokeTests
                     }
                 }
             };
-            var animationFrames = (List<SpriteAnimationFrame>)DreambitJson.FromToken(
-                animationFrameTokens,
-                typeof(List<SpriteAnimationFrame>))!;
-            Require(animationFrames.Count == 2 && animationFrames[0].SpriteIndex == 4,
-                "Compact sprite animation frames did not deserialize.");
-            Require(animationFrames[1].SpriteIndex == 7 && animationFrames[1].Duration == 0.25f,
-                "Detailed sprite animation frames did not deserialize.");
-            Require(animationFrames[1].Pivot == new Microsoft.Xna.Framework.Vector2(12f, 20f),
-                "Detailed sprite animation frame pivots did not deserialize.");
-            Require(animationFrames[1].Event?.Args["surface"] == "stone",
-                "Detailed sprite animation frame events did not deserialize.");
+            var animationFrames = new List<SpriteAnimationFrame>
+            {
+                new() { Sprite = new Sprite { AssetName = "sprites/hero-idle.sprite" } },
+                new()
+                {
+                    Sprite = new Sprite { AssetName = "sprites/hero-run.sprite" },
+                    Duration = 0.25f,
+                    Event = new SpriteAnimationEvent
+                    {
+                        Name = "footstep",
+                        Args = new Dictionary<string, string> { ["surface"] = "stone" }
+                    }
+                }
+            };
 
             var roundTrippedFrames = (JArray)DreambitJson.ToToken(animationFrames);
-            Require(roundTrippedFrames[0]?.Type == JTokenType.Integer && roundTrippedFrames[0]!.Value<int>() == 4,
-                "Simple sprite animation frames did not retain their compact JSON form.");
+            Require(roundTrippedFrames[0]?["sprite"]?.Value<string>() == "sprites/hero-idle.sprite",
+                "Sprite animation frames did not serialize their sprite asset references.");
             Require(roundTrippedFrames[1]?["event"]?["name"]?.Value<string>() == "footstep",
-                "Detailed sprite animation frames did not survive JSON round-tripping.");
-            var animationAsset = new SpriteSheetAnimation
+                "Detailed sprite animation frames did not serialize their events.");
+            var animationAsset = new SpriteAnimation
             {
-                SpriteSheet = new SpriteSheet { AssetName = "sprites/hero.spritesheet" },
                 Frames = animationFrames,
                 FramesPerSecond = 8f,
-                Loop = true,
-                Pivot = new Microsoft.Xna.Framework.Vector2(12f, 20f)
+                Loop = true
             };
             var animationAssetToken = (JObject)DreambitJson.ToToken(animationAsset);
-            Require(animationAssetToken.Value<string>("sprite_sheet") == "sprites/hero.spritesheet",
-                "SpriteSheetAnimation did not serialize its SpriteSheet as an asset reference.");
             Require(animationAssetToken["frames"] is JArray { Count: 2 },
-                "SpriteSheetAnimation did not serialize its ordered frame list.");
+                "SpriteAnimation did not serialize its ordered frame list.");
             var animationFramesEditor = JsonMemberEditor.Create(
                 project,
                 typeof(List<SpriteAnimationFrame>),
@@ -280,9 +281,8 @@ internal static class AssetEditorSmokeTests
                 .Select(label => label.Text)
                 .ToArray();
             Require(animationEditorLabels.Contains("Sprite") &&
-                    animationEditorLabels.Contains("Duration (seconds)") &&
-                    animationEditorLabels.Contains("Pivot override") &&
-                    animationEditorLabels.Contains("Event name") &&
+                     animationEditorLabels.Contains("Duration (seconds)") &&
+                     animationEditorLabels.Contains("Event name") &&
                     animationEditorLabels.Contains("Event args"),
                 "The sprite animation frame editor did not render all frame options.");
             var addFrame = animationFramesEditor.GetLogicalDescendants()
@@ -296,7 +296,7 @@ internal static class AssetEditorSmokeTests
                     .OfType<TextBlock>()
                     .Any(label => label.Text == "Frame 2"),
                 "A newly added sprite animation frame did not render its dedicated frame editor.");
-            passed.Add("compact and detailed sprite animation frame editing and JSON round trip");
+            passed.Add("sprite animation frame reference editing and JSON serialization");
 
             var sceneJson = new JObject
             {

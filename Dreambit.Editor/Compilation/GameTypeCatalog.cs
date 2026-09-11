@@ -1,7 +1,6 @@
 using System.Reflection;
 using Dreambit;
 using Dreambit.ECS;
-using Dreambit.LDtk.Loaders;
 using Dreambit.EditorApi;
 
 namespace Dreambit.Editor.Compilation;
@@ -11,10 +10,9 @@ internal sealed record GameTypeCatalog(
     IReadOnlyList<Type> AssetTypes,
     IReadOnlyList<Type> AssetLoaderTypes,
     IReadOnlyList<Type> PropertyConverterTypes,
-    IReadOnlyList<Type> LdtkEntityBuilderTypes,
     IReadOnlyList<Type> CustomEditorTypes)
 {
-    public static GameTypeCatalog Empty { get; } = new([], [], [], [], [], []);
+    public static GameTypeCatalog Empty { get; } = new([], [], [], [], []);
 
     public static GameTypeCatalog Discover(Assembly assembly)
     {
@@ -32,9 +30,6 @@ internal sealed record GameTypeCatalog(
                 .OrderBy(type => type.FullName, StringComparer.Ordinal)
                 .ToArray(),
             types.Where(type => typeof(IPropertyConverterMarker).IsAssignableFrom(type))
-                .OrderBy(type => type.FullName, StringComparer.Ordinal)
-                .ToArray(),
-            types.Where(type => typeof(ILDtkEntityBuilder).IsAssignableFrom(type))
                 .OrderBy(type => type.FullName, StringComparer.Ordinal)
                 .ToArray(),
             types.Where(type => typeof(IDreambitCustomEditor).IsAssignableFrom(type))

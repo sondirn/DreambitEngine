@@ -29,12 +29,15 @@ Resources.LoadAsset<Sprite>("Sprites/player");
 Resources.LoadAsset<Texture2D>("Textures/background");
 ```
 
-UI XML stays loose and is copied to `Content`, because `UiFrame` loads and
-composes XML files directly. Other supported files can be baked into
-`content.pak`. See [Content projects and Asset Baker](../assets/content-pipeline.md).
+Dreambit UI XML is part of the same asset build: source `*.uxml` files become
+`*.xmlb` assets in the development blob cache and in `content.pak` for shipping
+builds.
+`UiFrame.WithLayout("Ui/hud.uxml")` keeps using the readable source-style path;
+the runtime resolves it through the active Dreambit content source. See
+[Content projects and Asset Baker](../assets/content-pipeline.md).
 
 !!! tip
     Copy the structure and build-target wiring from `Dreambit.Examples.Content`
-    before inventing a new content build. It already handles loose XML and the
-    host project's output directory.
+    before inventing a new content build. It already handles the blob/PAK asset
+    build and the host project's output directory.
 

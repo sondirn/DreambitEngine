@@ -7,17 +7,13 @@ namespace Dreambit.ECS;
 public class Camera2D : Component
 {
     private const float MinimumScale = 0.0001f;
-
-    [DreambitSerialize]
-    public CameraFollowBehavior CameraFollowBehavior =
-        CameraFollowBehavior.Lerp;
-
-    [DreambitSerialize] public bool IsFollowing = true;
-    public Transform TransformToFollow;
     private Matrix _inverseTopLeftTransformMatrix;
 
     private Matrix _inverseTransformMatrix;
     private Matrix _inverseUnscaledTransformMatrix;
+    private Matrix _topLeftTransformMatrix = Matrix.Identity;
+    private Matrix _transformMatrix = Matrix.Identity;
+    private Matrix _unscaledTransformMatrix = Matrix.Identity;
 
     private Vector3 _lastCameraPosition;
     private float _lastCameraRotation;
@@ -29,9 +25,6 @@ public class Camera2D : Component
     private float _resolutionZoom = 1f;
     private float _zoom = 1f;
     private Vector2? _editorViewportSize;
-
-    [DreambitSerialize]
-    public float LerpSpeed { get; set; } = 5f;
 
     /// <summary>
     ///     Camera magnification.
@@ -142,28 +135,46 @@ public class Camera2D : Component
         _editorViewportSize ?? new Vector2(Window.Width, Window.Height);
 
     [DreambitSerialize]
-    public float TargetVerticalResolution { get; private set; } =
-        Math.Max(1f, Window.Height);
+    public float TargetVerticalResolution { get; private set; } = 9f;
 
     /// <summary>
     ///     Normal camera matrix. The camera position appears at screen center.
     ///     Includes Zoom and viewport scaling.
     /// </summary>
-    public Matrix TransformMatrix { get; private set; } = Matrix.Identity;
+    public Matrix TransformMatrix
+    {
+        get
+        {
+            EnsureMatricesCurrent();
+            return _transformMatrix;
+        }
+    }
 
     /// <summary>
     ///     Camera matrix without the user-controlled Zoom value.
     ///     Viewport scaling is still applied.
     /// </summary>
-    public Matrix UnscaledTransformMatrix { get; private set; } =
-        Matrix.Identity;
+    public Matrix UnscaledTransformMatrix
+    {
+        get
+        {
+            EnsureMatricesCurrent();
+            return _unscaledTransformMatrix;
+        }
+    }
 
     /// <summary>
     ///     Camera-relative matrix where the camera position maps to pixel 0,0.
     ///     This is not the normal world-to-screen matrix.
     /// </summary>
-    public Matrix TopLeftTransformMatrix { get; private set; } =
-        Matrix.Identity;
+    public Matrix TopLeftTransformMatrix
+    {
+        get
+        {
+            EnsureMatricesCurrent();
+            return _topLeftTransformMatrix;
+        }
+    }
 
     public Rectangle Bounds =>
         ToEnclosingRectangle(BoundsF);
@@ -235,7 +246,6 @@ public class Camera2D : Component
 
     public override void OnEditorDestroyed()
     {
-        TransformToFollow = null;
         _editorViewportSize = null;
     }
 
@@ -256,8 +266,6 @@ public class Camera2D : Component
 
     public override void OnUpdate()
     {
-        UpdatePosition();
-
         // This also detects camera transform and viewport changes.
         EnsureMatricesCurrent();
     }
@@ -265,7 +273,6 @@ public class Camera2D : Component
     public override void OnDestroyed()
     {
         Window.WindowResized -= OnViewportResized;
-        TransformToFollow = null;
     }
 
     private static void ValidatePositiveFinite(
@@ -315,37 +322,37 @@ public class Camera2D : Component
         float cameraRotation,
         Vector2 viewportSize)
     {
-        TransformMatrix = CalculateCenteredTransformMatrix(
+        _transformMatrix = CalculateCenteredTransformMatrix(
             cameraPosition,
             cameraRotation,
             viewportSize,
             ScreenPixelsPerWorldUnit);
 
         if (PixelSnap)
-            TransformMatrix = SnapTranslationToPixels(TransformMatrix);
+            _transformMatrix = SnapTranslationToPixels(_transformMatrix);
 
         _inverseTransformMatrix =
-            Matrix.Invert(TransformMatrix);
+            Matrix.Invert(_transformMatrix);
 
         // "Unscaled" means no user-controlled camera Zoom.
         // Viewport scaling must still be included.
-        UnscaledTransformMatrix = CalculateCenteredTransformMatrix(
+        _unscaledTransformMatrix = CalculateCenteredTransformMatrix(
             cameraPosition,
             cameraRotation,
             viewportSize,
             NoCameraZoomPixelsPerWorldUnit);
 
         _inverseUnscaledTransformMatrix =
-            Matrix.Invert(UnscaledTransformMatrix);
+            Matrix.Invert(_unscaledTransformMatrix);
 
         // Camera-relative coordinates. Camera position maps to 0,0.
-        TopLeftTransformMatrix = CalculateCameraRelativeTransformMatrix(
+        _topLeftTransformMatrix = CalculateCameraRelativeTransformMatrix(
             cameraPosition,
             cameraRotation,
             ScreenPixelsPerWorldUnit);
 
         _inverseTopLeftTransformMatrix =
-            Matrix.Invert(TopLeftTransformMatrix);
+            Matrix.Invert(_topLeftTransformMatrix);
 
         _lastCameraPosition = cameraPosition;
         _lastCameraRotation = cameraRotation;
@@ -527,75 +534,6 @@ public class Camera2D : Component
     public void ForcePosition(Vector3 position)
     {
         Transform.Position = position;
-        _matricesDirty = true;
-
-        // Note: if IsFollowing is true, UpdatePosition will replace this
-        // position during the next update.
-    }
-
-    private void UpdatePosition()
-    {
-        if (!IsFollowing || TransformToFollow == null)
-            return;
-
-        switch (CameraFollowBehavior)
-        {
-            case CameraFollowBehavior.Direct:
-                DirectBehavior();
-                break;
-
-            case CameraFollowBehavior.Lerp:
-                LerpBehavior();
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(CameraFollowBehavior),
-                    CameraFollowBehavior,
-                    "Unsupported camera follow behavior.");
-        }
-
-        _matricesDirty = true;
-    }
-
-    private void DirectBehavior()
-    {
-        SetCameraWorldPosition(
-            TransformToFollow.WorldPosition);
-    }
-
-    private void LerpBehavior()
-    {
-        var deltaTime =
-            MathF.Max(0f, Time.DeltaTime);
-
-        var speed =
-            MathF.Max(0f, LerpSpeed);
-
-        // Frame-rate-independent smoothing.
-        // Unlike speed * deltaTime, this never exceeds 1 or overshoots.
-        var interpolation =
-            1f - MathF.Exp(-speed * deltaTime);
-
-        var position = Vector3.Lerp(
-            Transform.WorldPosition,
-            TransformToFollow.WorldPosition,
-            interpolation);
-
-        SetCameraWorldPosition(position);
-    }
-
-    private void SetCameraWorldPosition(Vector3 worldPosition)
-    {
-        /*
-         * This assumes the camera Transform is not parented and Position
-         * therefore represents world position.
-         *
-         * If your Transform supports parenting, use its world-position
-         * setter here instead. Assigning another object's WorldPosition
-         * directly to a local Position is incorrect for a parented camera.
-         */
-        Transform.Position = worldPosition;
         _matricesDirty = true;
     }
 

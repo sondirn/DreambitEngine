@@ -28,6 +28,7 @@ nav:
       - Time: core/time.md
       - Coroutines: core/coroutines.md
       - Logging and debugging: core/logging.md
+      - Developer console: core/developer-console.md
   - ECS:
       - Overview: ecs/index.md
       - Entities: ecs/entities.md
@@ -55,13 +56,10 @@ nav:
           - SoundEffectEmitter: ecs/components/sound-effect-emitter.md
           - SoundEmitter2d (obsolete): ecs/components/sound-emitter-2d.md
           - SoundListener2d (obsolete): ecs/components/sound-listener-2d.md
-          - AStarGrid: ecs/components/astar-grid.md
-          - AStarPathfinder: ecs/components/astar-pathfinder.md
-          - AStarPathFollower: ecs/components/astar-path-follower.md
           - FSM: ecs/components/fsm.md
-          - TileMover: ecs/components/tile-mover.md
   - User interface:
       - Overview: UI/README.md
+      - Stylesheets: UI/Stylesheets.md
       - Elements:
           - UiElement: UI/Elements/UiElement.md
           - UiContainer: UI/Elements/UiContainer.md
@@ -110,6 +108,7 @@ nav:
       - Overview: input/index.md
       - Direct input: input/direct-input.md
       - Actions, maps, and bindings: input/actions.md
+  - Networking: networking/index.md
   - Physics:
       - Overview: physics/index.md
       - Colliders and triggers: physics/colliders.md
@@ -126,6 +125,7 @@ nav:
       - Overview: assets/index.md
       - Content projects and Asset Baker: assets/content-pipeline.md
       - Loading resources: assets/resources.md
+      - Scene asset registries: assets/registries.md
       - Sprites and sprite sheets: assets/sprites.md
       - Sprite animation: assets/animations.md
       - Entity blueprints: assets/blueprints.md
@@ -134,14 +134,7 @@ nav:
   - Audio: audio/index.md
   - AI:
       - Overview: ai/index.md
-      - A* pathfinding: ai/pathfinding.md
       - State machines and blackboards: ai/fsm.md
-  - LDtk:
-      - Overview: ldtk/index.md
-      - Quick start: ldtk/quick-start.md
-      - Loading worlds and levels: ldtk/loading-levels.md
-      - MonoGame conversions: ldtk/monogame-conversions.md
-      - Mapping LDtk entities: ldtk/entities.md
   - Tiled:
       - Overview and quick start: tiled/index.md
   - Scripting and cutscenes: scripting/index.md

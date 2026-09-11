@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Dreambit UCSS",
+  "scopeName": "source.css.dreambit.ucss",
+  "patterns": [
+    {
+      "include": "#dreambit-selectors"
+    },
+    {
+      "include": "#dreambit-properties"
+    },
+    {
+      "include": "source.css"
+    }
+  ],
+  "repository": {
+    "dreambit-selectors": {
+      "patterns": [
+        {
+          "name": "entity.name.tag.dreambit.ucss",
+          "match": "\\b(?:Button|CheckBox|ComboBox|ContentControl|Control|Grid|HorizontalStackPanel|ItemsControl|ListBox|Overlay|Panel|Popup|ProgressBar|RadioButton|ScrollBar|Slider|Spacer|StackPanel|Text|TextBox|Texture|ToggleButton|Tooltip|UniformGrid|VerticalStackPanel|Viewbox|WrapPanel|Container|Border)(?=\\s*(?:\\.|\\{))"
+        },
+        {
+          "name": "entity.other.attribute-name.class.dreambit.ucss",
+          "match": "\\.[-_a-zA-Z][-_a-zA-Z0-9]*(?=\\s*\\{)"
+        }
+      ]
+    },
+    "dreambit-properties": {
+      "patterns": [
+        {
+          "name": "support.type.property-name.dreambit.ucss",
+          "match": "\\b(?:font-family|color|z-index|x|y|width|height|anchor|origin|grid-row|grid-column|grid-row-span|grid-column-span|is-visible|is-enabled|is-hit-test-visible|is-focusable|captures-keyboard-input|clip-to-bounds|background-color|background-tint|padding|content-alignment|font-size|text-color|horizontal-alignment)(?=\\s*:)"
+        }
+      ]
+    }
+  }
+}

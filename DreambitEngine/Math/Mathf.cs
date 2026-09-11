@@ -556,6 +556,7 @@ public static class Mathf
     /// <param name="b">The blue component.</param>
     /// <param name="c">C.</param>
     /// <param name="d">D.</param>
+    /// <param name="e">E.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float MinOf(float a, float b, float c, float d, float e)
     {
@@ -586,6 +587,7 @@ public static class Mathf
     /// <param name="b">The blue component.</param>
     /// <param name="c">C.</param>
     /// <param name="d">D.</param>
+    /// <param name="e">E.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float MaxOf(float a, float b, float c, float d, float e)
     {
@@ -885,7 +887,7 @@ public static class Mathf
     /// <returns>The around.</returns>
     /// <param name="point">Point.</param>
     /// <param name="center">Center.</param>
-    /// <param name="angleInDegrees">Angle in radians.</param>
+    /// <param name="angleInRadians">Angle in radians.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 RotateAroundRadians(Vector2 point, Vector2 center, float angleInRadians)
     {
@@ -923,7 +925,7 @@ public static class Mathf
     /// <returns>The on circle.</returns>
     /// <param name="circleCenter">Circle center.</param>
     /// <param name="radius">Radius.</param>
-    /// <param name="angleInDegrees">Angle in radians.</param>
+    /// <param name="angleInRadians">Angle in radians.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 PointOnCircleRadians(Vector2 circleCenter, float radius, float angleInRadians)
     {

@@ -6,11 +6,6 @@ using ImGuiNET;
 
 namespace Dreambit.Editor.UI;
 
-internal sealed record ProjectCreationStatus(
-    bool IsRunning,
-    string? Message = null,
-    bool IsError = false);
-
 internal sealed class ProjectLauncherView
 {
     private readonly EditorGlobalState _globalState;
@@ -30,7 +25,7 @@ internal sealed class ProjectLauncherView
     }
 
     public void Draw(
-        Func<string, bool> launchProject,
+        Func<string, ProjectLaunchOutcome> launchProject,
         Func<CreateProjectRequest, bool> createProject,
         ProjectCreationStatus creationStatus)
     {
@@ -77,7 +72,7 @@ internal sealed class ProjectLauncherView
                     new Vector2(88f, 0f),
                     primary: true))
             {
-                _error = launchProject(_projectPath) ? null : _error;
+                ApplyLaunchOutcome(launchProject(_projectPath));
             }
 
             DrawError(_error);
@@ -117,7 +112,7 @@ internal sealed class ProjectLauncherView
                             continue;
 
                         _projectPath = project.Path;
-                        _error = launchProject(project.Path) ? null : _error;
+                        ApplyLaunchOutcome(launchProject(project.Path));
 
                         // The launch callback may reorder RecentProjects by moving the
                         // selected project to the front. Do not inspect the collection
@@ -146,6 +141,18 @@ internal sealed class ProjectLauncherView
     public void SetError(string error)
     {
         _error = error;
+    }
+
+    private void ApplyLaunchOutcome(ProjectLaunchOutcome outcome)
+    {
+        if (outcome.Succeeded)
+        {
+            _error = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(outcome.Error))
+            _error = outcome.Error;
     }
 
     private void DrawCreateProjectPopup(

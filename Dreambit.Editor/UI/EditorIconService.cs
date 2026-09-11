@@ -57,6 +57,9 @@ internal sealed class EditorIconService : IDisposable
     }
 
     public bool IsAvailable => _textureId != 0;
+    
+    public bool HasIcon(string icon) => 
+        !string.IsNullOrWhiteSpace(icon) && TryGet(icon, out _);
 
     public bool Button(
         string id,

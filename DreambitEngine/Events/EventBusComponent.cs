@@ -7,9 +7,9 @@ namespace Dreambit.Events;
 
 /// <summary>
 ///     Scene-level event dispatcher.
-///     Add this component to exactly one entity before using EventBus.Instance.
+///     Resolve it through <see cref="Scene.Services" />.
 /// </summary>
-public sealed class EventBus : SingletonComponent<EventBus>
+public sealed class EventBus : SceneServiceComponent
 {
     private readonly object _listenerLock = new();
 
@@ -185,15 +185,12 @@ public sealed class EventBus : SingletonComponent<EventBus>
     public override void OnDestroyed()
     {
         ClearAll();
-
-        // Clears SingletonComponent<EventBus>.Instance.
-        base.OnDestroyed();
     }
 
-    protected override void OnDisposing()
+    protected override void OnServiceDisposing()
     {
         ClearAll();
-        base.OnDisposing();
+        base.OnServiceDisposing();
     }
 
     private void InvokeListeners<TArgs>(

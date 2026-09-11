@@ -6,7 +6,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 
     <PackageId>DreambitEngine.Build</PackageId>
-    <PackageVersion Condition="'$(PackageVersion)' == ''">0.3.14</PackageVersion>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">0.9.4</PackageVersion>
     <Title>Dreambit Engine Build Integration</Title>
     <Authors>Dreambit Engine</Authors>
     <Description>MSBuild integration point for Dreambit content and asset tooling.</Description>

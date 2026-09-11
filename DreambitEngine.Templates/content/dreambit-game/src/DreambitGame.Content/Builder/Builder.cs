@@ -33,7 +33,6 @@ public sealed class GameContentBuilder : ContentBuilder
         content.IncludeCopy<WildcardRule>("*.ttf");
         content.Exclude<WildcardRule>("*.xnb");
         content.IncludeCopy<WildcardRule>("*.pak");
-        content.IncludeCopy<WildcardRule>("*.xml");
 
         return content;
     }

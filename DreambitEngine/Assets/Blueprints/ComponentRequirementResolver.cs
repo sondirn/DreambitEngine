@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Dreambit.ECS;
 
 namespace Dreambit;
@@ -67,11 +68,8 @@ public static class ComponentRequirementResolver
 
     internal static IEnumerable<Type> GetRequireTypes(Type type)
     {
-        foreach (var attribute in type.GetCustomAttributes(true))
+        foreach (var requireAttribute in type.GetCustomAttributes<RequireAttribute>(inherit: true))
         {
-            if (attribute is not RequireAttribute requireAttribute)
-                continue;
-
             foreach (var requiredType in requireAttribute.RequiredTypes)
                 yield return requiredType;
         }

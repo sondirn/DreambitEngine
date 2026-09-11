@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Overview and quick start - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Overview and quick start";
+        var mkdocs_page_input_path = "tiled\\index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../UI/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../UI/Stylesheets/">Stylesheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../UI/Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../networking/">Networking</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tiled</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Overview and quick start</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#supported-maps">Supported maps</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#content-layout">Content layout</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#dreambit-editor-workflow">Dreambit Editor workflow</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#runtime-scene">Runtime scene</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#loading-a-scene-authored-from-tiled-in-dreambit-editor">Loading a scene authored from Tiled in Dreambit Editor</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#mutable-runtime-tile-layers">Mutable runtime tile layers</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#runtime-automapping">Runtime Automapping</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#rendering-and-large-maps">Rendering and large maps</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Tiled</li>
+      <li class="breadcrumb-item active">Overview and quick start</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="tiled-integration">Tiled integration<a class="headerlink" href="#tiled-integration" title="Permanent link">&para;</a></h1>
+<p>Dreambit imports Tiled maps from the XML-based <code>.tmx</code> format and external
+<code>.tsx</code> tilesets. A Tiled map is treated as a tile-authoring source: tile layers
+become transient Dreambit entities and <code>TilemapRenderer</code> components, while
+gameplay entities remain authored in Dreambit Editor.</p>
+<h2 id="supported-maps">Supported maps<a class="headerlink" href="#supported-maps" title="Permanent link">&para;</a></h2>
+<p>The importer supports:</p>
+<ul>
+<li>orthogonal fixed-size and infinite maps;</li>
+<li>embedded and external tilesets;</li>
+<li>atlas tilesets and image-collection tilesets;</li>
+<li>XML tile elements, CSV, and Base64 layer data;</li>
+<li>uncompressed, gzip, and zlib Base64 data;</li>
+<li>Tiled horizontal, vertical, and diagonal tile transforms;</li>
+<li>all four orthogonal render orders;</li>
+<li>nested groups, offsets, visibility, opacity, tint, and map background color;</li>
+<li>animated tiles using each frame's Tiled duration.</li>
+</ul>
+<p>Object layers and image layers are intentionally not materialized. Create
+gameplay entities, triggers, colliders, and decorations in Dreambit Editor
+instead. Isometric, staggered, and hexagonal maps are rejected. Non-normal
+layer blend modes, embedded image data, and zstd-compressed layer data are not
+currently supported.</p>
+<h2 id="content-layout">Content layout<a class="headerlink" href="#content-layout" title="Permanent link">&para;</a></h2>
+<p>Keep the map, tilesets, and referenced images beneath the game's raw <code>Assets</code>
+directory. Paths remain relative to the <code>.tmx</code> or <code>.tsx</code> file that owns them.</p>
+<pre><code class="language-text">Assets/
+  maps/
+    world.tmx
+    tiles/
+      terrain.tsx
+  textures/
+    terrain.png
+</code></pre>
+<p>The Asset Baker writes <code>.tmx</code> and <code>.tsx</code> sources as <code>.xmlb</code> resources and
+preserves their logical directory structure. The map above is loaded with the
+extensionless logical name <code>"maps/world"</code>.</p>
+<h2 id="dreambit-editor-workflow">Dreambit Editor workflow<a class="headerlink" href="#dreambit-editor-workflow" title="Permanent link">&para;</a></h2>
+<p>Choose <strong>File &gt; New Tiled Scene</strong> and select a <code>.tmx</code> asset. The creation popup
+and linked-scene Inspector expose <code>TiledImportOptions</code>:</p>
+<ul>
+<li><code>PixelsPerUnit</code>;</li>
+<li><code>BaseDrawLayer</code> and <code>DrawLayerStep</code>;</li>
+<li><code>WorldDepth</code> and <code>WorldDepthDrawLayerStride</code>;</li>
+<li><code>RenderMapBackgroundColor</code>;</li>
+<li><code>IncludeInvisibleLayers</code>.</li>
+</ul>
+<p>Generated nodes appear with a <code>[Tiled]</code> prefix. Their hierarchy and renderer
+structure remain owned by the source map, but Dreambit-side names, enabled
+state, tags, transforms, and serialized component values are stored as stable
+overrides and re-applied after import. Saving the <code>.tmx</code> or a referenced <code>.tsx</code>
+triggers live reimport; <strong>Reimport Tiled Now</strong> performs the same rebuild
+manually. Dreambit-authored entities remain unchanged.</p>
+<h2 id="runtime-scene">Runtime scene<a class="headerlink" href="#runtime-scene" title="Permanent link">&para;</a></h2>
+<p>Derive from <code>TiledScene</code> when a code-authored scene owns one map:</p>
+<pre><code class="language-csharp">using Dreambit.Tiled;
+
+public sealed class OverworldScene : TiledScene
+{
+    public OverworldScene()
+        : base(&quot;maps/world&quot;)
+    {
+    }
+
+    protected override TiledImportOptions CreateTiledImportOptions() =&gt; new()
+    {
+        PixelsPerUnit = 16f,
+        BaseDrawLayer = -100,
+        DrawLayerStep = 10,
+        WorldDepth = 0,
+        WorldDepthDrawLayerStride = 1000
+    };
+
+    protected override void OnTiledMapLoaded(TiledMapInstance map)
+    {
+        if (map.TryGetTileLayer(&quot;Foreground&quot;, out var foreground))
+        {
+            var foregroundDrawLayer = map.GetDrawLayer(foreground);
+        }
+    }
+}
+</code></pre>
+<p><code>TiledMapInstance</code> owns the generated entities and renderers. <code>Unload</code> removes
+only that imported hierarchy. <code>TrackEntity</code> can attach a runtime-created
+entity to the same lifetime, and <code>ApplyDrawLayer</code> copies a Tiled layer's
+resolved Dreambit draw layer to an entity hierarchy.</p>
+<h3 id="loading-a-scene-authored-from-tiled-in-dreambit-editor">Loading a scene authored from Tiled in Dreambit Editor<a class="headerlink" href="#loading-a-scene-authored-from-tiled-in-dreambit-editor" title="Permanent link">&para;</a></h3>
+<p>A saved editor scene linked to a Tiled map must be loaded into a <code>TiledScene</code>
+subclass. Use the parameterless base constructor because the scene blueprint
+already contains the map asset and import options:</p>
+<pre><code class="language-csharp">using Dreambit.Tiled;
+
+public sealed class OverworldScene : TiledScene
+{
+    public OverworldScene() : base()
+    {
+    }
+
+    protected override void OnTiledMapLoaded(TiledMapInstance map)
+    {
+        var ground = map.GetRuntimeTileLayer(&quot;Ground&quot;);
+        var terrain = map.GetTileset(&quot;tiles/terrain&quot;);
+        ground.SetTile(12, 8, terrain.GetTile(4));
+    }
+}
+
+Scene.SetNextScene&lt;OverworldScene&gt;(&quot;scenes/overworld.scene&quot;);
+</code></pre>
+<p>For a synchronized network Scene, register the same typed host and Scene asset on every peer:</p>
+<pre><code class="language-csharp">network.Scenes.RegisterBlueprint&lt;OverworldScene&gt;(
+    &quot;overworld&quot;,
+    &quot;scenes/overworld.scene&quot;);
+</code></pre>
+<p>The network catalog eagerly creates the authored <code>OverworldScene</code> while it is still in <code>Created</code>;
+the linked map is then imported during Scene initialization before authored network objects bind.</p>
+<p>The generic scene type is required. Loading a Tiled-linked scene asset through
+<code>Scene.SetNextScene("scenes/overworld.scene")</code>, or into an ordinary <code>Scene</code>,
+throws an actionable error before the map is resolved or authored entities are
+materialized. Plain scene blueprints remain loadable into either <code>Scene</code> or
+<code>TiledScene</code>.</p>
+<p>Use either a map supplied to <code>TiledScene(string mapAssetName)</code> or a map linked
+by the scene blueprint. Combining both sources, loading a second linked Tiled
+scene, or adding the link after the scene starts is rejected. The Tiled-owned
+scene lifetime invalidates <code>MapInstance</code> and runtime layer handles when the
+scene is disposed. Dreambit Editor uses an internal Tiled-capable preview host,
+so creation, live reimport, generated-entity overrides, and selection recovery
+continue without requiring game code to run in the editor.</p>
+<h2 id="mutable-runtime-tile-layers">Mutable runtime tile layers<a class="headerlink" href="#mutable-runtime-tile-layers" title="Permanent link">&para;</a></h2>
+<p>Every imported tile layer has sparse mutable runtime state, including layers
+that were empty in the source map. A tile is identified by its normalized
+tileset asset name, tileset-local ID, and Tiled flip flags instead of a
+map-specific GID.</p>
+<pre><code class="language-csharp">protected override void OnTiledMapLoaded(TiledMapInstance map)
+{
+    var ground = map.GetRuntimeTileLayer(&quot;Ground&quot;);
+    var terrain = map.GetTileset(&quot;tiles/terrain&quot;);
+
+    using (map.BeginTileEdit())
+    {
+        ground.SetTile(-12, 8, terrain.GetTile(4));
+        ground.SetTile(-11, 8, terrain.GetTile(
+            5,
+            TmxTileFlipFlags.Horizontal));
+        ground.ClearTile(-10, 8);
+    }
+
+    TiledTileReference? current = ground.GetTile(-12, 8);
+}
+</code></pre>
+<p><code>BeginTileEdit</code> is nestable. The outer scope runs Automapping once for the
+logical changes and replaces each affected 32-by-32 render chunk once.
+Untouched chunk objects and their static renderer caches remain valid. Direct
+single-cell calls implicitly create their own edit scope.</p>
+<p>Coordinates are logical Tiled cell coordinates and can be negative. Runtime
+overrides, generated Automapping output, and source cells remain separate, so
+retracting a generated tile reveals the authored or gameplay value beneath it.
+These changes live only on <code>TiledMapInstance</code>; Dreambit never writes them back
+to the <code>.tmx</code> or <code>.tsx</code> source.</p>
+<h2 id="runtime-automapping">Runtime Automapping<a class="headerlink" href="#runtime-automapping" title="Permanent link">&para;</a></h2>
+<p>The Asset Baker discovers <code>.tiled-project</code> files from the Dreambit project root
+and reads each project's <code>folders</code> and <code>automappingRulesFile</code>. Rules can point
+directly to a rule-map <code>.tmx</code> or to Tiled <code>rules.txt</code> files. Nested rule lists,
+comments, and filename filter sections are resolved at bake time. A
+same-directory <code>rules.txt</code> beside a map takes precedence over project rules.</p>
+<p>The baker compiles applicable rules into one internal runtime catalog. Rule
+maps and project metadata are not parsed during gameplay, and a missing or
+invalid referenced rule file fails the bake with its path. Once loaded,
+changing an input tile evaluates only rule origins whose input footprint can
+touch the changed cell; it does not scan the whole map.</p>
+<p>Dreambit supports modern Tiled tile-layer Automapping, including:</p>
+<ul>
+<li><code>input</code>, <code>inputnot</code>, indexed input alternatives, and multiple target layers;</li>
+<li><code>output</code> and indexed weighted output alternatives;</li>
+<li><code>Empty</code>, <code>NonEmpty</code>, <code>Other</code>, negation, and ignored flip flags;</li>
+<li><code>AutomappingRadius</code>, <code>MatchInOrder</code>, border matching/wrapping/overflow;</li>
+<li>rule probability, modulo/offset, disabled rules, lock handling,
+  non-overlapping output, and <code>DeleteTiles</code>;</li>
+<li>fixed and infinite maps, negative coordinates, groups, and deterministic
+  output controlled by <code>TiledImportOptions.AutomappingSeed</code>.</li>
+</ul>
+<p>The embedded <code>qrc:/automap-tiles.tsx</code> match tiles used by current Tiled
+versions are recognized without requiring a file on disk. <code>Other</code> follows
+Tiled 1.10+ behavior: it also matches an empty cell unless the same rule has
+an explicit <code>Empty</code> predicate for that target layer.</p>
+<p>Output target layers must already exist in the gameplay map so their draw order
+and renderer ownership are defined. Legacy region-based rules and object-layer
+outputs are rejected with an actionable bake error. Rule maps use Dreambit's
+orthogonal TMX pipeline; TMJ rule maps are not compiled. This keeps the
+compiled runtime representation small and tile-focused.</p>
+<p>Editor-authored scenes store a <code>TiledSceneReference</code> in the scene blueprint.
+When loaded into a <code>TiledScene</code> host, runtime blueprint loading resolves that
+reference, imports fresh tile data, and applies the saved Dreambit overrides
+before the scene starts.</p>
+<h2 id="rendering-and-large-maps">Rendering and large maps<a class="headerlink" href="#rendering-and-large-maps" title="Permanent link">&para;</a></h2>
+<p>Infinite-map tile layers retain Tiled's source chunks. Fixed-size layers are
+partitioned into sparse 32-by-32-cell chunks. <code>TilemapRenderer</code> culls occupied
+chunks first, so empty space between distant parts of a map is not scanned one
+cell at a time.</p>
+<p>Static chunk contents are cached lazily when a tile becomes 12 screen pixels or
+smaller. Animated tiles remain dynamic and are drawn over the cached static
+content. Cache resolution follows a power-of-two screen-space LOD, so a chunk
+first seen at a distant zoom does not consume a full-resolution texture. Cache
+creation is limited to four chunks per frame, 256 retained chunks, and 64 MB per
+renderer by default. These values can be tuned on each generated
+<code>TilemapRenderer</code> through <code>ChunkCacheScreenSizeThreshold</code>,
+<code>MaximumChunkCachesBuiltPerFrame</code>, <code>MaximumCachedChunks</code>, and
+<code>MaximumChunkCacheMegabytes</code>; set
+<code>EnableChunkCaching</code> to false for a layer that must always draw individual
+tiles. Custom-effect tilemaps skip caching automatically.</p>
+<p>For profiling, inspect <code>LastVisibleChunkCount</code>, <code>LastCandidateTileCount</code>,
+<code>LastVisibleTileCount</code>, <code>LastSpriteSubmissionCount</code>, and
+<code>FrameSpriteSubmissionCount</code>. Once the cache is warm, a static visible chunk
+costs one sprite submission in each render pass instead of one per tile.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../ai/fsm/" class="btn btn-neutral float-left" title="State machines and blackboards"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../scripting/" class="btn btn-neutral float-right" title="Scripting and cutscenes">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../ai/fsm/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../scripting/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

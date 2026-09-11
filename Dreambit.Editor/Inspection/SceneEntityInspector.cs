@@ -117,9 +117,7 @@ internal sealed class SceneEntityInspector(
 
         var sourceLabel = entities.All(entity => entity.IsTiledGenerated)
             ? "Tiled-generated visualization"
-            : entities.All(entity => entity.IsLDtkGenerated)
-                ? "LDtk-generated visualization"
-                : "Imported map visualization";
+            : "Imported map visualization";
         EditorGui.Message(EditorGuiMessageKind.Information, sourceLabel);
         EditorGui.MutedText("Value changes are stored as Dreambit overrides and survive reimport.");
         EditorGui.MutedText("Hierarchy structure and components remain owned by the source map.");
@@ -251,24 +249,20 @@ internal sealed class SceneEntityInspector(
         return GetComponentStatus(
             readOnly,
             entities.Any(entity => entity.IsImportedMapGenerated),
-            entities.All(entity => entity.IsLDtkGenerated),
             entities.All(entity => entity.IsTiledGenerated));
     }
 
     internal static string? GetComponentStatus(
         bool readOnly,
         bool hasGeneratedEntity,
-        bool allLDtkGenerated,
         bool allTiledGenerated) =>
         readOnly
             ? "Boxed"
             : !hasGeneratedEntity
                 ? null
-                : allLDtkGenerated
-                    ? "LDtk"
-                    : allTiledGenerated
-                        ? "Tiled"
-                        : "Imported";
+                : allTiledGenerated
+                    ? "Tiled"
+                    : "Imported";
 
     private void DrawComponentMembers(
         SceneDocument document,
@@ -287,6 +281,10 @@ internal sealed class SceneEntityInspector(
         {
             try
             {
+                if (!components.Any(component => member.IsVisible(name =>
+                        members.FirstOrDefault(candidate => candidate.Member.Name == name)?.GetValue(component))))
+                    continue;
+
                 if (!string.IsNullOrWhiteSpace(member.Header))
                     EditorGui.Header(member.Header);
 

@@ -17,15 +17,27 @@ namespace Dreambit.Tiled;
 public sealed class TiledMapImporter
 {
     private readonly Func<string, Texture2D?> _textureResolver;
+    private readonly Func<TiledAutomappingCatalog?> _automappingCatalogResolver;
 
     public TiledMapImporter()
-        : this(assetName => Resources.LoadAsset<Texture2D>(assetName))
+        : this(
+            assetName => Resources.LoadAsset<Texture2D>(assetName),
+            TiledAutomappingCatalog.TryLoad)
     {
     }
 
     public TiledMapImporter(Func<string, Texture2D?> textureResolver)
+        : this(textureResolver, static () => null)
+    {
+    }
+
+    public TiledMapImporter(
+        Func<string, Texture2D?> textureResolver,
+        Func<TiledAutomappingCatalog?> automappingCatalogResolver)
     {
         _textureResolver = textureResolver ?? throw new ArgumentNullException(nameof(textureResolver));
+        _automappingCatalogResolver = automappingCatalogResolver ??
+                                        throw new ArgumentNullException(nameof(automappingCatalogResolver));
     }
 
     public TiledMapInstance Import(
@@ -41,6 +53,7 @@ public sealed class TiledMapImporter
 
         var ownedEntities = new List<Entity>();
         var tilemapRenderers = new List<TilemapRenderer>();
+        var runtimeTileLayers = new List<TiledRuntimeTileLayer>();
         var layerDrawLayers = new Dictionary<int, int>();
         var importedLayerIds = new HashSet<int>();
         var context = new ImportContext(map, _textureResolver);
@@ -73,6 +86,7 @@ public sealed class TiledMapImporter
                 context,
                 ownedEntities,
                 tilemapRenderers,
+                runtimeTileLayers,
                 layerDrawLayers,
                 importedLayerIds,
                 infiniteBounds,
@@ -93,7 +107,9 @@ public sealed class TiledMapImporter
                 root,
                 ownedEntities,
                 tilemapRenderers,
-                layerDrawLayers);
+                runtimeTileLayers,
+                layerDrawLayers,
+                _automappingCatalogResolver());
         }
         catch
         {
@@ -142,6 +158,7 @@ public sealed class TiledMapImporter
         ImportContext context,
         List<Entity> ownedEntities,
         List<TilemapRenderer> tilemapRenderers,
+        List<TiledRuntimeTileLayer> runtimeTileLayers,
         Dictionary<int, int> layerDrawLayers,
         HashSet<int> importedLayerIds,
         PixelBoundsAccumulator infiniteBounds,
@@ -193,6 +210,7 @@ public sealed class TiledMapImporter
                         context,
                         ownedEntities,
                         tilemapRenderers,
+                        runtimeTileLayers,
                         layerDrawLayers,
                         importedLayerIds,
                         infiniteBounds,
@@ -206,8 +224,6 @@ public sealed class TiledMapImporter
                         throw new TiledException($"Tiled map contains duplicate layer ID '{tileLayer.Id}'.");
                     var drawLayer = checked(depthBase + (++tileLayerIndex) * options.DrawLayerStep);
                     layerDrawLayers.Add(tileLayer.Id, drawLayer);
-                    if (!includeLayer)
-                        break;
                     ImportTileLayer(
                         scene,
                         parent,
@@ -219,9 +235,11 @@ public sealed class TiledMapImporter
                         context,
                         ownedEntities,
                         tilemapRenderers,
+                        runtimeTileLayers,
                         infiniteBounds,
                         ApplyOpacity(tint, opacity),
-                        drawLayer);
+                        drawLayer,
+                        includeLayer);
                     break;
                 }
             }
@@ -239,13 +257,19 @@ public sealed class TiledMapImporter
         ImportContext context,
         List<Entity> ownedEntities,
         List<TilemapRenderer> tilemapRenderers,
+        List<TiledRuntimeTileLayer> runtimeTileLayers,
         PixelBoundsAccumulator infiniteBounds,
         Color tint,
-        int drawLayer)
+        int drawLayer,
+        bool materialize)
     {
-        ValidateBlendMode(layer, layerPath);
+        if (materialize)
+            ValidateBlendMode(layer, layerPath);
 
         var bounds = GetLayerGridBounds(context.Map, layer);
+        var logicalOrigin = bounds.HasValue
+            ? new Point(bounds.Value.MinimumX, bounds.Value.MinimumY)
+            : new Point(layer.X, layer.Y);
         var layerOriginPixels = layerOffsetPixels;
         if (bounds.HasValue)
         {
@@ -259,30 +283,54 @@ public sealed class TiledMapImporter
                 bounds.Value.Rows * context.Map.TileHeight));
         }
 
-        var entity = CreateChild(
-            scene,
-            parent,
-            $"Tiled Layer: {layerPath}",
-            layerOriginPixels / options.PixelsPerUnit,
-            "tiled-layer");
-        entity.TiledSourceKey = TiledGeneratedEntityKeys.Layer(layer.Id);
-        ownedEntities.Add(entity);
-
-        if (!bounds.HasValue || layer.Data is null)
-            return;
-        var cells = TmxTileDataDecoder.DecodeLayer(context.Map, layer);
-        if (!cells.Any(cell => cell.GlobalTileId != 0))
-            return;
-
-        var data = context.CreateLayerData(
+        var cells = layer.Data is null
+            ? Array.Empty<TmxTileCell>()
+            : TmxTileDataDecoder.DecodeLayer(context.Map, layer);
+        var sourceTiles = context.CreateRuntimeTiles(layer, cells);
+        TilemapTile RenderTile(Point cell, TiledTileReference tile) => context.CreateRenderTile(
             layer,
-            cells,
-            bounds.Value,
+            cell,
+            logicalOrigin,
+            tile,
             options.PixelsPerUnit,
             tint);
-        var renderer = entity.AttachComponent<TilemapRenderer>().Configure(data);
-        renderer.DrawLayer = drawLayer;
-        tilemapRenderers.Add(renderer);
+
+        var initialRenderTiles = new TilemapTile[sourceTiles.Count];
+        var tileIndex = 0;
+        foreach (var pair in sourceTiles)
+            initialRenderTiles[tileIndex++] = RenderTile(pair.Key, pair.Value);
+        var data = new TilemapLayerData(
+            Math.Max(1, bounds?.Columns ?? layer.Width),
+            Math.Max(1, bounds?.Rows ?? layer.Height),
+            new Vector2(
+                context.Map.TileWidth / options.PixelsPerUnit,
+                context.Map.TileHeight / options.PixelsPerUnit),
+            initialRenderTiles,
+            GetRenderOrder(context.Map.RenderOrder),
+            allowCellsOutsideGrid: true);
+
+        TilemapRenderer? renderer = null;
+        if (materialize)
+        {
+            var entity = CreateChild(
+                scene,
+                parent,
+                $"Tiled Layer: {layerPath}",
+                layerOriginPixels / options.PixelsPerUnit,
+                "tiled-layer");
+            entity.TiledSourceKey = TiledGeneratedEntityKeys.Layer(layer.Id);
+            ownedEntities.Add(entity);
+            renderer = entity.AttachComponent<TilemapRenderer>().Configure(data);
+            renderer.DrawLayer = drawLayer;
+            tilemapRenderers.Add(renderer);
+        }
+
+        runtimeTileLayers.Add(new TiledRuntimeTileLayer(
+            layer,
+            sourceTiles,
+            data,
+            RenderTile,
+            renderer));
     }
 
     private static void ImportBackground(
@@ -512,6 +560,76 @@ public sealed class TiledMapImporter
         }
 
         public TmxMap Map { get; }
+
+        public Dictionary<Point, TiledTileReference> CreateRuntimeTiles(
+            TmxTileLayer layer,
+            IReadOnlyList<TmxTileCell> cells)
+        {
+            var result = new Dictionary<Point, TiledTileReference>();
+            foreach (var cell in cells)
+            {
+                if (cell.GlobalTileId == 0)
+                    continue;
+                if (cell.FlipFlags.HasFlag(TmxTileFlipFlags.Hexagonal120))
+                    throw new TiledException(
+                        $"Tiled layer '{layer.Name}' uses the hexagonal 120-degree rotation flag in an orthogonal map.");
+
+                var binding = ResolveTileset(cell.GlobalTileId);
+                var localTileId = checked((int)(cell.GlobalTileId - binding.FirstGid));
+                var reference = new TiledTileReference(
+                    binding.Tileset.AssetName,
+                    localTileId,
+                    cell.FlipFlags);
+                if (!result.TryAdd(new Point(cell.X, cell.Y), reference))
+                    throw new TiledException(
+                        $"Tiled layer '{layer.Name}' contains more than one tile at ({cell.X}, {cell.Y}).");
+            }
+            return result;
+        }
+
+        public TilemapTile CreateRenderTile(
+            TmxTileLayer layer,
+            Point logicalCell,
+            Point logicalOrigin,
+            TiledTileReference tile,
+            float pixelsPerUnit,
+            Color tint)
+        {
+            var binding = _tilesets.FirstOrDefault(candidate => string.Equals(
+                TiledTileReference.NormalizeAssetName(candidate.Tileset.AssetName),
+                tile.TilesetAssetName,
+                StringComparison.OrdinalIgnoreCase));
+            if (binding.Tileset is null)
+                throw new TiledException(
+                    $"Tiled layer '{layer.Name}' references unknown tileset '{tile.TilesetAssetName}'.");
+            if (tile.FlipFlags.HasFlag(TmxTileFlipFlags.Hexagonal120))
+                throw new TiledException(
+                    $"Tiled layer '{layer.Name}' uses the hexagonal 120-degree rotation flag in an orthogonal map.");
+
+            var visual = ResolveVisual(binding.Tileset, tile.TileId);
+            var transform = ResolveTransform(tile.FlipFlags);
+            var pixelSize = transform.QuarterTurn
+                ? new Vector2(visual.PixelSize.Y, visual.PixelSize.X)
+                : visual.PixelSize;
+            var localCell = new Point(
+                checked(logicalCell.X - logicalOrigin.X),
+                checked(logicalCell.Y - logicalOrigin.Y));
+            var tileOffset = binding.Tileset.TileOffset;
+            var positionPixels = new Vector2(
+                localCell.X * Map.TileWidth + (tileOffset?.X ?? 0),
+                localCell.Y * Map.TileHeight + Map.TileHeight - pixelSize.Y + (tileOffset?.Y ?? 0));
+            return new TilemapTile(
+                positionPixels / pixelsPerUnit,
+                pixelSize / pixelsPerUnit,
+                visual.SourceRectangle,
+                tint,
+                transform.Effects,
+                visual.Texture,
+                transform.Rotation,
+                ResolveAnimation(binding.Tileset, tile.TileId),
+                localCell,
+                TiledRuntimeTileLayer.GetRenderChunk(logicalCell));
+        }
 
         public TilemapLayerData CreateLayerData(
             TmxTileLayer layer,

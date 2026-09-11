@@ -76,7 +76,10 @@ internal sealed class GameAssemblyLoadService : IDisposable
             UnloadCurrent();
             _loadContext = candidateContext;
             _current = loaded;
-            DreambitAssemblyCaches.Refresh(catalog.AssetTypes, catalog.AssetLoaderTypes);
+            DreambitAssemblyCaches.Refresh(
+                catalog.AssetTypes,
+                catalog.AssetLoaderTypes,
+                catalog.ComponentTypes);
             NotifySubscribers(Reloaded, loaded, "activation");
             candidateContext = null;
             Report(new GameCodeMessage(
