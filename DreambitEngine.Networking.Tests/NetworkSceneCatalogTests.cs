@@ -1,6 +1,5 @@
 using Dreambit;
 using Dreambit.Networking.Scenes;
-using Dreambit.Tiled;
 using Xunit;
 
 namespace DreambitEngine.Networking.Tests;
@@ -33,26 +32,15 @@ public sealed class NetworkSceneCatalogTests
     }
 
     [Fact]
-    public void BlueprintRegistrationEagerlyMaterializesTheRequestedTiledSceneType()
+    public void BlueprintRegistrationEagerlyMaterializesTheRequestedSceneType()
     {
         var suffix = Guid.NewGuid().ToString("N");
         var sceneAssetName = $"tests/scenes/{suffix}";
-        var mapAssetName = $"tests/maps/{suffix}";
         var authoredEntityId = Guid.NewGuid();
-        var map = new TmxMap
-        {
-            AssetName = mapAssetName,
-            Orientation = "orthogonal",
-            TileWidth = 16,
-            TileHeight = 16,
-            Width = 1,
-            Height = 1
-        };
         var blueprint = new SceneBlueprint
         {
             AssetName = sceneAssetName,
-            Name = "Networked Tiled World",
-            Tiled = new TiledSceneReference { AssetName = mapAssetName },
+            Name = "Networked World",
             Entities =
             [
                 new EntityBlueprint
@@ -62,25 +50,21 @@ public sealed class NetworkSceneCatalogTests
                 }
             ]
         };
-        Assert.True(Resources.TryRegisterAsset(map));
         Assert.True(Resources.TryRegisterAsset(blueprint));
 
         try
         {
             var catalog = new NetworkSceneCatalog();
-            catalog.RegisterBlueprint<CatalogTiledScene>("world", sceneAssetName);
+            catalog.RegisterBlueprint<CatalogScene>("world", sceneAssetName);
 
-            using var scene = Assert.IsType<CatalogTiledScene>(catalog.Create("world"));
+            using var scene = Assert.IsType<CatalogScene>(catalog.Create("world"));
 
             Assert.Equal(SceneState.Created, scene.State);
-            Assert.Same(map, scene.Map);
-            Assert.Null(scene.MapInstance);
             Assert.Equal(authoredEntityId, scene.FindEntity("Authored Network Root").Id);
         }
         finally
         {
             Resources.UnloadAsset(sceneAssetName);
-            Resources.UnloadAsset(mapAssetName);
         }
     }
 
@@ -92,7 +76,14 @@ public sealed class NetworkSceneCatalogTests
         {
             AssetName = sceneAssetName,
             Name = "Invalid Host",
-            Tiled = new TiledSceneReference { AssetName = "tests/maps/not-resolved" }
+            Entities =
+            [
+                new EntityBlueprint
+                {
+                    Name = "Invalid Entity",
+                    Components = [new ComponentBlueprint { Type = "Missing.Component" }]
+                }
+            ]
         };
         Assert.True(Resources.TryRegisterAsset(blueprint));
         TrackingScene.LastCreated = null;
@@ -102,7 +93,7 @@ public sealed class NetworkSceneCatalogTests
             var exception = Assert.Throws<InvalidOperationException>(() =>
                 Scene.CreateFromBlueprint<TrackingScene>(sceneAssetName));
 
-            Assert.Contains("must derive from TiledScene", exception.Message);
+            Assert.Contains("Missing.Component", exception.Message);
             Assert.NotNull(TrackingScene.LastCreated);
             Assert.Equal(SceneState.Disposed, TrackingScene.LastCreated.State);
         }
@@ -116,13 +107,6 @@ public sealed class NetworkSceneCatalogTests
     private sealed class CatalogScene : Scene
     {
         internal override void InitializeInternals()
-        {
-        }
-    }
-
-    private sealed class CatalogTiledScene : TiledScene
-    {
-        public CatalogTiledScene() : base()
         {
         }
     }

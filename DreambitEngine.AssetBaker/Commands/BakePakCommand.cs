@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using DreambitEngine.AssetBaker.Pipeline;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -39,9 +39,6 @@ public class BakePakSettings : CommandSettings
     [CommandOption("--rebuild")]
     [Description("Ignore the incremental cache")]
     public bool RebuildAll { get; set; }
-    [CommandOption("--project-root <DIRECTORY>")]
-    [Description("Dreambit project root used to discover .tiled-project files")]
-    public string? ProjectRoot { get; set; }
 
     public override ValidationResult Validate()
     {
@@ -73,10 +70,7 @@ public sealed class BakePakCommand : Command<BakePakSettings>
                     settings.MaxSize,
                     settings.SRgb,
                     settings.Platform,
-                    !settings.NoBuiltIns)
-                {
-                    ProjectRoot = settings.ProjectRoot
-                },
+                    !settings.NoBuiltIns),
                 progress,
                 cancellationToken);
             AnsiConsole.MarkupLine(

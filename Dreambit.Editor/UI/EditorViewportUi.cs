@@ -9,6 +9,8 @@ namespace Dreambit.Editor.UI;
 
 internal static class EditorViewportUi
 {
+    public const float MinimumGridStep = 0.00001f;
+
     public const float MinimumZoom = 0.02f;
 
     public static float NormalizeZoom(float zoom) =>
@@ -22,7 +24,7 @@ internal static class EditorViewportUi
     }
 
     public static float NormalizeGridSize(float gridSize) =>
-        float.IsFinite(gridSize) ? MathF.Max(0.001f, gridSize) : 1f;
+        float.IsFinite(gridSize) ? MathF.Max(MinimumGridStep, gridSize) : 1f;
 
     public static void DrawSettingsPopup(string id, EditorWorkspaceState workspace)
     {
@@ -42,8 +44,8 @@ internal static class EditorViewportUi
                 "Grid Size",
                 ref gridSize,
                 speed: 0.05f,
-                min: 0.001f,
-                format: "%.3f",
+                min: MinimumGridStep,
+                format: "%.5f",
                 tooltip: "World units between grid lines. Ctrl+click to type an exact value."))
             workspace.GridSize = NormalizeGridSize(gridSize);
 
@@ -56,7 +58,7 @@ internal static class EditorViewportUi
         {
             var moveSnap = workspace.MoveSnap;
             if (DrawPositiveSetting(
-                    "Viewport.MoveSnap", "Move Step", ref moveSnap, 0.05f, 0.001f, "%.3f"))
+                    "Viewport.MoveSnap", "Move Step", ref moveSnap, 0.05f, MinimumGridStep, "%.5f"))
                 workspace.MoveSnap = moveSnap;
             var rotateSnap = workspace.RotateSnapDegrees;
             if (DrawPositiveSetting(
@@ -64,7 +66,7 @@ internal static class EditorViewportUi
                 workspace.RotateSnapDegrees = rotateSnap;
             var scaleSnap = workspace.ScaleSnap;
             if (DrawPositiveSetting(
-                    "Viewport.ScaleSnap", "Scale Step", ref scaleSnap, 0.01f, 0.001f, "%.3f"))
+                    "Viewport.ScaleSnap", "Scale Step", ref scaleSnap, 0.01f, MinimumGridStep, "%.5f"))
                 workspace.ScaleSnap = scaleSnap;
         }
 

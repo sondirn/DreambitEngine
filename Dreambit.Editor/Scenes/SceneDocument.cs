@@ -1,6 +1,5 @@
 using Dreambit.ECS;
 using Dreambit.Editor.Undo;
-using Dreambit.Tiled;
 
 namespace Dreambit.Editor.Scenes;
 
@@ -16,7 +15,6 @@ internal sealed class SceneDocument : IDisposable
     private readonly Func<BlueprintInstanceReference, EntityBlueprint>? _blueprintInstanceResolver;
     private readonly Func<string?>? _activeGameAssemblyNameProvider;
     private readonly SceneRuntime _runtime;
-    private readonly ImportedSceneSources _importedSceneSources = new();
     private readonly SceneEditHistory _history;
     private SceneBlueprint _source;
     private SelectionMarker[]? _selectionBeforeRuntimeRelease;
@@ -31,7 +29,6 @@ internal sealed class SceneDocument : IDisposable
         Action<string, Exception?>? reportError = null,
         Func<BlueprintInstanceReference, EntityBlueprint>? blueprintInstanceResolver = null,
         SceneDocumentHistoryOwnership historyOwnership = SceneDocumentHistoryOwnership.Document,
-        Func<TiledSceneReference, TmxMap>? tiledMapResolver = null,
         Func<EditorScene>? sceneFactory = null,
         Func<string?>? activeGameAssemblyNameProvider = null)
     {
@@ -44,7 +41,6 @@ internal sealed class SceneDocument : IDisposable
         _runtime = new SceneRuntime(
             reportError,
             blueprintInstanceResolver,
-            tiledMapResolver,
             sceneFactory);
         _history = new SceneEditHistory(historyOwnership);
         RebuildLiveScene();
@@ -65,7 +61,6 @@ internal sealed class SceneDocument : IDisposable
     internal int SceneGeneration => _runtime.Generation;
     internal string? ActiveChangeMergeKey => _history.ActiveChangeMergeKey;
     public bool HasLiveScene => _runtime.HasLiveScene;
-    public TiledSceneReference? TiledReference => _source.Tiled;
     public SceneSettings Settings => _source.Settings ??= new SceneSettings();
     public event Action<SceneDocument>? Changed;
 
@@ -75,18 +70,15 @@ internal sealed class SceneDocument : IDisposable
         Action<string, Exception?>? reportError = null,
         Func<BlueprintInstanceReference, EntityBlueprint>? blueprintInstanceResolver = null,
         SceneDocumentHistoryOwnership historyOwnership = SceneDocumentHistoryOwnership.Document,
-        Func<TiledSceneReference, TmxMap>? tiledMapResolver = null,
-        TiledSceneReference? tiled = null,
         Func<string?>? activeGameAssemblyNameProvider = null)
     {
         var document = new SceneDocument(
-            new SceneBlueprint { Name = name, Entities = [], Tiled = tiled },
+            new SceneBlueprint { Name = name, Entities = [] },
             null,
             selection,
             reportError,
             blueprintInstanceResolver,
             historyOwnership,
-            tiledMapResolver,
             activeGameAssemblyNameProvider: activeGameAssemblyNameProvider);
         // A new scene has no successful on-disk save to compare against.
         document._history.MarkNewDocumentUnsaved();
@@ -99,7 +91,6 @@ internal sealed class SceneDocument : IDisposable
         Action<string, Exception?>? reportError = null,
         Func<BlueprintInstanceReference, EntityBlueprint>? blueprintInstanceResolver = null,
         SceneDocumentHistoryOwnership historyOwnership = SceneDocumentHistoryOwnership.Document,
-        Func<TiledSceneReference, TmxMap>? tiledMapResolver = null,
         Func<string?>? activeGameAssemblyNameProvider = null)
     {
         var fullPath = System.IO.Path.GetFullPath(path);
@@ -111,7 +102,6 @@ internal sealed class SceneDocument : IDisposable
             reportError,
             blueprintInstanceResolver,
             historyOwnership,
-            tiledMapResolver,
             activeGameAssemblyNameProvider: activeGameAssemblyNameProvider);
     }
 
@@ -265,8 +255,6 @@ internal sealed class SceneDocument : IDisposable
         Entity? parent = null,
         Microsoft.Xna.Framework.Vector3? worldPosition = null)
     {
-        if (parent?.IsImportedMapGenerated == true)
-            throw new InvalidOperationException("Imported map entities cannot own Dreambit-authored children.");
         if (parent is not null && TryGetBlueprintInstanceRoot(parent, out _, out _))
             throw new InvalidOperationException("Unbox the Blueprint instance before adding children to it.");
         Entity? created = null;
@@ -293,7 +281,6 @@ internal sealed class SceneDocument : IDisposable
         Apply("Rename Entity", _ =>
         {
             entity.Name = trimmed;
-            RecordGeneratedEntityName(entity);
         });
     }
 
@@ -310,7 +297,6 @@ internal sealed class SceneDocument : IDisposable
             foreach (var entity in entities)
             {
                 entity.Enabled = enabled;
-                RecordGeneratedEntityEnabled(entity);
             }
         }, mergeKey);
     }
@@ -330,7 +316,6 @@ internal sealed class SceneDocument : IDisposable
             {
                 entity.Tags.Clear();
                 entity.Tags.UnionWith(tags);
-                RecordGeneratedEntityTags(entity);
             }
         }, mergeKey);
     }
@@ -348,7 +333,6 @@ internal sealed class SceneDocument : IDisposable
             foreach (var entity in entities)
             {
                 entity.Transform.Position = position;
-                RecordGeneratedPosition(entity);
             }
         }, mergeKey);
     }
@@ -366,7 +350,6 @@ internal sealed class SceneDocument : IDisposable
             foreach (var entity in entities)
             {
                 entity.Transform.Rotation2D = rotation;
-                RecordGeneratedRotation(entity);
             }
         }, mergeKey);
     }
@@ -384,15 +367,12 @@ internal sealed class SceneDocument : IDisposable
             foreach (var entity in entities)
             {
                 entity.Transform.Scale = scale;
-                RecordGeneratedScale(entity);
             }
         }, mergeKey);
     }
 
     public Entity Duplicate(Entity entity)
     {
-        if (entity.IsImportedMapGenerated)
-            throw new InvalidOperationException("Imported map entities are recreated from their source and cannot be duplicated.");
         if (TryGetBlueprintInstanceRoot(entity, out var instanceRoot, out _) &&
             !ReferenceEquals(entity, instanceRoot))
         {
@@ -430,8 +410,6 @@ internal sealed class SceneDocument : IDisposable
         Entity? parent = null)
     {
         ArgumentNullException.ThrowIfNull(blueprint);
-        if (parent?.IsImportedMapGenerated == true)
-            throw new InvalidOperationException("Imported map entities cannot own Dreambit-authored children.");
         Entity? created = null;
         Apply("Instantiate Blueprint", scene =>
         {
@@ -531,9 +509,6 @@ internal sealed class SceneDocument : IDisposable
         var roots = RemoveDescendantDuplicates(entities).ToArray();
         if (roots.Length == 0)
             return;
-        if (roots.Any(entity => entity.IsImportedMapGenerated))
-            throw new InvalidOperationException(
-                "Imported map entities are recreated from their source and cannot be deleted directly.");
         if (roots.Any(entity =>
                 TryGetBlueprintInstanceRoot(entity, out var instanceRoot, out _) &&
                 !ReferenceEquals(entity, instanceRoot)))
@@ -553,8 +528,6 @@ internal sealed class SceneDocument : IDisposable
     {
         if (ReferenceEquals(entity.Parent, parent))
             return;
-        if (entity.IsImportedMapGenerated || parent?.IsImportedMapGenerated == true)
-            throw new InvalidOperationException("Imported map hierarchy structure is owned by its source map.");
         if (TryGetBlueprintInstanceRoot(entity, out var instanceRoot, out _) &&
             !ReferenceEquals(entity, instanceRoot))
         {
@@ -597,53 +570,10 @@ internal sealed class SceneDocument : IDisposable
             {
                 setValue(component, value);
                 component.AcknowledgeEditorSerializationFailure(memberName);
-                RecordGeneratedComponentMember(component, memberName, value);
                 if (value is null && isReference)
                     MarkReferenceCleared(component.Entity, component.GetType(), memberName);
             }
         }, mergeKey);
-    }
-
-    public void RecordGeneratedEntityName(Entity entity)
-    {
-        _importedSceneSources.RecordName(_source, entity);
-    }
-
-    public void RecordGeneratedEntityEnabled(Entity entity)
-    {
-        _importedSceneSources.RecordEnabled(_source, entity);
-    }
-
-    public void RecordGeneratedEntityTags(Entity entity)
-    {
-        _importedSceneSources.RecordTags(_source, entity);
-    }
-
-    public void RecordGeneratedPosition(Entity entity)
-    {
-        _importedSceneSources.RecordPosition(_source, entity);
-    }
-
-    public void RecordGeneratedRotation(Entity entity)
-    {
-        _importedSceneSources.RecordRotation(_source, entity);
-    }
-
-    public void RecordGeneratedScale(Entity entity)
-    {
-        _importedSceneSources.RecordScale(_source, entity);
-    }
-
-    public void RecordGeneratedComponentMember(Component component, string memberName, object? value)
-    {
-        ArgumentNullException.ThrowIfNull(component);
-        ArgumentException.ThrowIfNullOrWhiteSpace(memberName);
-
-        _importedSceneSources.RecordComponentMember(
-            _source,
-            component,
-            memberName,
-            SceneDocumentSerializer.SerializeValue(value, value?.GetType() ?? typeof(object)));
     }
 
     /// <summary>
@@ -665,25 +595,6 @@ internal sealed class SceneDocument : IDisposable
 
         Delete(roots);
         return roots.Length;
-    }
-
-    public void UpdateTiledImportOptions(
-        string name,
-        Action<TiledImportOptions> mutation,
-        string? mergeKey = null)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(mutation);
-        ApplySourceChange(name, () =>
-        {
-            var reference = _source.Tiled
-                            ?? throw new InvalidOperationException("This scene is not linked to a Tiled map.");
-            var updated = (reference.ImportOptions ?? new TiledImportOptions()).Clone();
-            mutation(updated);
-            updated.Validate();
-            reference.ImportOptions = updated;
-        }, mergeKey);
     }
 
     public void UpdateSceneSettings(
@@ -774,15 +685,6 @@ internal sealed class SceneDocument : IDisposable
             mergeKey);
     }
 
-    /// <summary>Reloads the linked TMX source while preserving Dreambit-authored scene entities.</summary>
-    public void ReimportTiled()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_source.Tiled is null || Scene is null)
-            return;
-        RebuildPreservingSelection();
-    }
-
     public void BeforeAssemblyReload()
     {
         if (Scene is null)
@@ -807,7 +709,7 @@ internal sealed class SceneDocument : IDisposable
         }
         finally
         {
-            // Markers hold only IDs and imported source keys, never live game objects. Retain
+            // Markers hold only IDs, never live game objects. Retain
             // them across reload so the next materialization can restore editor selection after
             // all collectible assembly objects have been released.
             _selectionBeforeRuntimeRelease = selection;
@@ -855,16 +757,6 @@ internal sealed class SceneDocument : IDisposable
         RestoreSelectionMarkers(selection);
     }
 
-    private void RebuildPreservingSelection()
-    {
-        RollBackActiveTransactionBeforeSourceCapture();
-        var selected = CaptureSelectionMarkers();
-        CaptureSource();
-        var replacement = _runtime.Build(_source);
-        _runtime.Replace(replacement, "Could not fully dispose the replaced imported-map editor scene.");
-        RestoreSelectionMarkers(selected);
-    }
-
     private SelectionMarker[] CaptureSelectionMarkers()
     {
         var selected = Selection.Resolve(Scene);
@@ -872,9 +764,7 @@ internal sealed class SceneDocument : IDisposable
         for (var index = 0; index < selected.Count; index++)
         {
             var entity = selected[index];
-            markers[index] = _importedSceneSources.TryIdentify(entity, out var importedIdentity)
-                ? new SelectionMarker(entity.Id, importedIdentity)
-                : new SelectionMarker(entity.Id, null);
+            markers[index] = new SelectionMarker(entity.Id);
         }
 
         return markers;
@@ -892,9 +782,7 @@ internal sealed class SceneDocument : IDisposable
         var restored = new List<Guid>();
         foreach (var marker in markers)
         {
-            var entity = marker.ImportedIdentity is { } importedIdentity
-                ? _importedSceneSources.ResolveGeneratedEntity(scene, importedIdentity)
-                : scene.FindEntity(marker.EntityId);
+            var entity = scene.FindEntity(marker.EntityId);
             if (entity is not null)
                 restored.Add(entity.Id);
         }
@@ -1137,9 +1025,7 @@ internal sealed class SceneDocument : IDisposable
         _runtime.Dispose();
     }
 
-    internal readonly record struct SelectionMarker(
-        Guid EntityId,
-        ImportedSceneSourceIdentity? ImportedIdentity);
+    internal readonly record struct SelectionMarker(Guid EntityId);
 
     internal sealed class SceneEditTransaction : IDisposable
     {

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using DreambitEngine.AssetBaker.Abstractions;
 
 namespace DreambitEngine.AssetBaker.Pipeline.Docs;
@@ -22,8 +22,7 @@ public sealed class JsonbBaker : AssetBakerBase
         ".soundcue",
         ".sprite",
         ".spriteanimation",
-        ".spritesheet",
-        ".tileset"
+        ".spritesheet"
     };
 
     public override string[] SupportedInputs =>

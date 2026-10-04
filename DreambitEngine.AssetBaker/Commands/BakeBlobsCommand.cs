@@ -27,9 +27,6 @@ public sealed class BakeBlobsSettings : CommandSettings
     [CommandOption("--runtime-output <DIRECTORY>")]
     [Description("Publish the coherent blob snapshot used by a Debug game build")]
     public string? RuntimeOutputDirectory { get; set; }
-    [CommandOption("--project-root <DIRECTORY>")]
-    [Description("Dreambit project root used to discover .tiled-project files")]
-    public string? ProjectRoot { get; set; }
 
     public override ValidationResult Validate()
     {
@@ -63,8 +60,7 @@ public sealed class BakeBlobsCommand : Command<BakeBlobsSettings>
                     settings.Platform,
                     !settings.NoBuiltIns)
                 {
-                    RuntimeOutputDirectory = settings.RuntimeOutputDirectory,
-                    ProjectRoot = settings.ProjectRoot
+                    RuntimeOutputDirectory = settings.RuntimeOutputDirectory
                 },
                 new ConsoleProgress(),
                 cancellationToken);

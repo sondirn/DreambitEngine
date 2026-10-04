@@ -330,22 +330,6 @@ public sealed class AssetEditingLifecycleTests : IDisposable
         Assert.Equal(hero.Id, fixture.Editing.Selected!.Id);
     }
 
-    [Fact]
-    public void SelectingATiledMapDoesNotTryToOpenItAsAJsonAssetDocument()
-    {
-        var path = Path.Combine(ContentRoot, "maps", "world.tmx");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, "<map version=\"1.10\" tiledversion=\"1.11.0\"/>");
-        using var fixture = CreateFixture();
-        var map = Assert.Single(fixture.Assets.GetSnapshot().Assets);
-
-        Assert.True(fixture.Editing.Select(map));
-
-        Assert.Equal(AssetKind.TiledMap, fixture.Editing.Selected!.Kind);
-        Assert.Null(fixture.Editing.Current);
-        Assert.Empty(fixture.Errors);
-    }
-
     private Fixture CreateFixture()
     {
         var project = new DreambitProjectDefinition(

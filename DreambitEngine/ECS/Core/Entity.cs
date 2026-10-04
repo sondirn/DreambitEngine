@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 
@@ -87,19 +87,10 @@ public class Entity : IDisposable
     public bool IsEditorOnly { get; internal set; }
 
     /// <summary>
-    /// Stable source identity for entities regenerated from a Tiled TMX map.
-    /// </summary>
-    public string TiledSourceKey { get; internal set; }
-
-    public bool IsTiledGenerated => !string.IsNullOrWhiteSpace(TiledSourceKey);
-
-    /// <summary>
     /// Runtime-only gate used while an owning subsystem completes transactional initialization.
     /// It is deliberately not serialized and does not change the entity's authored enabled state.
     /// </summary>
     internal bool UpdatesSuspended { get; set; }
-
-    public bool IsImportedMapGenerated => IsTiledGenerated;
 
     public bool AlwaysUpdate
     {
@@ -616,7 +607,12 @@ public class Entity : IDisposable
     {
         return ComponentRepository.GetComponent<T>();
     }
-    
+
+    public bool TryGetComponent<T>(out T component) where T : Component
+    {
+        component = ComponentRepository.GetComponent<T>();
+        return component is not null;
+    }
 
     public Component GetComponent(Type type)
     {

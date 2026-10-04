@@ -102,6 +102,7 @@ internal sealed class NetworkSession : IDisposable
     public bool IsHost => Role == NetworkRole.Host;
     public bool IsConnected => IsHost || (Role == NetworkRole.Client && LocalPeerId.IsValid);
     public int ReadyPeerCount => _peersById.Values.Count(peer => peer.Phase == NetworkConnectionPhase.Ready);
+    internal IReadOnlyList<NetworkPeerId> GetConnectedPeerIds() => _peersById.Keys.ToArray();
     public NetworkSceneEpoch SceneEpoch { get; private set; }
     public NetworkStructuralRevision StructuralRevision { get; private set; }
     public ulong ServerTick { get; private set; }

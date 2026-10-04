@@ -398,14 +398,14 @@ internal abstract class SceneViewportPanel : EditorPanel
             {
                 var value = _workspace.ScaleSnap;
                 if (EditorGui.CompactFloat(
-                        "Viewport.ScaleSnap", ref value, 70f, 0.01f, 0.01f, 10f))
+                        "Viewport.ScaleSnap", ref value, 90f, 0.01f, EditorViewportUi.MinimumGridStep, 10f, "%.5f"))
                     _workspace.ScaleSnap = value;
             }
             else
             {
                 var value = _workspace.MoveSnap;
                 if (EditorGui.CompactFloat(
-                        "Viewport.MoveSnap", ref value, 70f, 0.1f, 0.01f, 1000f))
+                        "Viewport.MoveSnap", ref value, 90f, 0.1f, EditorViewportUi.MinimumGridStep, 1000f, "%.5f"))
                     _workspace.MoveSnap = value;
             }
         }

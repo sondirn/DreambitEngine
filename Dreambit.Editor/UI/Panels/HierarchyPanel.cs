@@ -68,7 +68,7 @@ internal sealed class HierarchyPanel : EditorPanel
         DrawRootDropTarget(document);
         foreach (var root in scene.GetAllEntities()
                      .Where(entity => entity.Parent is null &&
-                                       (!entity.IsEditorOnly || entity.IsImportedMapGenerated))
+                                       !entity.IsEditorOnly)
                      .ToArray())
             DrawEntity(document, root);
 
@@ -119,9 +119,7 @@ internal sealed class HierarchyPanel : EditorPanel
         var boxedRoot =
             document.IsBlueprintInstanceRoot(entity);
 
-        var displayName = entity.IsTiledGenerated
-            ? $"[Tiled] {entity.Name}"
-            : entity.Name;
+        var displayName = entity.Name;
 
         bool open;
         using (EditorGui.Muted(!entity.LocallyEnabled))
@@ -255,13 +253,7 @@ internal sealed class HierarchyPanel : EditorPanel
         var isInstanceRoot = linked && ReferenceEquals(entity, instanceRoot);
         var isBlueprintRoot = _documentContext.IsBlueprint &&
                               ReferenceEquals(entity, _documentContext.Blueprints.Root);
-        if (entity.IsImportedMapGenerated)
-        {
-            EditorGui.MutedText("Generated from the linked Tiled map");
-            EditorGui.Separator();
-        }
-
-        using (EditorGui.Disabled(linked || entity.IsImportedMapGenerated))
+        using (EditorGui.Disabled(linked))
         {
             if (EditorGui.MenuItem("Create Child"))
                 TryEdit(() => document.CreateEmpty("Entity", entity));
@@ -272,7 +264,7 @@ internal sealed class HierarchyPanel : EditorPanel
                 RequestRename(entity);
         }
         using (EditorGui.Disabled(
-                   isBlueprintRoot || entity.IsImportedMapGenerated || (linked && !isInstanceRoot)))
+                   isBlueprintRoot || (linked && !isInstanceRoot)))
         {
             if (EditorGui.MenuItem("Duplicate", "Ctrl+D"))
                 TryEdit(() => document.Duplicate(entity));
@@ -287,7 +279,7 @@ internal sealed class HierarchyPanel : EditorPanel
 
         EditorGui.Separator();
         using (EditorGui.Disabled(
-                   isBlueprintRoot || entity.IsImportedMapGenerated || (linked && !isInstanceRoot)))
+                   isBlueprintRoot || (linked && !isInstanceRoot)))
         {
             if (EditorGui.MenuItem("Delete", "Delete"))
                 RequestDelete([entity]);
@@ -297,8 +289,6 @@ internal sealed class HierarchyPanel : EditorPanel
     private void DrawDragSource(SceneDocument document, Entity entity)
     {
         if (_documentContext.IsBlueprint && ReferenceEquals(entity, _documentContext.Blueprints.Root))
-            return;
-        if (entity.IsImportedMapGenerated)
             return;
         if (document.TryGetBlueprintInstanceRoot(entity, out var instanceRoot, out _) &&
             !ReferenceEquals(entity, instanceRoot))
@@ -319,8 +309,6 @@ internal sealed class HierarchyPanel : EditorPanel
 
     private unsafe void DrawDropTarget(SceneDocument document, Entity parent)
     {
-        if (parent.IsImportedMapGenerated)
-            return;
         if (document.TryGetBlueprintInstanceRoot(parent, out _, out _))
             return;
         if (!ImGui.BeginDragDropTarget())
@@ -522,18 +510,16 @@ internal sealed class HierarchyPanel : EditorPanel
         var hasLockedBlueprintChild = selected.Any(entity =>
             document.TryGetBlueprintInstanceRoot(entity, out var instanceRoot, out _) &&
             !ReferenceEquals(entity, instanceRoot));
-        var hasGeneratedMapEntity = selected.Any(entity => entity.IsImportedMapGenerated);
         var includesBlueprintRoot = _documentContext.IsBlueprint &&
                                     selected.Any(entity => ReferenceEquals(entity, _documentContext.Blueprints.Root));
-        if (ImGui.IsKeyPressed(ImGuiKey.Delete) && !includesBlueprintRoot && !hasLockedBlueprintChild &&
-            !hasGeneratedMapEntity)
+        if (ImGui.IsKeyPressed(ImGuiKey.Delete) && !includesBlueprintRoot && !hasLockedBlueprintChild)
             RequestDelete(selected);
         if (ImGui.IsKeyPressed(ImGuiKey.F2) && selected.Count == 1 &&
             !document.TryGetBlueprintInstanceRoot(selected[0], out _, out _))
             RequestRename(selected[0]);
         if (ImGui.GetIO().KeyCtrl && ImGui.IsKeyPressed(ImGuiKey.D) && selected.Count == 1 &&
             !includesBlueprintRoot &&
-            !hasLockedBlueprintChild && !hasGeneratedMapEntity)
+            !hasLockedBlueprintChild)
             TryEdit(() => document.Duplicate(selected[0]));
     }
 

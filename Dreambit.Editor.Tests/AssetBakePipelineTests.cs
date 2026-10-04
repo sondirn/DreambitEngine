@@ -297,49 +297,6 @@ public sealed class AssetBakePipelineTests : IDisposable
     }
 
     [Fact]
-    public void RuntimeRegistryIgnoresTiledEditorMetadataButKeepsRuntimeMaps()
-    {
-        var assets = Path.Combine(_root, "TiledAssets");
-        var output = Path.Combine(_root, "TiledContent", "content.pak");
-        var registry = Path.Combine(_root, ".dreambit", "tiled-assets.json");
-        Directory.CreateDirectory(Path.Combine(assets, "maps"));
-        Directory.CreateDirectory(Path.GetDirectoryName(registry)!);
-
-        File.WriteAllText(Path.Combine(assets, "maps", "Rootbound.tiled-project"), "{}");
-        File.WriteAllText(Path.Combine(assets, "maps", "Rootbound.tiled-session"), "{}");
-        File.WriteAllText(
-            Path.Combine(assets, "maps", "Rootbound.tmx"),
-            "<map version=\"1.10\" tiledversion=\"1.11.2\" orientation=\"orthogonal\" " +
-            "renderorder=\"right-down\" width=\"1\" height=\"1\" tilewidth=\"16\" tileheight=\"16\"/>");
-
-        var projectId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var mapId = Guid.NewGuid();
-        File.WriteAllText(
-            registry,
-            $$"""
-              {
-                "schemaVersion": 1,
-                "assets": [
-                  { "id": "{{projectId:D}}", "path": "maps/Rootbound.tiled-project", "kind": "Unknown" },
-                  { "id": "{{sessionId:D}}", "path": "maps/Rootbound.tiled-session", "kind": "Unknown" },
-                  { "id": "{{mapId:D}}", "path": "maps/Rootbound.tmx", "kind": "TiledMap" }
-                ]
-              }
-              """);
-
-        new AssetBakePipeline().BakePak(new AssetBakeRequest(assets, output, registry));
-
-        using var pak = new PakReader(output);
-        using var stream = pak.Open(RuntimeAssetRegistry.LogicalPath);
-        var runtimeRegistry = RuntimeAssetRegistry.Load(stream);
-        Assert.False(runtimeRegistry.TryResolveAssetName(new AssetId(projectId), out _));
-        Assert.False(runtimeRegistry.TryResolveAssetName(new AssetId(sessionId), out _));
-        Assert.True(runtimeRegistry.TryResolveAssetName(new AssetId(mapId), out var mapName));
-        Assert.Equal("maps/Rootbound", mapName);
-    }
-
-    [Fact]
     public void BlobBakeWritesNoPakAndCanBeLoadedByLogicalPath()
     {
         var assets = Path.Combine(_root, "BlobAssets");

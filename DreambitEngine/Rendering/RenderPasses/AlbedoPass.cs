@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -37,7 +37,7 @@ public class AlbedoPass : RenderPass
 
     private void PrepareSceneDrawables()
     {
-        // GPU-backed drawables such as tilemaps use this point to prepare lazy
+        // GPU-backed drawables use this point to prepare lazy
         // resources before either render pass opens its SpriteBatch.
 
         var sceneRenderList = SortDrawablesPass.SceneRenderList;

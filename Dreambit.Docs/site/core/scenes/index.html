@@ -66,6 +66,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#creating-an-editor-authored-scene">Creating an editor-authored scene</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#additive-scene-content">Additive Scene content</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#finding-entities">Finding entities</a>
     </li>
     </ul>
@@ -77,6 +79,8 @@
                   <li class="toctree-l1"><a class="reference internal" href="../coroutines/">Coroutines</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../logging/">Logging and debugging</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../developer-console/">Developer console</a>
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">ECS</span></p>
@@ -284,6 +288,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../assets/resources/">Loading resources</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../assets/registries/">Scene asset registries</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../assets/sprites/">Sprites and sprite sheets</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../assets/animations/">Sprite animation</a>
@@ -304,11 +310,6 @@
                   <li class="toctree-l1"><a class="reference internal" href="../../ai/">Overview</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../ai/fsm/">State machines and blackboards</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Tiled</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../../tiled/">Overview and quick start</a>
                   </li>
               </ul>
               <ul>
@@ -383,9 +384,64 @@ scheduling a local transition:</p>
 <p>The factory constructs <code>GameplayScene</code>, loads the <code>.scene</code> asset immediately while the Scene is still
 in <code>Created</code>, and returns it without running initialization. If materialization fails, it disposes the
 partially constructed Scene before rethrowing the error.</p>
-<p>For a Scene Blueprint linked to Tiled, <code>GameplayScene</code> must derive from <code>TiledScene</code>. Networking uses
-this same factory through <code>NetworkSceneCatalog.RegisterBlueprint&lt;TScene&gt;</code> so every peer constructs the
-same typed host before synchronization starts.</p>
+<p>Networking uses this same factory through <code>NetworkSceneCatalog.RegisterBlueprint&lt;TScene&gt;</code> so every
+peer constructs the same typed Scene before synchronization starts.</p>
+<h2 id="additive-scene-content">Additive Scene content<a class="headerlink" href="#additive-scene-content" title="Permanent link">&para;</a></h2>
+<p>Additive loading materializes one or more Scene Blueprint assets inside the current <code>Scene</code>. It does
+not create additional Scene instances: all loaded content shares the Scene's Entity repository,
+render pipeline, physics world, services, cameras, settings, and network world.</p>
+<pre><code class="language-csharp">var village = Scene.Instance.LoadAdditive(&quot;Scenes/Zones/Village.scene&quot;);
+var tree = Scene.Instance.LoadAdditive(&quot;Scenes/Zones/AncientTree.scene&quot;);
+
+// Only entities owned by village are removed.
+Scene.Instance.Unload(village);
+</code></pre>
+<p>Each call returns a distinct <code>SceneContentInstance</code>, even when the same asset is loaded more than
+once. <code>InstanceId</code> identifies that local runtime lifetime. <code>SourceAssetId</code> and <code>SourceAssetName</code>
+identify its source asset; neither is used as the runtime instance identity.</p>
+<p>Additive materialization always gives authored entities fresh runtime <code>Entity.Id</code> values. Use the
+instance-local source map when code needs to find an authored object:</p>
+<pre><code class="language-csharp">Entity door = village.GetEntity(authoredDoorGuid);
+
+if (Scene.Instance.TryGetContentInstance(door, out var owner))
+{
+    // owner is village
+}
+</code></pre>
+<p>Internal entity and component references are remapped through the same instance-local table. Two
+copies of one Scene Blueprint therefore resolve references only within their own copy. The serialized
+source GUIDs are not modified.</p>
+<p>Runtime entities can opt into the same lifetime:</p>
+<pre><code class="language-csharp">var droppedItem = village.CreateEntity(&quot;dropped-item&quot;);
+
+// Adopt an entity already created in this Scene. Descendants are included by default.
+village.TrackEntity(otherEntity);
+</code></pre>
+<p>Entities created directly through <code>Scene.CreateEntity</code> remain persistent unless they are explicitly
+tracked. Ownership is exact rather than hierarchy-wide: a persistent child parented below an owned
+entity is detached and survives unload unless it was also tracked.</p>
+<p>Dreambit does not rewrite arbitrary runtime component fields when content unloads. A persistent
+component that stores an <code>Entity</code> or <code>Component</code> from unloadable content must release it as part of
+the game's unload flow or treat <code>Entity.IsNull</code> / <code>Component.IsNull</code> as the invalid-reference check.
+Editor serialization rejects persistent fields that point into additive content instead of writing
+a source GUID that would become dangling.</p>
+<p><code>SceneContentLoadOptions.ApplySceneSettings</code> defaults to <code>false</code>, so a zone does not replace global
+lighting, exposure, or other Scene-wide settings. Setting it to <code>true</code> applies the Blueprint settings;
+if loading fails, the previous settings are restored.</p>
+<p>Loading is transactional. A failed Blueprint or component materialization leaves no content
+handle, generated map, renderer, collider, or partial entity hierarchy. Unload invalidates the handle
+immediately, suspends its entities, and completes destruction at the current or next safe ECS
+structural boundary. Calling <code>Unload</code> again returns <code>false</code>.</p>
+<p><code>SceneServiceComponent</code> is deliberately forbidden in all additive content because Scene services
+have whole-Scene lifetime. Ordinary, locally managed <code>Scene.LoadAdditive</code> calls also reject
+<code>NetworkObject</code>, including required or dynamically attached markers. Networked additive content is
+instead loaded through <code>NetworkService.LoadScope</code>; that private trusted path creates a
+network-managed <code>SceneContentInstance</code> and binds authored objects by <code>(scope, source GUID)</code>. Game
+code cannot manually mutate or unload that instance behind the network protocol. See
+<a href="../networking/#additive-content-and-replication-scopes">Network replication scopes</a>.</p>
+<p>Additive ownership is runtime-only. It is not serialized into Scene or Entity Blueprints, and
+additive loading is rejected in editor-hosted Scenes so preview/runtime content cannot be baked back
+into the open document. Existing <code>LoadIntoSelf</code> and <code>CreateFromBlueprint</code> behavior is unchanged.</p>
 <h2 id="finding-entities">Finding entities<a class="headerlink" href="#finding-entities" title="Permanent link">&para;</a></h2>
 <pre><code class="language-csharp">var player = FindEntity(&quot;player&quot;);
 var enemies = GetActiveEntitiesByTag(&quot;enemy&quot;);

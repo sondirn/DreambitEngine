@@ -70,6 +70,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/developer-console/">Developer console</a>
+                  </li>
               </ul>
               <p class="caption"><span class="caption-text">ECS</span></p>
               <ul>
@@ -278,6 +280,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="resources/">Loading resources</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="registries/">Scene asset registries</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="sprites/">Sprites and sprite sheets</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="animations/">Sprite animation</a>
@@ -298,11 +302,6 @@
                   <li class="toctree-l1"><a class="reference internal" href="../ai/">Overview</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Tiled</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../tiled/">Overview and quick start</a>
                   </li>
               </ul>
               <ul>
@@ -342,12 +341,12 @@
               
                 <h1 id="assets-and-content">Assets and content<a class="headerlink" href="#assets-and-content" title="Permanent link">&para;</a></h1>
 <p>Dreambit identifies runtime content by logical paths relative to the application's
-<code>Content</code> root. Source textures, audio, JSON, and Tiled files are normally baked
+<code>Content</code> root. Source textures, audio, and JSON files are normally baked
 into <code>content.pak</code>; UI XML and fonts can be copied as loose files.</p>
 <p><code>Resources.LoadAsset&lt;T&gt;</code> selects a Dreambit loader for known types, caches the
 result, and falls back to MonoGame's <code>ContentManager</code> for other types.</p>
 <p>The main asset types are textures, sprites, sprite sheets, animations, entity
-blueprints, sound cues, particle configurations, Tiled maps/tilesets, songs, and
+blueprints, sound cues, particle configurations, songs, and
 sound effects.</p>
 <p>Start with <a href="content-pipeline/">Content projects and Asset Baker</a>, then
 <a href="resources/">Loading resources</a>.</p>

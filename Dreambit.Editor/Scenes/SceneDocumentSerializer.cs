@@ -89,7 +89,6 @@ internal static class SceneDocumentSerializer
         {
             Name = sceneName,
             Entities = roots,
-            Tiled = source.Tiled,
             Settings = source.Settings?.Clone() ?? new SceneSettings()
         };
     }

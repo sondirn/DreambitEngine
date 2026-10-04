@@ -3,7 +3,6 @@ using Dreambit.Editor.Logging;
 using Dreambit.Editor.Persistence;
 using Dreambit.Editor.Scenes;
 using Dreambit.EditorApi;
-using Dreambit.Tiled;
 using XnaVec3 = Microsoft.Xna.Framework.Vector3;
 
 namespace Dreambit.Editor.Commands;
@@ -73,30 +72,6 @@ internal sealed class EditorDocumentCommands
         catch (Exception exception)
         {
             return LogFailure("Scene", "Could not create the scene.", exception);
-        }
-    }
-
-    public EditorCommandResult CreateSceneFromTiled(
-        AssetRecord asset,
-        TiledImportOptions importOptions)
-    {
-        try
-        {
-            if (!_assetEditing.Clear())
-            {
-                return EditorCommandResult.Failure(
-                    "Could not create the Tiled scene because the current asset could not be saved.");
-            }
-
-            _scenes.NewFromTiled(asset, importOptions);
-            _documents.ActivateScene();
-            return EditorCommandResult.Success();
-        }
-        catch (Exception exception)
-        {
-            var message = $"Could not create a Tiled scene from '{asset.RelativePath}'.";
-            _logs.Error("Tiled", message, exception);
-            return EditorCommandResult.Failure($"{message} {exception.Message}");
         }
     }
 

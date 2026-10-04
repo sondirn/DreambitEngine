@@ -1,17 +1,21 @@
-﻿namespace Dreambit.Scripting;
+using System;
 
-public class WaitScript(float duration) : ScriptAction
+namespace Dreambit.Scripting;
+
+public sealed class WaitScript : ScriptAction
 {
-    private readonly Logger<WaitScript> _logger = new();
-    private float _elapsedTime;
-
+    private readonly float _duration;
+    private readonly bool _unscaled;
+    private float _elapsed;
+    public WaitScript(float duration, bool unscaled = true)
+    {
+        if (!float.IsFinite(duration) || duration < 0) throw new ArgumentOutOfRangeException(nameof(duration));
+        _duration = duration;
+        _unscaled = unscaled;
+    }
     public override void OnUpdate()
     {
-        _elapsedTime += Time.DeltaTime;
-
-        if (!(_elapsedTime >= duration)) return;
-
-        IsComplete = true;
-        _logger.Debug("Wait Complete");
+        _elapsed += _unscaled ? Time.UnscaledDeltaTime : Time.DeltaTime;
+        IsComplete = _elapsed >= _duration;
     }
 }

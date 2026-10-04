@@ -1,6 +1,5 @@
 using Dreambit.ECS;
 using Dreambit.Editor.Scenes;
-using Dreambit.Tiled;
 
 namespace Dreambit.Editor.Tests;
 
@@ -164,116 +163,11 @@ public sealed class SceneDocumentCharacterizationTests : IDisposable
         Assert.Same(document.Scene.FindEntity(instanceId), selection.GetActive(document.Scene));
     }
 
-    [Fact]
-    public void TiledReimportPreservesSelectionForGeneratedEntitiesBySourceIdentity()
-    {
-        var contentRoot = Path.Combine(_root, "Assets");
-        var mapsDirectory = Path.Combine(contentRoot, "maps");
-        Directory.CreateDirectory(mapsDirectory);
-        var mapPath = Path.Combine(mapsDirectory, "world.tmx");
-        WriteTiledMap(mapPath, "Ground");
-
-        TmxMap ResolveMap(TiledSceneReference _) =>
-            TmxMap.FromContentFile(mapPath, "maps/world", contentRoot);
-
-        var selection = new SelectionService();
-        using var document = new SceneDocument(
-            new SceneBlueprint
-            {
-                Name = "Imported Selection",
-                Tiled = new TiledSceneReference { AssetName = "maps/world" }
-            },
-            null,
-            selection,
-            tiledMapResolver: ResolveMap);
-        var selected = Assert.Single(
-            document.Scene!.GetAllEntities()
-                .SelectMany(entity => entity.GetAllComponents())
-                .OfType<FilledRectDrawer>()).Entity;
-        var sourceKey = selected.TiledSourceKey;
-        selection.Set(selected);
-
-        WriteTiledMap(mapPath, "Ground Updated");
-        document.ReimportTiled();
-
-        var restored = selection.GetActive(document.Scene);
-        Assert.NotNull(restored);
-        Assert.True(restored.IsTiledGenerated);
-        Assert.Equal(sourceKey, restored.TiledSourceKey);
-        Assert.NotEqual(selected.Id, restored.Id);
-    }
-
-    [Fact]
-    public void FailedTiledImportOptionUpdateLeavesTheWorkingDocumentUntouched()
-    {
-        var contentRoot = Path.Combine(_root, "Assets");
-        var mapsDirectory = Path.Combine(contentRoot, "maps");
-        Directory.CreateDirectory(mapsDirectory);
-        var mapPath = Path.Combine(mapsDirectory, "world.tmx");
-        WriteTiledMap(mapPath, "Ground");
-
-        TmxMap ResolveMap(TiledSceneReference reference)
-        {
-            if (reference.ImportOptions.PixelsPerUnit == 2f)
-                throw new InvalidOperationException("The updated Tiled options cannot be materialized.");
-            return TmxMap.FromContentFile(mapPath, "maps/world", contentRoot);
-        }
-
-        var selection = new SelectionService();
-        using var document = new SceneDocument(
-            new SceneBlueprint
-            {
-                Name = "Tiled Option Failure",
-                Tiled = new TiledSceneReference
-                {
-                    AssetName = "maps/world",
-                    ImportOptions = new TiledImportOptions { PixelsPerUnit = 1f }
-                }
-            },
-            null,
-            selection,
-            tiledMapResolver: ResolveMap);
-        var selected = Assert.Single(
-            document.Scene!.GetAllEntities()
-                .SelectMany(entity => entity.GetAllComponents())
-                .OfType<FilledRectDrawer>()).Entity;
-        selection.Set(selected);
-        var workingScene = document.Scene;
-        var generation = document.SceneGeneration;
-        var changed = 0;
-        document.Changed += _ => changed++;
-
-        Assert.Throws<InvalidOperationException>(() => document.UpdateTiledImportOptions(
-            "Change Tiled Pixels Per Unit",
-            options => options.PixelsPerUnit = 2f));
-
-        Assert.Same(workingScene, document.Scene);
-        Assert.Equal(generation, document.SceneGeneration);
-        Assert.Equal(1f, document.TiledReference!.ImportOptions.PixelsPerUnit);
-        Assert.Equal(selected.Id, Assert.Single(selection.EntityIds));
-        Assert.Same(selected, selection.GetActive(document.Scene));
-        Assert.False(document.Undo.CanUndo);
-        Assert.False(document.IsDirty);
-        Assert.Equal(0, changed);
-    }
-
     private static SceneDocument CreateDocument(EntityBlueprint entity) =>
         new(
             new SceneBlueprint { Name = "Characterization", Entities = [entity] },
             null,
             new SelectionService());
-
-    private static void WriteTiledMap(string path, string layerName)
-    {
-        File.WriteAllText(path, $$"""
-        <?xml version="1.0" encoding="UTF-8"?>
-        <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="1" height="1" tilewidth="16" tileheight="16" infinite="0" backgroundcolor="#123456">
-          <layer id="2" name="{{layerName}}" width="1" height="1">
-            <data encoding="csv">0</data>
-          </layer>
-        </map>
-        """);
-    }
 
     public void Dispose()
     {

@@ -1,4 +1,4 @@
-﻿using Dreambit.ECS;
+using Dreambit.ECS;
 using Microsoft.Xna.Framework;
 
 namespace Dreambit.Editor.UI.Viewport;
@@ -19,7 +19,7 @@ internal sealed class EditorPickProxyBuffer
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        if (!entity.Enabled || entity.IsImportedMapGenerated)
+        if (!entity.Enabled)
             return;
 
         if (!screenCenter.IsFinite() ||
@@ -51,7 +51,7 @@ internal sealed class EditorPickProxyBuffer
             
             var entity = scene.FindEntity(proxy.EntityId);
 
-            if (entity is null || !entity.Enabled || entity.IsImportedMapGenerated)
+            if (entity is null || !entity.Enabled)
                 continue;
 
             return entity;

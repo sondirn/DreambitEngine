@@ -70,6 +70,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../core/logging/">Logging and debugging</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/developer-console/">Developer console</a>
+                  </li>
               </ul>
               <p class="caption"><span class="caption-text">ECS</span></p>
               <ul>
@@ -278,6 +280,8 @@
     <ul class="current">
     </ul>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../registries/">Scene asset registries</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../sprites/">Sprites and sprite sheets</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../animations/">Sprite animation</a>
@@ -298,11 +302,6 @@
                   <li class="toctree-l1"><a class="reference internal" href="../../ai/">Overview</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../../ai/fsm/">State machines and blackboards</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Tiled</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../../tiled/">Overview and quick start</a>
                   </li>
               </ul>
               <ul>
@@ -347,14 +346,17 @@ var sprite = Resources.LoadAsset&lt;Sprite&gt;(&quot;Sprites/ship-icon.sprite&qu
 var sheet = Resources.LoadAsset&lt;SpriteSheet&gt;(&quot;SpriteSheets/player.spritesheet&quot;);
 var cue = Resources.LoadAsset&lt;SoundCue&gt;(&quot;Audio/laser-cue.soundcue&quot;);
 </code></pre>
-<p>The first successful load is cached in MonoGame's content cache; subsequent
-loads by the same path return the cached object. A failed load is logged and
+<p>The first successful load is cached in Dreambit's <code>DreambitContentCollection</code>;
+subsequent loads by the same concrete type and logical path return the cached object. A failed load is logged and
 <code>LoadAsset&lt;T&gt;</code> returns null, so validate essential assets during scene setup.</p>
 <pre><code class="language-csharp">var sprite = Resources.LoadAsset&lt;Sprite&gt;(path)
     ?? throw new InvalidOperationException($&quot;Missing sprite: {path}&quot;);
 </code></pre>
-<p><code>Resources.UnloadAsset(path)</code> removes a specific item through the content
-manager. Do not unload a shared asset while components still reference it.</p>
+<p><code>Resources.UnloadAsset(path)</code> removes cached entries for the path and releases
+Dreambit-owned resources. Do not unload a shared asset while components still reference it.</p>
+<p>For resident definitions and startup preloads, use a
+<a href="../registries/">scene asset registry</a>. <code>Resources.FindAssets&lt;TAsset&gt;()</code> discovers
+authored assets by type from catalog metadata without loading them.</p>
 <p>Fonts use <code>Resources.LoadSpriteFont(path, size)</code> and are cached per path+size.
 <code>DreambitAsset.AssetName</code> is the logical identity used for registration and
 references. Serialized Dreambit assets include their semantic extension in that identity; raw
@@ -366,7 +368,7 @@ at the paths expected by each loader.</p>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../content-pipeline/" class="btn btn-neutral float-left" title="Content projects and Asset Baker"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../sprites/" class="btn btn-neutral float-right" title="Sprites and sprite sheets">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../registries/" class="btn btn-neutral float-right" title="Scene asset registries">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -392,7 +394,7 @@ at the paths expected by each loader.</p>
       <span><a href="../content-pipeline/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../sprites/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../registries/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

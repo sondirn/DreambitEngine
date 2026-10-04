@@ -70,6 +70,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/developer-console/">Developer console</a>
+                  </li>
               </ul>
               <p class="caption"><span class="caption-text">ECS</span></p>
               <ul>
@@ -270,6 +272,10 @@
     <li class="toctree-l2"><a class="reference internal" href="#connection-handshake">Connection handshake</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#synchronized-scene-loading">Synchronized Scene loading</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#additive-content-and-replication-scopes">Additive content and replication scopes</a>
+    </li>
+        </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#editor-authored-scene-blueprints">Editor-authored Scene Blueprints</a>
         <ul>
@@ -290,8 +296,6 @@
     <li class="toctree-l3"><a class="reference internal" href="#reusing-a-runtime-scene-type">Reusing a runtime Scene type</a>
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#changing-between-editor-authored-scenes">Changing between editor-authored Scenes</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#tiled-references-inside-a-scene-blueprint">Tiled references inside a Scene Blueprint</a>
     </li>
         </ul>
     </li>
@@ -414,6 +418,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/resources/">Loading resources</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/registries/">Scene asset registries</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/sprites/">Sprites and sprite sheets</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/animations/">Sprite animation</a>
@@ -434,11 +440,6 @@
                   <li class="toctree-l1"><a class="reference internal" href="../ai/">Overview</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Tiled</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../tiled/">Overview and quick start</a>
                   </li>
               </ul>
               <ul>
@@ -486,7 +487,7 @@ responsible for rules such as movement, interaction, combat, inventory, validati
 <a href="../assets/resources/">Scene/asset loading</a>, and <a href="../assets/blueprints/">Entity Blueprint assets</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Implementation status</p>
-<p>This page describes the current public networking APIs and protocol version 3. Direct IP is the
+<p>This page describes the current public networking APIs and protocol version 4. Direct IP is the
 available transport today; Steam P2P and other transports remain future integrations behind the
 same transport boundary.</p>
 </div>
@@ -546,6 +547,10 @@ over Direct IP, Steam P2P, or another future transport.</p>
 <tr>
 <td><code>NetworkSceneEpoch</code></td>
 <td>Identifies the synchronized Scene generation in which network entities exist.</td>
+</tr>
+<tr>
+<td><code>NetworkReplicationScopeId</code></td>
+<td>Identifies one server-managed additive replication lifetime within the Scene epoch.</td>
 </tr>
 <tr>
 <td><code>NetworkStructuralRevision</code></td>
@@ -869,13 +874,117 @@ network.Scenes.Register(
 <p>The server sends the key and a new <code>NetworkSceneEpoch</code>. Every client uses its own local factory to
 construct the corresponding Scene.</p>
 <p>This makes Scene construction local while keeping Scene <strong>choice and timing</strong> authoritative.</p>
+<h3 id="additive-content-and-replication-scopes">Additive content and replication scopes<a class="headerlink" href="#additive-content-and-replication-scopes" title="Permanent link">&para;</a></h3>
+<p>Dreambit can replicate independently loaded <code>SceneBlueprint</code> content without creating another full
+<code>Scene</code>. The process still owns one <code>Scene</code>, one Entity repository, one render/physics world, one
+service collection, and one <code>NetworkWorld</code>.</p>
+<p>The base synchronized Scene is always represented by <code>NetworkReplicationScopeId.Global</code>. Existing
+authored <code>NetworkObject</code>s and calls to <code>NetworkService.Spawn</code> use Global by default, so games that do
+not use additive scopes keep their previous behavior.</p>
+<p>The server loads a reusable scope and explicitly chooses which peers receive it:</p>
+<pre><code class="language-csharp">var village = network.LoadScope(&quot;Scenes/Village.scene&quot;);
+var tree = network.LoadScope(&quot;Scenes/AncientTree.scene&quot;);
+
+network.Subscribe(peerA, village);
+network.Subscribe(peerB, village);
+</code></pre>
+<p><code>Subscribe</code> runs a reliable protocol transaction:</p>
+<pre><code class="language-text">ScopeLoad -&gt; ScopeLoaded -&gt; scoped baseline -&gt; ScopeReady
+</code></pre>
+<p>The client materializes the source into a network-managed <code>SceneContentInstance</code>, keeps its entities
+suspended while the authored bindings, dynamic spawns, ownership, player mappings, and initial
+component state are applied, and only then acknowledges readiness. Live scoped snapshots are sent
+only to ready subscribers. A peer that subscribes later receives the current scoped baseline,
+including dynamic scoped entities.</p>
+<p>Reliable structural changes that occur after baseline capture are ordered behind that baseline and
+reach the client only after its local scope has committed. This closes the acknowledgement window
+without exposing a partially initialized scope. Unreliable snapshots remain disabled until the
+server has received <code>ScopeReady</code>.</p>
+<p><code>TryGetScope</code> can observe the local materialization while the handshake is in progress;
+<code>NetworkReplicationScope.IsReady</code> becomes true only after its initial baseline commits. A peer may
+unsubscribe and later subscribe to the same still-loaded server scope. That creates a fresh local
+<code>SceneContentInstance</code> while retaining the existing network scope and Entity identities.</p>
+<p>Spawn a dynamic entity into a scope through the normal API:</p>
+<pre><code class="language-csharp">var npc = network.Spawn(
+    npcBlueprint,
+    new NetworkSpawnOptions { Scope = village });
+</code></pre>
+<p>For a transition, subscribe to the destination first and wait for <code>PeerScopeReady</code> before removing
+the old content:</p>
+<pre><code class="language-csharp">network.Subscribe(peerA, tree);
+
+// In the PeerScopeReady handler, after confirming tree:
+network.Unsubscribe(peerA, village);
+</code></pre>
+<p><code>Unsubscribe</code> immediately stops new scoped traffic for that peer, clears any player mapping that
+would reference an entity becoming invisible, and completes a reliable
+<code>ScopeUnload -&gt; ScopeUnloaded</code> transaction. Server scope lifetime is a separate decision:</p>
+<pre><code class="language-csharp">network.UnloadScope(village);
+</code></pre>
+<p><code>UnloadScope</code> rejects the request while any peer subscription remains. This explicit invariant
+keeps game policy—grace periods, population rules, and zone persistence—outside the engine.</p>
+<p>On a listen host, the local peer uses the authoritative Scene and its already-loaded server scope
+content. Subscribing the host-local peer updates readiness/interest state; it does not materialize a
+second client-side <code>SceneContentInstance</code>. Remote clients still load their own local content through
+the normal scope handshake.</p>
+<div class="admonition warning">
+<p class="admonition-title">Replication scopes share one simulation space</p>
+<p>A replication scope controls network visibility and remote-client additive content lifetime. It
+is not a separate ECS, physics world, render world, or spatial-query space. Every simultaneously
+loaded server scope occupies the same authoritative Scene coordinate system; on a listen host,
+all server-loaded scope content also belongs to the same renderable Scene.</p>
+<p>Independently authored areas at overlapping coordinates can therefore collide, appear in the
+same server-side queries, or interact through ordinary gameplay systems. Games such as
+Rootbound should initially place concurrently loaded areas in distinct world-space regions—for
+example, one near <code>(0, 0)</code>, another near <code>(100000, 0)</code>, and another near <code>(200000, 0)</code>. The exact
+placement policy belongs to the game.</p>
+</div>
+<p>The relevant identities have deliberately different meanings:</p>
+<table>
+<thead>
+<tr>
+<th>Identity</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SceneContentInstance.InstanceId</code></td>
+<td>Process-local content lifetime; different on server and clients.</td>
+</tr>
+<tr>
+<td><code>NetworkReplicationScopeId</code></td>
+<td>Server-assigned, session-visible content identity within one Scene epoch.</td>
+</tr>
+<tr>
+<td><code>NetworkEntityId</code></td>
+<td>Runtime network identity for one registered entity.</td>
+</tr>
+<tr>
+<td><code>NetworkPeerId</code></td>
+<td>Session identity for one peer.</td>
+</tr>
+</tbody>
+</table>
+<p>Authored additive identity is the pair <code>(NetworkReplicationScopeId, source entity GUID)</code>. This lets
+the same Scene Blueprint load more than once without cross-linking or ID collisions. Scope IDs are
+not reused within an epoch; the allocator resets only for a new synchronized Scene epoch.</p>
+<p>Every peer has its own projected structural revision. An entity change in Village advances only the
+projected streams of peers that know Village, while a later Global change advances every applicable
+peer's next local revision. Unsubscribed peers therefore never observe revision gaps.
+Scoped baselines also carry the server's current state-sequence watermark, so delayed unreliable
+snapshots from an earlier subscription cannot overwrite the newly committed baseline.</p>
+<p>Network-managed content cannot be manually unloaded or mutated through <code>SceneContentInstance</code>.
+Use <code>Subscribe</code>, <code>Unsubscribe</code>, and <code>UnloadScope</code> so the protocol and local ownership state remain
+consistent. Ordinary <code>Scene.LoadAdditive</code> remains a local-only API and still rejects
+<code>NetworkObject</code>; the permission to materialize scoped network objects is private to the active
+network session.</p>
 <h2 id="editor-authored-scene-blueprints">Editor-authored Scene Blueprints<a class="headerlink" href="#editor-authored-scene-blueprints" title="Permanent link">&para;</a></h2>
 <p>Dreambit's networking model works directly with Scenes constructed in Dreambit.Editor.</p>
 <p>A <code>SceneBlueprint</code> is a <code>.scene</code> Dreambit asset containing:</p>
 <ul>
 <li>Scene name.</li>
 <li>serialized Entity Blueprints.</li>
-<li>optional Tiled reference.</li>
 <li>Scene settings.</li>
 </ul>
 <p>The recommended runtime architecture is:</p>
@@ -944,8 +1053,7 @@ network.ChangeScene(&quot;village&quot;);
 registration and loads its own copy of <code>Scenes/village</code>.</p>
 <h3 id="why-scene-blueprints-are-loaded-eagerly">Why Scene Blueprints are loaded eagerly<a class="headerlink" href="#why-scene-blueprints-are-loaded-eagerly" title="Permanent link">&para;</a></h3>
 <p><code>RegisterBlueprint&lt;TScene&gt;</code> creates the requested runtime Scene type and materializes the Scene
-Blueprint before returning it to networking. This is important for source-specific hosts such as
-<code>TiledScene</code>, which must receive their linked-source configuration while still in <code>Scene.Created</code>.</p>
+Blueprint before returning it to networking, while the Scene is still in <code>Scene.Created</code>.</p>
 <p>The synchronized load order is:</p>
 <pre><code class="language-text">catalog factory
     ↓
@@ -967,15 +1075,14 @@ OnBegin() only when the gate succeeds
     ↓
 Scene.Running
 </code></pre>
-<p>Ordinary authored entities therefore exist before the Scene is assigned. A <code>TiledScene</code> imports its
-configured map during <code>OnInitialize</code>. Both paths complete before the network startup gate scans for
-authored <code>NetworkObject</code> Components.</p>
+<p>Authored entities therefore exist before the Scene is assigned. Initialization completes before the
+network startup gate scans for authored <code>NetworkObject</code> Components.</p>
 <p>On the server:</p>
 <pre><code class="language-text">RegisterBlueprint&lt;TScene&gt; factory
     ↓
 all authored NetworkObjects materialize
     ↓
-OnInitialize (including Tiled import when applicable)
+OnInitialize
     ↓
 Services activate
     ↓
@@ -990,7 +1097,7 @@ OnBegin
     ↓
 all local authored NetworkObjects materialize
     ↓
-OnInitialize (including Tiled import when applicable)
+OnInitialize
     ↓
 network startup gate
     ↓
@@ -1025,9 +1132,7 @@ gate needs that authored identity to remain stable.</p>
 <pre><code class="language-csharp">SceneBlueprintLoadOptions.Runtime
 </code></pre>
 <p>The runtime load path performs this order:</p>
-<pre><code class="language-text">optional Tiled materialization
-        ↓
-Scene settings
+<pre><code class="language-text">Scene settings
         ↓
 materialize boxed Entity Blueprint instances
         ↓
@@ -1166,32 +1271,6 @@ There is no Blueprint-backed wrapper class and no inheritance collision with spe
 </code></pre>
 <p>Every synchronized transition receives a new <code>NetworkSceneEpoch</code>, so delayed traffic from the old
 Scene cannot be mistaken for state in the new Scene.</p>
-<h3 id="tiled-references-inside-a-scene-blueprint">Tiled references inside a Scene Blueprint<a class="headerlink" href="#tiled-references-inside-a-scene-blueprint" title="Permanent link">&para;</a></h3>
-<p>Register a Tiled-linked Scene Blueprint with a <code>TiledScene</code> subclass:</p>
-<pre><code class="language-csharp">public sealed class VillageScene : TiledScene
-{
-    public VillageScene() : base()
-    {
-    }
-
-    protected override void OnTiledMapLoaded(TiledMapInstance map)
-    {
-    }
-}
-
-network.Scenes.RegisterBlueprint&lt;VillageScene&gt;(
-    &quot;village&quot;,
-    &quot;Scenes/village&quot;);
-</code></pre>
-<p>The blueprint link is configured eagerly while the Scene is in <code>Created</code>; the map is imported during
-<code>TiledScene.OnInitialize</code>. After initialization completes, networking scans the resulting live Scene
-for <code>NetworkObject</code> Components.</p>
-<p>Networking does not have a separate Tiled network protocol. The synchronized unit remains the
-resulting Dreambit <code>Scene</code>.</p>
-<p>For ordinary editor-authored network gameplay entities, prefer Dreambit Scene entities or linked
-Entity Blueprint instances whose serialized identity is under Dreambit's control. If imported map
-generation is used to create network roots, those generated entities must also have stable,
-matching source identity on every peer.</p>
 <h2 id="authored-entities-and-dynamic-entities">Authored entities and dynamic entities<a class="headerlink" href="#authored-entities-and-dynamic-entities" title="Permanent link">&para;</a></h2>
 <p>Dreambit supports two different creation models.</p>
 <h3 id="authored-network-entities">Authored network entities<a class="headerlink" href="#authored-network-entities" title="Permanent link">&para;</a></h3>
@@ -2378,7 +2457,7 @@ installed across <code>Stop()</code> and restart; applying a module again attemp
 <ul>
 <li>interpolation using buffered snapshots;</li>
 <li>optional client prediction/reconciliation for responsive movement;</li>
-<li>relevancy/interest management for large worlds;</li>
+<li>automatic spatial/distance policies for choosing replication-scope subscriptions;</li>
 <li>snapshot batching and/or dirty-state/delta optimization when profiling demonstrates the need;</li>
 <li>additional transports such as Steam P2P;</li>
 <li>matchmaking/lobbies/session discovery;</li>

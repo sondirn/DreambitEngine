@@ -267,7 +267,6 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldPosition = state.WorldPosition + new Vector3(delta, 0f);
-            document.RecordGeneratedPosition(entity);
         }
     }
 
@@ -282,7 +281,6 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldRotation2D = state.WorldRotation + angle;
-            document.RecordGeneratedRotation(entity);
         }
     }
 
@@ -297,7 +295,6 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldScale = state.WorldScale * factor;
-            document.RecordGeneratedScale(entity);
         }
     }
 
@@ -317,7 +314,7 @@ internal sealed class EditorTransformGizmo : IDisposable
                     var delta = world - drag.StartWorld;
                     if (_workspace.SnapEnabled)
                     {
-                        var snap = NormalizePositive(_workspace.MoveSnap, 0.001f);
+                        var snap = NormalizePositive(_workspace.MoveSnap, EditorViewportUi.MinimumGridStep);
                         delta.X = MathF.Round(delta.X / snap) * snap;
                         delta.Y = MathF.Round(delta.Y / snap) * snap;
                     }
@@ -342,7 +339,7 @@ internal sealed class EditorTransformGizmo : IDisposable
                     var factor = XnaVector2.Distance(world, drag.Pivot) / drag.StartDistance;
                     if (_workspace.SnapEnabled)
                     {
-                        var snap = NormalizePositive(_workspace.ScaleSnap, 0.001f);
+                        var snap = NormalizePositive(_workspace.ScaleSnap, EditorViewportUi.MinimumGridStep);
                         factor = MathF.Round(factor / snap) * snap;
                     }
                     ApplyScale(document, scene, drag.Entities, MathF.Max(0.001f, factor));

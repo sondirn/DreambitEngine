@@ -74,7 +74,7 @@ public sealed class RuntimeAssetCatalogTests : IDisposable
         File.WriteAllText(Path.Combine(source, "sword.asset"),
             """{"$dreambitType":"game.weapon.former","Damage":42}""");
         File.WriteAllText(Path.Combine(source, "gone.asset"), """{"$dreambitType":"game.weapon"}""");
-        File.WriteAllText(Path.Combine(source, "project.tiled-project"), "{}");
+        File.WriteAllText(Path.Combine(source, "project.metadata"), "{}");
         File.WriteAllText(Path.Combine(source, "unknown.extension"), "source only");
         File.WriteAllText(Path.Combine(source, "styles.ucss"), "Text { width: 10px; }");
         using var database = new AssetDatabase(_root, source, enableWatcher: false);

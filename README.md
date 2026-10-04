@@ -6,7 +6,7 @@
 
 Build games with a scene-driven core, entity-component composition, lit 2D
 rendering, polygon physics, XML user interfaces, baked content, particles,
-audio, AI, coroutines, and Tiled worlds.
+audio, AI, and coroutines.
 
 [Read the documentation](Dreambit.Docs/docs/index.md) ·
 [Build your first game](Dreambit.Docs/docs/getting-started/first-game.md) ·
@@ -24,8 +24,8 @@ into scenes, entities, and small reusable components. Engine content stays
 source-controlled alongside the game. Development runs from incremental baked blobs, and
 **Build > Bake Pak** creates a single runtime package when the game is ready to ship.
 
-The repository includes the engine, content pipeline, Asset Baker, Tiled
-integration, runnable examples, and a complete MkDocs learning guide.
+The repository includes the engine, content pipeline, Asset Baker, Dreambit
+Editor, runnable examples, and a complete MkDocs learning guide.
 
 ## Engine systems
 
@@ -36,7 +36,7 @@ integration, runnable examples, and a complete MkDocs learning guide.
 | **Physics** | Polygon colliders, triggers, spatial hashing, and point, ray, circle, polygon, and collider queries |
 | **User interface** | XML layouts, responsive panels, controls, focus/navigation, popups, reusable components, and composable brushes |
 | **Input** | Keyboard, mouse, controller, UI capture, named actions, maps, chords, and composite bindings |
-| **Assets** | Textures, sprites, sprite sheets, animations, audio, typed blueprints, fonts, TMX/TSX data, and pak files |
+| **Assets** | Textures, sprites, sprite sheets, animations, audio, typed blueprints, fonts, and pak files |
 | **Gameplay tools** | Coroutines, finite state machines, blackboards, A* pathfinding, cutscene scripting, logging, and debug drawing |
 
 ## A first scene
@@ -117,26 +117,6 @@ public sealed class GameScene : Scene<GameScene>
 The equivalent explicit form is
 `LoadIntoSelf(Resources.LoadAsset<SceneBlueprint>("scenes/first-level.scene"));`.
 
-If the Editor scene was created from a Tiled map, its runtime class must derive
-from `TiledScene` and use the blueprint-linked constructor mode:
-
-```csharp
-public sealed class WorldScene : TiledScene
-{
-    public WorldScene() : base() { }
-
-    protected override void OnTiledMapLoaded(TiledMapInstance map)
-    {
-        var ground = map.GetRuntimeTileLayer("Ground");
-    }
-}
-
-Scene.SetNextScene<WorldScene>("scenes/first-level.scene");
-```
-
-The non-generic scene-asset overload rejects Tiled-linked scenes because an
-ordinary `Scene` has no Tiled map owner.
-
 ## UI without hard-coded screens
 
 Dreambit layouts are readable XML files that can be edited without rebuilding
@@ -211,7 +191,6 @@ Useful starting points:
 - [User interface](Dreambit.Docs/docs/ui/index.md)
 - [Physics](Dreambit.Docs/docs/physics/index.md)
 - [Assets and content](Dreambit.Docs/docs/assets/index.md)
-- [Tiled integration](Dreambit.Docs/docs/tiled/index.md)
 
 ## Repository map
 
@@ -222,7 +201,6 @@ Dreambit.Content/            Shared engine effects and fonts
 Dreambit.Examples/           Runnable UI, Pong, space game, and particle examples
 Dreambit.Examples.Content/   Example source assets, including UI layouts
 Dreambit.Docs/               MkDocs documentation project
-DreambitEngine/Tiled/        Native TMX/TSX loading, import, and scene integration
 ```
 
 ## Project status

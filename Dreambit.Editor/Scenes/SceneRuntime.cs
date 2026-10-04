@@ -1,5 +1,4 @@
 using Dreambit.ECS;
-using Dreambit.Tiled;
 
 namespace Dreambit.Editor.Scenes;
 
@@ -10,18 +9,15 @@ internal sealed class SceneRuntime : IDisposable
 {
     private readonly Action<string, Exception?>? _reportError;
     private readonly Func<BlueprintInstanceReference, EntityBlueprint>? _blueprintInstanceResolver;
-    private readonly Func<TiledSceneReference, TmxMap>? _tiledMapResolver;
     private readonly Func<EditorScene>? _sceneFactory;
 
     public SceneRuntime(
         Action<string, Exception?>? reportError = null,
         Func<BlueprintInstanceReference, EntityBlueprint>? blueprintInstanceResolver = null,
-        Func<TiledSceneReference, TmxMap>? tiledMapResolver = null,
         Func<EditorScene>? sceneFactory = null)
     {
         _reportError = reportError;
         _blueprintInstanceResolver = blueprintInstanceResolver;
-        _tiledMapResolver = tiledMapResolver;
         _sceneFactory = sceneFactory;
 
         EditorLoadOptions = CreateEditorLoadOptions();
@@ -36,8 +32,7 @@ internal sealed class SceneRuntime : IDisposable
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var scene = (_sceneFactory?.Invoke() ??
-                     (source.Tiled is null ? new EditorScene() : new TiledEditorScene()))
+        var scene = (_sceneFactory?.Invoke() ?? new EditorScene())
                     ?? throw new InvalidOperationException(
                         "The editor scene factory returned null.");
 
@@ -88,8 +83,6 @@ internal sealed class SceneRuntime : IDisposable
         PreserveEntityIds = true,
         TolerateComponentLoadErrors = true,
         BlueprintInstanceResolver = _blueprintInstanceResolver,
-        TiledMapResolver = _tiledMapResolver,
-        MarkImportedTiledEntitiesEditorOnly = true,
         ApplySceneSettings = applySceneSettings
     };
 

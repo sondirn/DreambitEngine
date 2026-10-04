@@ -74,6 +74,10 @@ public sealed class NetworkService : IDisposable
     /// </summary>
     public NetworkPeerId LocalPeerId => _session?.LocalPeerId ?? NetworkPeerId.None;
 
+    /// <summary>Server snapshot of peers with accepted handshakes, including the listen host and peers
+    /// still loading their Scene. Empty on clients or while offline. Scope readiness is checked separately.</summary>
+    public IReadOnlyList<NetworkPeerId> ConnectedPeerIds => IsServer ? _session!.GetConnectedPeerIds() : [];
+
     /// <summary>
     /// Gets the active synchronized-scene generation, or <see cref="NetworkSceneEpoch.None"/> while
     /// the session is in a local menu/bootstrap Scene or offline.

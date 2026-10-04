@@ -173,6 +173,52 @@ public class SpriteAnimator : Component
         _animationQueue.Clear();
     }
 
+    /// <summary>
+    /// Temporarily selects an animation, preserving the previous frame, sprite, queue and playing state.
+    /// Dispose restores that state unless another owner has replaced the selected animation.
+    /// </summary>
+    public IDisposable BeginPresentation(SpriteAnimation animation, bool play = false)
+    {
+        ArgumentNullException.ThrowIfNull(animation);
+        ArgumentNullException.ThrowIfNull(SpriteDrawer);
+        ThrowIfInvalid(animation);
+        var previous = Animation;
+        var sprite = SpriteDrawer.Sprite;
+        var frame = CurrentFrameIndex;
+        var elapsed = _elapsedFrameTime;
+        var dispatched = _currentFrameEventDispatched;
+        var playing = IsPlaying;
+        var queue = _animationQueue.ToArray();
+        var restore = new AnimationPresentation(() =>
+        {
+            if (IsDestroyed || SpriteDrawer is null || !ReferenceEquals(Animation, animation)) return;
+            _playbackVersion++;
+            Animation = previous;
+            CurrentFrameIndex = frame;
+            _elapsedFrameTime = elapsed;
+            _currentFrameEventDispatched = dispatched;
+            IsPlaying = playing;
+            _animationQueue.Clear();
+            foreach (var queued in queue) _animationQueue.Enqueue(queued);
+            SpriteDrawer.Sprite = sprite;
+        });
+        try
+        {
+            IsPlaying = false;
+            _animationQueue.Clear();
+            StartAnimation(animation);
+            if (play) Play();
+            return restore;
+        }
+        catch { restore.Dispose(); throw; }
+    }
+
+    private sealed class AnimationPresentation(Action restore) : IDisposable
+    {
+        private Action? _restore = restore;
+        public void Dispose() => System.Threading.Interlocked.Exchange(ref _restore, null)?.Invoke();
+    }
+
     public void RegisterEvent(string eventName, Action<SpriteAnimationEvent> handler)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(eventName);

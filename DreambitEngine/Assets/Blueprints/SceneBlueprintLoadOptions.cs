@@ -1,5 +1,4 @@
 using System;
-using Dreambit.Tiled;
 
 namespace Dreambit;
 
@@ -12,8 +11,7 @@ public sealed class SceneBlueprintLoadOptions
     {
         AllowMissingComponentTypes = true,
         PreserveEntityIds = true,
-        TolerateComponentLoadErrors = true,
-        MarkImportedTiledEntitiesEditorOnly = true
+        TolerateComponentLoadErrors = true
     };
 
     /// <summary>
@@ -36,12 +34,6 @@ public sealed class SceneBlueprintLoadOptions
     /// Resources; editors can resolve directly from source files before a bake completes.
     /// </summary>
     public Func<BlueprintInstanceReference, EntityBlueprint> BlueprintInstanceResolver { get; init; }
-
-    /// <summary>Optional source-aware Tiled resolver used by editor hosts before a bake completes.</summary>
-    public Func<TiledSceneReference, TmxMap> TiledMapResolver { get; init; }
-
-    /// <summary>Keeps regenerated Tiled-owned entities out of serialized Dreambit entity data.</summary>
-    public bool MarkImportedTiledEntitiesEditorOnly { get; init; }
 
     public bool ApplySceneSettings { get; set; } = true;
 }

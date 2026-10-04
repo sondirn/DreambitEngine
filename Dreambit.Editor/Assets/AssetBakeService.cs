@@ -155,10 +155,7 @@ internal sealed class AssetBakeService : IDisposable
                 rebuildAll,
                 MarkSrgb: true,
                 TargetPlatform: _project.Metadata.TargetRenderer,
-                IncludeBuiltInContent: true)
-            {
-                ProjectRoot = _project.RootDirectory
-            },
+                IncludeBuiltInContent: true),
             progress,
             _lifetime.Token);
     }
@@ -189,10 +186,7 @@ internal sealed class AssetBakeService : IDisposable
                 rebuildAll,
                 MarkSrgb: true,
                 TargetPlatform: _project.Metadata.TargetRenderer,
-                IncludeBuiltInContent: true)
-            {
-                ProjectRoot = _project.RootDirectory
-            },
+                IncludeBuiltInContent: true),
             progress,
             _lifetime.Token);
     }

@@ -7,7 +7,6 @@ using Dreambit.Networking.Replication;
 using Dreambit.Networking.Session;
 using Dreambit.Networking.Transport;
 using Dreambit.Networking.World;
-using Dreambit.Tiled;
 using Microsoft.Xna.Framework;
 using Xunit;
 using Xunit.Abstractions;
@@ -530,56 +529,6 @@ public sealed class NetworkReplicationScopeTests
         Assert.Equal(new NetworkReplicationScopeId(2), newEpochScope);
         Assert.True(server.TryGetScope(newEpochScope, out var current));
         Assert.Equal(server.SceneEpoch, current!.SceneEpoch);
-    }
-
-    [Fact]
-    public void NetworkManagedTiledScopeKeepsMapLocalAndBindsOnlyAuthoredNetworkEntities()
-    {
-        var pair = InMemoryTransport.CreatePair();
-        using var server = CreateSession(NetworkRole.Server, pair.Server, CreateReplication());
-        using var client = CreateSession(NetworkRole.Client, pair.Client, CreateReplication());
-        using var serverScene = new ScopeTestScene();
-        using var clientScene = new ScopeTestScene();
-        var sourceGuid = Guid.NewGuid();
-        var mapName = $"tests/scopes/map-{Guid.NewGuid():N}";
-        var map = CreateEmptyMap(mapName);
-        var source = CreateScopeBlueprint("tiled-network", sourceGuid);
-        source.Tiled = new TiledSceneReference { AssetName = mapName };
-        Assert.True(Resources.TryRegisterAsset(map));
-        Assert.True(Resources.TryRegisterAsset(source));
-        server.Start();
-        client.Start();
-        Pump(server, [client], 8);
-        server.AfterSceneAssigned(serverScene);
-        client.AfterSceneAssigned(clientScene);
-
-        var scopeId = server.LoadScope(source.AssetName!);
-        server.Subscribe(client.LocalPeerId, scopeId);
-        Pump(server, [client], 8);
-        Assert.True(server.TryGetScope(scopeId, out var serverScope));
-        Assert.True(client.TryGetScope(scopeId, out var clientScope));
-        var serverMap = serverScope!.Content!.TiledMap!;
-        var clientMap = clientScope!.Content!.TiledMap!;
-        Assert.NotSame(serverMap, clientMap);
-        Assert.NotEqual(serverMap.RootEntity.Id, clientMap.RootEntity.Id);
-        Assert.False(server.World!.TryGetNetworkId(serverMap.RootEntity, out _));
-        Assert.False(client.World!.TryGetNetworkId(clientMap.RootEntity, out _));
-        var serverAuthored = serverScope.Content.GetEntity(sourceGuid);
-        var clientAuthored = clientScope.Content.GetEntity(sourceGuid);
-        Assert.True(server.World.TryGetNetworkId(serverAuthored, out var networkId));
-        Assert.True(client.World.TryGetNetworkId(clientAuthored, out var clientId));
-        Assert.Equal(networkId, clientId);
-
-        var tile = new TiledTileReference("tests/tile", 7);
-        serverMap.GetRuntimeTileLayer("Ground")
-            .SetRuntimeOverride(new Point(0, 0), tile);
-        Assert.Equal(tile, serverMap.GetRuntimeTileLayer("Ground").GetTile(0, 0));
-        Assert.Null(clientMap.GetRuntimeTileLayer("Ground").GetTile(0, 0));
-
-        server.Unsubscribe(client.LocalPeerId, scopeId);
-        Pump(server, [client], 5);
-        Assert.True(clientMap.IsUnloaded);
-        Assert.False(serverMap.IsUnloaded);
     }
 
     [Fact]
@@ -1599,29 +1548,6 @@ public sealed class NetworkReplicationScopeTests
         [
             new ComponentBlueprint { Type = typeof(NetworkObject).AssemblyQualifiedName! },
             new ComponentBlueprint { Type = typeof(ScopedState).AssemblyQualifiedName! }
-        ]
-    };
-
-    private static TmxMap CreateEmptyMap(string assetName) => new()
-    {
-        AssetId = AssetId.New(),
-        AssetName = assetName,
-        Orientation = "orthogonal",
-        RenderOrder = "right-down",
-        Width = 1,
-        Height = 1,
-        TileWidth = 16,
-        TileHeight = 16,
-        Layers =
-        [
-            new TmxTileLayer
-            {
-                Id = 1,
-                Name = "Ground",
-                Width = 1,
-                Height = 1,
-                Data = new TmxData { Encoding = "csv", Value = "0" }
-            }
         ]
     };
 

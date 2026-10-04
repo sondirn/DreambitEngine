@@ -2,7 +2,12 @@
 
 public abstract class ScriptAction
 {
+    public CutsceneContext Context { get; internal set; }
+    /// <summary>Release temporary state even if never started. Called once per instance.</summary>
+    public virtual void CleanUp() { }
     internal bool IsStarted;
+    private bool _completionNotified;
+    internal bool Finished => IsComplete && _completionNotified;
     public bool IsComplete { get; set; } = false;
 
     /// <summary>
@@ -35,13 +40,16 @@ public abstract class ScriptAction
     {
         if (!IsStarted)
         {
-            OnStart();
             IsStarted = true;
+            OnStart();
         }
 
-        OnUpdate();
+        if (!IsComplete) OnUpdate();
 
-        if (IsComplete)
+        if (IsComplete && !_completionNotified)
+        {
+            _completionNotified = true;
             OnCompleted();
+        }
     }
 }

@@ -70,6 +70,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../core/logging/">Logging and debugging</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../core/developer-console/">Developer console</a>
+                  </li>
               </ul>
               <p class="caption"><span class="caption-text">ECS</span></p>
               <ul>
@@ -276,6 +278,8 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/resources/">Loading resources</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../assets/registries/">Scene asset registries</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/sprites/">Sprites and sprite sheets</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../assets/animations/">Sprite animation</a>
@@ -298,14 +302,17 @@
                   <li class="toctree-l1"><a class="reference internal" href="../ai/fsm/">State machines and blackboards</a>
                   </li>
               </ul>
-              <p class="caption"><span class="caption-text">Tiled</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../tiled/">Overview and quick start</a>
-                  </li>
-              </ul>
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Scripting and cutscenes</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#asset-authoring">Asset authoring</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#starting-and-observing-playback">Starting and observing playback</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#built-in-actions">Built-in actions</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#writing-actions">Writing actions</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -340,54 +347,103 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="scripting-and-cutscenes">Scripting and cutscenes<a class="headerlink" href="#scripting-and-cutscenes" title="Permanent link">&para;</a></h1>
-<p>Cutscenes are YAML-authored Dreambit assets made of parallel action groups.
-Actions in one group update together; the next group starts after every current
-action is complete.</p>
-<pre><code class="language-yaml">- scriptGroup:
-    - script: EnableEntityScript
-      entity: captain
-    - script: CameraFollowScript
-      entity: captain
-- scriptGroup:
-    - script: WaitScript
-      duration: 1.5
-- scriptGroup:
-    - script: MoveScript
-      entity: captain
-      speed: 80
-      moveTo: [320, 180]
+<p>Dreambit cutscenes are reusable presentation assets. They advance on the main thread once per Scene update; waits do not sleep and playback does not pause networking, physics, entities, or input.</p>
+<h2 id="asset-authoring">Asset authoring<a class="headerlink" href="#asset-authoring" title="Permanent link">&para;</a></h2>
+<p>Create a YAML source file with the canonical <code>.cutscene</code> extension. A source at <code>Assets/Cutscenes/example.cutscene</code> bakes to <code>Cutscenes/example.cutscene.yamlb</code>; its logical asset name is <code>Cutscenes/example.cutscene</code>. The existing legacy <code>.yaml</code> workflow still loads using an extensionless logical name.</p>
+<p>The YAML root is a sequence of <code>scriptGroup</code> entries. Each group contains a sequence of mappings: <code>script</code> names an action class and the other fields supply its public constructor parameters. Groups run in order. All actions within one group advance together on the game thread, and the next group begins on the following update after all current actions complete.</p>
+<p>For example, an action mapping for a wait uses <code>script: WaitScript</code>, <code>duration: 1.5</code>, and optionally <code>unscaled: true</code>. A movement action uses <code>script: MoveScript</code>, <code>entity: speaker</code>, <code>speed: 2</code>, and <code>moveTo: [3, 4]</code>. These are configuration examples, not preinstalled content.</p>
+<p>The editor recognizes <code>.cutscene</code> assets and creates a YAML placeholder. Replace its <code>TODO</code> action in a text editor. Cutscenes use their dedicated YAML loader, not the generic JSON asset inspector. Stable AssetIds, the typed catalog, and <code>AssetReference&lt;Cutscene&gt;</code> remain available to game-defined assets. Do not store paths as durable story identity.</p>
+<h2 id="starting-and-observing-playback">Starting and observing playback<a class="headerlink" href="#starting-and-observing-playback" title="Permanent link">&para;</a></h2>
+<p>Use the owning Scene's manager and explicit actor bindings. This helper can be placed in your own presentation code:</p>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+using Dreambit;
+using Dreambit.ECS;
+using Dreambit.Scripting;
+
+public static class PresentationExample
+{
+    public static CutscenePlayback Play(Scene scene, Cutscene asset, Entity speaker)
+    {
+        var actors = new Dictionary&lt;string, CutsceneActorBinding&gt;
+        {
+            [&quot;speaker&quot;] = new(speaker, AllowMovement: true)
+        };
+        var context = new CutsceneContext(scene, actors);
+        if (!scene.ScriptingManager.TryStart(asset, context, out var playback, out var error))
+            throw new InvalidOperationException(error);
+
+        if (playback.Status == CutscenePlaybackStatus.Running)
+            playback.Finished += OnFinished;
+        else
+            OnFinished(playback); // A start observer may synchronously cancel playback.
+        return playback;
+    }
+
+    private static void OnFinished(CutscenePlayback playback)
+    {
+        // Inspect Completed, Cancelled, or Failed and playback.Diagnostic.
+        // Only the game server should decide whether a persistent effect is authorized.
+    }
+}
 </code></pre>
-<p>Start it through the scene:</p>
-<pre><code class="language-csharp">Scene.StartCutscene(&quot;Cutscenes/intro&quot;);
-</code></pre>
-<p>Put the source at <code>Assets/Cutscenes/intro.yaml</code>. The asset baker writes it to the
-content pak as <code>Cutscenes/intro.yamlb</code>, and <code>Resources.LoadAsset&lt;Cutscene&gt;</code> loads
-and caches that data. The extension is not part of the asset name.</p>
-<p>You can also load once and pass the asset directly:</p>
-<pre><code class="language-csharp">var intro = Resources.LoadAsset&lt;Cutscene&gt;(&quot;Cutscenes/intro&quot;);
-Scene.StartCutscene(intro);
-</code></pre>
-<p>Only one cutscene can run at a time. Both <code>StartCutscene</code> overloads return
-<code>false</code> when another cutscene is active or the named asset cannot be loaded.
-Subscribe to <code>OnScriptingStart</code> and <code>OnScriptingEnd</code> on
-<code>Scene.ScriptingManager</code> to adjust gameplay state.</p>
-<p>Built-in action types are <code>WaitScript</code>, <code>MoveScript</code>, <code>EnableEntityScript</code>,
-<code>SetAnimationScript</code>, and <code>CameraFollowScript</code>. The factory finds actions by
-class name across loaded assemblies and fills constructor parameters from YAML.
-Use a fully-qualified type name if two actions have the same class name.</p>
-<p>Create a custom action by deriving from <code>ScriptAction</code>, implementing <code>OnUpdate</code>,
-and setting <code>IsComplete = true</code> when finished. Optional hooks are <code>OnStart</code>,
-<code>OnCompleted</code>, and <code>OnGroupEnd</code>.</p>
-<p>Constructor parameter names are the YAML argument names. Missing required
-arguments, unknown arguments, malformed vectors, and unknown action types are
-reported when the cutscene starts. Scalars, enums, arrays, <code>Vector2</code>, and
-<code>Vector3</code> are supported. Every playback creates fresh action instances, so an
-asset can be replayed without carrying action state from the previous run.</p>
+<p><code>TryStart</code> validates and constructs every action before starting any. A busy/disposed runner or invalid configuration returns false and an error without replacing current playback. A throwing start observer returns false with a failed handle after cleanup. The returned handle identifies exactly one run, exposes its outcome, and supports <code>Cancel(reason)</code>. Cancelling an old handle cannot cancel a later playback.</p>
+<p>The Scene owns the runner and updates it automatically. Do not also call <code>Update</code> from a game component. <code>IsCutsceneActive</code> is now an <strong>instance</strong> property. Constructing or disposing another Scene cannot alter it.</p>
+<p><code>Scene.StartCutscene</code> and the manager's old boolean overloads remain for simple context-free sequences. They provide no actor bindings. Prefer <code>TryStart</code> for new code. <code>OnScriptingEnd</code> remains a compatibility success-only notification without playback identity; use the handle for reliable outcomes.</p>
+<h2 id="built-in-actions">Built-in actions<a class="headerlink" href="#built-in-actions" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Constructor fields</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WaitScript</code></td>
+<td><code>duration</code>, optional <code>unscaled</code> (true)</td>
+<td>Finite nonnegative duration; waits without blocking. Set unscaled false to follow game time.</td>
+</tr>
+<tr>
+<td><code>MoveScript</code></td>
+<td><code>entity</code>, <code>speed</code>, <code>moveTo</code>, optional <code>unscaled</code> (true)</td>
+<td>Moves a permitted presentation actor in world units; finite positive speed, no overshoot. Restores its original world position during playback cleanup.</td>
+</tr>
+<tr>
+<td><code>EnableEntityScript</code></td>
+<td><code>entity</code></td>
+<td>Temporarily enables a bound non-network entity. Restores its previous enabled state during cleanup.</td>
+</tr>
+<tr>
+<td><code>SetAnimationScript</code></td>
+<td><code>entity</code>, <code>animation</code>, optional <code>waitForCompletion</code> (false)</td>
+<td>Selects an animation asset's first frame immediately. When waiting, explicitly plays a non-looping animation and waits for its completion. Restores prior animation/frame/queue/playing state during cleanup.</td>
+</tr>
+</tbody>
+</table>
+<p><code>entity</code> is a <strong>role in the context</strong>, not a Scene-wide name. Missing roles/components fail clearly. Movement needs <code>AllowMovement: true</code> and rejects entities carrying <code>NetworkObject</code>; enabling network entities is also rejected. Use authoritative game movement for shared NPCs and player positions. Animation actions change presentation and must not be used as authoritative gameplay proof.</p>
+<p>Temporary state lasts until the entire playback ends, so subsequent groups can use earlier movement/animation changes. Cleanup runs in reverse action order on all outcomes. The animator's generic <code>BeginPresentation</code> lease also restores an initially unanimated sprite; if another owner has selected a different animation, it leaves that replacement alone.</p>
+<p>Animation playback uses the animator's existing scaled update clock. Do not pause game time and then wait on a scaled animation; unscaled waits and moves remain available. A stopped/disabled animator cannot advance. Rootbound adds a bounded timeout for abandoned story presentations.</p>
+<p>There is no built-in camera action or skip policy in this version. Earlier documentation referenced a camera action that did not exist.</p>
+<h2 id="writing-actions">Writing actions<a class="headerlink" href="#writing-actions" title="Permanent link">&para;</a></h2>
+<p>Derive a public concrete class from <code>ScriptAction</code>. Use public constructor parameters for immutable configuration; YAML arguments match their names case-insensitively. Constructors must be side-effect free: validation constructs and cleans up instances without running them. Scalars, enums, arrays, Vector2, and Vector3 are supported. Use fully qualified class names if simple names collide across loaded assemblies.</p>
+<ul>
+<li><code>Context</code> is assigned before playback hooks and supplies <code>Scene</code> and <code>GetActor(role)</code>.</li>
+<li><code>OnStart</code> runs once before the first update. Resolve resources and subscribe here.</li>
+<li><code>OnUpdate</code> performs a bounded amount of work. Set <code>IsComplete = true</code> on success.</li>
+<li><code>OnCompleted</code> runs once, including when an external callback completes the action between frames.</li>
+<li><code>OnGroupEnd</code> runs once after all actions in the group finish.</li>
+<li><code>CleanUp</code> runs once for each constructed instance, including instances that never started. Release subscriptions and restore temporary state; tolerate absent setup.</li>
+</ul>
+<p>Exceptions during action hooks fail the playback with asset/group/action diagnostics. Cleanup failures also produce Failed. Each finish observer is isolated and logged so one observer cannot stop others. Operations are intended for the game thread.</p>
+<p>For additive content, supply a validity predicate such as <code>() =&gt; content.IsLoaded</code>. The runner also checks bound actor lifetime. Invalid context cancels playback. Whole-Scene shutdown cancels all owned work. Do not retain finished handles indefinitely if their context contains game entities.</p>
+<p><code>ScriptingManager.Validate(asset)</code> is available to required registries for startup validation. Action discovery uses reflection only during validation/startup, never in frame updates. Playback contains no event log, persistent story state, network protocol, or global pause policy; those belong to the game.</p>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../tiled/" class="btn btn-neutral float-left" title="Overview and quick start"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../ai/fsm/" class="btn btn-neutral float-left" title="State machines and blackboards"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../utilities/math/" class="btn btn-neutral float-right" title="Math and ranges">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
@@ -411,7 +467,7 @@ asset can be replayed without carrying action state from the previous run.</p>
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../tiled/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../ai/fsm/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
       <span><a href="../utilities/math/" style="color: #fcfcfc">Next &raquo;</a></span>

@@ -74,9 +74,7 @@ internal sealed class EditorStateStore
             state.WindowHeight,
             600,
             4320);
-        state.GridSize = float.IsFinite(state.GridSize)
-            ? MathF.Max(0.001f, state.GridSize)
-            : 1f;
+        state.GridSize = EditorViewportUi.NormalizeGridSize(state.GridSize);
         state.SceneCameraZoom = EditorViewportUi.NormalizeZoom(state.SceneCameraZoom);
         state.BlueprintCameraZoom = EditorViewportUi.NormalizeZoom(state.BlueprintCameraZoom);
         state.PanelVisibility = state.PanelVisibility is null

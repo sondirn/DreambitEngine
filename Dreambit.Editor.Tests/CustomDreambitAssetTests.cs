@@ -206,13 +206,10 @@ public sealed class CustomDreambitAssetTests
             typeof(ParticleFxConfig),
             typeof(EntityBlueprint),
             typeof(SceneBlueprint),
-            typeof(Tileset),
             typeof(TextureAsset),
             typeof(DreambitEffect),
             typeof(FontAsset),
-            typeof(Dreambit.Scripting.Cutscene),
-            typeof(Dreambit.Tiled.TmxMap),
-            typeof(Dreambit.Tiled.TmxTileset)
+            typeof(Dreambit.Scripting.Cutscene)
         };
 
         foreach (var assetType in engineAssetTypes)

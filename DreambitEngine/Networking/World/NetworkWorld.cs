@@ -457,7 +457,7 @@ internal sealed class NetworkWorld : IDisposable
         if (sources!.TryGetValue(entity, out var source) && source != Guid.Empty) return source;
         throw new InvalidOperationException(
             $"Replicated additive Entity '{entity.Name}' has no authored source GUID. " +
-            "Tiled-generated and runtime-generated NetworkObjects must be spawned explicitly.");
+            "Runtime-generated NetworkObjects must be spawned explicitly.");
     }
     private void CommitBindings(NetworkReplicationScopeId scope, List<NetworkAuthoredBinding> bindings)
     {

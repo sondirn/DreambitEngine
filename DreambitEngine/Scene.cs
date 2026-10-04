@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -7,7 +7,6 @@ using Dreambit.ECS;
 using Dreambit.Events;
 using Dreambit.Networking;
 using Dreambit.Scripting;
-using Dreambit.Tiled;
 using Dreambit.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -32,7 +31,7 @@ public class Scene : IDisposable
         Entities = new EntityRepository(this);
         Drawables = new DrawableRepository();
         Services = new SceneServiceCollection(this);
-        ScriptingManager = new ScriptingManager();
+        ScriptingManager = new ScriptingManager(this);
         _coroutineScheduler = new CoroutineScheduler();
         _contentInstancesView = _contentInstances.AsReadOnly();
 
@@ -135,7 +134,7 @@ public class Scene : IDisposable
 
     /// <summary>
     /// Creates a runtime Scene of the requested type and eagerly materializes a baked Scene Blueprint
-    /// into it. Use a TiledScene-derived type for a blueprint linked to a Tiled map.
+    /// into it.
     /// The returned Scene remains in the Created state and has not been scheduled or initialized.
     /// </summary>
     public static TScene CreateFromBlueprint<TScene>(string sceneAssetName)
@@ -215,8 +214,6 @@ public class Scene : IDisposable
     {
         ArgumentNullException.ThrowIfNull(blueprint);
         ArgumentNullException.ThrowIfNull(options);
-
-        blueprint.MaterializeLinkedSources(this, options);
 
         if (options.ApplySceneSettings)
             ApplySettings(blueprint.Settings);
@@ -339,10 +336,6 @@ public class Scene : IDisposable
             instance.BeginUnload();
             var cleanupErrors = new List<Exception>();
             var deferForContentCallbacks = _contentCallbackBoundaryDepth > 0;
-            if (deferForContentCallbacks)
-                InvalidateTiledContentForDeferredUnload(instance, cleanupErrors);
-            else
-                InvalidateTiledContent(instance, cleanupErrors);
             DisableAndSuspendOwnedEntities(instance);
 
             if (deferForContentCallbacks)
@@ -435,7 +428,6 @@ public class Scene : IDisposable
                 BlueprintValidator.ValidateOrThrow(validationRoot);
                 ValidateContentBlueprintComponents(materializedRoots, allowNetworkObjects);
             }
-            ValidateContentTiledOverrides(blueprint.Tiled, allowNetworkObjects);
 
             _activeContentOwner = instance;
             _activeNetworkContentCoordinator = networkCoordinator;
@@ -446,13 +438,6 @@ public class Scene : IDisposable
                     ApplySettings(blueprint.Settings);
                     settingsApplied = true;
                 }
-
-                var tiledMap = blueprint.MaterializeAdditiveLinkedSources(
-                    this,
-                    options,
-                    instance);
-                if (tiledMap is not null)
-                    instance.SetTiledMap(tiledMap);
 
                 if (materializedRoots.Count > 0)
                 {
@@ -497,8 +482,6 @@ public class Scene : IDisposable
             _activeNetworkContentCoordinator = networkCoordinator;
             try
             {
-                InvalidateTiledContent(instance, cleanupErrors);
-
                 if (settingsApplied && previousSettings is not null)
                 {
                     TryContentCleanup(
@@ -1066,7 +1049,7 @@ public class Scene : IDisposable
 
         foreach (var entity in GetAllEntities())
         {
-            if ((entity.IsEditorOnly && !entity.IsImportedMapGenerated) || !entity.Enabled)
+            if (entity.IsEditorOnly || !entity.Enabled)
                 continue;
             var selected = selectedEntityIds.Contains(entity.Id);
             foreach (var component in entity.GetAllAttachedComponents())
@@ -1728,28 +1711,6 @@ public class Scene : IDisposable
                 "outside a network-managed replication scope.");
     }
 
-    private static void ValidateContentTiledOverrides(
-        TiledSceneReference? reference,
-        bool allowNetworkObjects = false)
-    {
-        if (reference?.EntityOverrides is null)
-            return;
-
-        foreach (var entityOverride in reference.EntityOverrides.Values)
-        foreach (var componentTypeName in entityOverride.Components.Keys)
-        {
-            var componentType = BlueprintResolver.ResolveComponentType(componentTypeName);
-            if (componentType is null)
-                continue;
-
-            var creationOrder = Dreambit.ECS.ComponentRequirementResolver.ResolveCreationOrder(
-                [componentType],
-                static _ => false);
-            foreach (var requiredType in creationOrder)
-                ThrowIfForbiddenContentComponent(requiredType, allowNetworkObjects);
-        }
-    }
-
     private static void ValidateEntityForContentOwnership(
         SceneContentInstance owner,
         Entity entity,
@@ -1818,22 +1779,6 @@ public class Scene : IDisposable
         // Rollback leaves the provisional instance in Loading state. Cleanup callbacks can
         // create more entities under the active owner, so drain them before invalidating it.
         while (instance.AcceptsOwnership && instance.OwnedEntities.Count > 0);
-    }
-
-    private static void InvalidateTiledContent(
-        SceneContentInstance instance,
-        List<Exception> cleanupErrors)
-    {
-        if (instance.TiledMap is { IsUnloaded: false } tiledMap)
-            TryContentCleanup(cleanupErrors, tiledMap.Unload);
-    }
-
-    private static void InvalidateTiledContentForDeferredUnload(
-        SceneContentInstance instance,
-        List<Exception> cleanupErrors)
-    {
-        if (instance.TiledMap is { IsUnloaded: false } tiledMap)
-            TryContentCleanup(cleanupErrors, tiledMap.InvalidateForDeferredContentUnload);
     }
 
     private void FinalizeContentUnload(
@@ -2020,7 +1965,6 @@ public class Scene : IDisposable
         foreach (var instance in _contentInstances)
         {
             instance.BeginUnload();
-            InvalidateTiledContent(instance, cleanupErrors);
             DisableAndSuspendOwnedEntities(instance);
         }
 

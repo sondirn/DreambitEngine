@@ -7,7 +7,7 @@ internal readonly record struct AssetTypeInfo(AssetKind Kind, string? TypeId);
 
 internal static class AssetTypeClassifier
 {
-    public const int ClassificationVersion = 7;
+    public const int ClassificationVersion = 8;
 
     private static readonly (AssetKind Kind, Type AssetType)[] SerializedTypes =
     [
@@ -18,8 +18,7 @@ internal static class AssetTypeClassifier
         (AssetKind.SoundCue, typeof(SoundCue)),
         (AssetKind.Cutscene, typeof(Dreambit.Scripting.Cutscene)),
         (AssetKind.Sprite, typeof(Sprite)),
-        (AssetKind.Scene, typeof(SceneBlueprint)),
-        (AssetKind.DreambitAsset, typeof(Tileset))
+        (AssetKind.Scene, typeof(SceneBlueprint))
     ];
 
     // Keep recognizing source files created before semantic extensions became standalone.
@@ -84,12 +83,6 @@ internal static class AssetTypeClassifier
             ".fx" => new AssetTypeInfo(AssetKind.Effect, DreambitAssetTypeRegistry.GetTypeId(typeof(DreambitEffect))),
             ".txt" or ".md" => new AssetTypeInfo(AssetKind.Text, null),
             ".ucss" or ".css" => new AssetTypeInfo(AssetKind.Stylesheet, null),
-            ".tmx" => new AssetTypeInfo(
-                AssetKind.TiledMap,
-                DreambitAssetTypeRegistry.GetTypeId(typeof(Dreambit.Tiled.TmxMap))),
-            ".tsx" => new AssetTypeInfo(
-                AssetKind.TiledMap,
-                DreambitAssetTypeRegistry.GetTypeId(typeof(Dreambit.Tiled.TmxTileset))),
             ".uxml" or ".xml" or ".yaml" or ".yml" => new AssetTypeInfo(AssetKind.Data, null),
             _ => new AssetTypeInfo(AssetKind.Unknown, null)
         };

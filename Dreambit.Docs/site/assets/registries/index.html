@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Scene asset registries - Dreambit Engine Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Scene asset registries";
+        var mkdocs_page_input_path = "assets\\registries.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Dreambit Engine Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/installation/">Install and reference Dreambit</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/first-game/">Your first game</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/project-structure/">Project and content layout</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Core</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/core/">Core and the game loop</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/scenes/">Scenes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/window/">Window</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/time/">Time</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/coroutines/">Coroutines</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/logging/">Logging and debugging</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../core/developer-console/">Developer console</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">ECS</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/entities/">Entities</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/writing-components/">Writing components</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/component-lifecycle/">Component lifecycle</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/transform/">Transform</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/requirements/">Requirements and injection</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ecs/blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Components</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/camera2d/">Camera2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ui-frame/">UiFrame</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/collider/">Collider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/box-collider/">BoxCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/poly-shape-collider/">PolyShapeCollider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rigid-body-2d/">RigidBody2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/mover/">Mover</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-drawer/">SpriteDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sprite-animator/">SpriteAnimator</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/rect-drawer/">RectDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/circle-drawer/">CircleDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/particle-system-drawer/">ParticleSystemDrawer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/light2d/">Light2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/ambient-light-2d/">AmbientLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/point-light-2d/">PointLight2D</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-effect-emitter/">SoundEffectEmitter</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-emitter-2d/">SoundEmitter2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/sound-listener-2d/">SoundListener2d (obsolete)</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../ecs/components/fsm/">FSM</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">User interface</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../UI/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../UI/Stylesheets/">Stylesheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Elements</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiElement/">UiElement</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiContainer/">UiContainer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiContentControl/">UiContentControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiControl/">UiControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiPanel/">UiPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiBorder/">UiBorder</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiButton/">UiButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiCanvas/">UiCanvas</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiCheckBox/">UiCheckBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiComboBox/">UiComboBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiGrid/">UiGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiHorizontalStackPanel/">UiHorizontalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiItemsControl/">UiItemsControl</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiListBox/">UiListBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiOverlay/">UiOverlay</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiPopup/">UiPopup</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiProgressBar/">UiProgressBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiRadioButton/">UiRadioButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiRangeBase/">UiRangeBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiScrollBar/">UiScrollBar</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSelector/">UiSelector</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSlider/">UiSlider</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiSpacer/">UiSpacer</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiStackPanel/">UiStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiStackPanelBase/">UiStackPanelBase</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiText/">UiText</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTextBox/">UiTextBox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTexture/">UiTexture</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiToggleButton/">UiToggleButton</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiTooltip/">UiTooltip</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiUniformGrid/">UiUniformGrid</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiVerticalStackPanel/">UiVerticalStackPanel</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiViewbox/">UiViewbox</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Elements/UiWrapPanel/">UiWrapPanel</a>
+                </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Brushes</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/IUiBrush/">IUiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/UiBrush/">UiBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/SolidColorBrush/">SolidColorBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/OutlineBrush/">OutlineBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/SpriteBrush/">SpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/NineSliceBrush/">NineSliceBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/TiledSpriteBrush/">TiledSpriteBrush</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../UI/Brushes/LayeredBrush/">LayeredBrush</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Input</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/direct-input/">Direct input</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../input/actions/">Actions, maps, and bindings</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../networking/">Networking</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Physics</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/colliders/">Colliders and triggers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/queries/">Queries</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/shapes/">Shapes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../physics/movement/">Movement and collision response</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Rendering</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/cameras/">Cameras and coordinates</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/drawing/">Drawing sprites and primitives</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/lighting/">Lighting</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../rendering/pipeline/">Render pipeline and post-processing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Assets and content</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../content-pipeline/">Content projects and Asset Baker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../resources/">Loading resources</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Scene asset registries</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#public-api">Public API</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#catalog-and-loading-architecture">Catalog and loading architecture</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#startup-and-shutdown">Startup and shutdown</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#shared-ownership">Shared ownership</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sprites/">Sprites and sprite sheets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../animations/">Sprite animation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../blueprints/">Entity blueprints</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../sound-cues/">Sound cues</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../particles/">Particles</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../audio/">Audio</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">AI</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ai/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../ai/fsm/">State machines and blackboards</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../scripting/">Scripting and cutscenes</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utilities</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/math/">Math and ranges</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../utilities/collections/">Collections and spatial helpers</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Dreambit Engine Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Assets and content</li>
+      <li class="breadcrumb-item active">Scene asset registries</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="scene-asset-registries">Scene asset registries<a class="headerlink" href="#scene-asset-registries" title="Permanent link">&para;</a></h1>
+<p><code>AssetRegistry&lt;TAsset&gt;</code> is a scene service that holds a typed index of shared
+<code>Resources</code> assets. Use it for resident definitions or to preload expensive assets
+before gameplay. Define a concrete service in the game assembly:</p>
+<pre><code class="language-csharp">using Dreambit;
+using Dreambit.ECS;
+
+[DreambitAssetType(&quot;rootbound.item&quot;)]
+public class ItemDefinition : DreambitAsset
+{
+    [DreambitSerialize]
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+public sealed class ItemDefinitionRegistry : AssetRegistry&lt;ItemDefinition&gt;
+{
+}
+
+public sealed class GameplaySoundRegistry : AssetRegistry&lt;SoundCue&gt;
+{
+}
+</code></pre>
+<p>Add the concrete component to a scene service entity. Set the item registry's
+<strong>Source</strong> to <strong>AllOfType</strong> and <strong>Load Mode</strong> to <strong>Preload</strong>. For the sound registry,
+select <strong>Explicit</strong>, then add the desired SoundCue assets to <strong>Explicit Assets</strong>
+using the normal picker or project drag and drop.</p>
+<p>Both registries belong to their scene. Different scenes can each have their own
+registry of the same type. Existing scene-service host and uniqueness rules apply.</p>
+<h2 id="public-api">Public API<a class="headerlink" href="#public-api" title="Permanent link">&para;</a></h2>
+<pre><code class="language-csharp">public enum AssetRegistrySource { AllOfType, Explicit }
+public enum AssetRegistryLoadMode { Manual, Preload }
+
+public abstract class AssetRegistry&lt;TAsset&gt; : SceneServiceComponent
+    where TAsset : DreambitAsset
+{
+    public AssetRegistrySource Source { get; set; }
+    public AssetRegistryLoadMode LoadMode { get; set; }
+    public List&lt;AssetReference&lt;TAsset&gt;&gt; ExplicitAssets { get; set; }
+
+    public IReadOnlyList&lt;TAsset&gt; Assets { get; }
+    public int Count { get; }
+    public bool IsLoaded { get; }
+
+    public TAsset Get(AssetId id);
+    public bool TryGet(AssetId id, out TAsset asset);
+    public TAsset Get(string assetName);
+    public bool TryGet(string assetName, out TAsset asset);
+    public void LoadAll();
+}
+
+public readonly record struct AssetCatalogEntry(
+    AssetId Id, string AssetName, string? TypeId);
+
+// Resources methods:
+public static IReadOnlyList&lt;AssetCatalogEntry&gt; FindAssets&lt;TAsset&gt;()
+    where TAsset : DreambitAsset;
+public static TAsset LoadDreambitAsset&lt;TAsset&gt;(AssetCatalogEntry entry)
+    where TAsset : DreambitAsset;
+</code></pre>
+<p>Defaults are <code>AllOfType</code> and <code>Preload</code>. Set authoring configuration before loading.
+<code>Manual</code> leaves the index empty until <code>LoadAll()</code> is called. <code>LoadAll()</code> is synchronous
+and idempotent after success. It does not rescan a populated registry. Calling it
+after service disposal throws <code>ObjectDisposedException</code>.</p>
+<p><code>Get</code> and <code>TryGet</code> only query the populated index; they never load assets. Names
+follow the content cache's case-insensitive comparison, whitespace trimming, and
+forward/backslash equivalence, without allocating normalized strings per lookup.
+<code>Get</code> throws <code>KeyNotFoundException</code> naming the registry and requested ID/name when
+absent. <code>TryGet</code> returns false and a null output.</p>
+<pre><code class="language-csharp">[RequiresSceneService(typeof(ItemDefinitionRegistry))]
+public sealed class InventoryService : SceneServiceComponent
+{
+    public override void OnServicesReady()
+    {
+        var items = Scene.Services.Get&lt;ItemDefinitionRegistry&gt;();
+        foreach (var item in items.Assets)
+        {
+            // Definitions are already resident.
+        }
+    }
+
+    public ItemDefinition FindItem(AssetId id) =&gt;
+        Scene.Services.Get&lt;ItemDefinitionRegistry&gt;().Get(id);
+}
+</code></pre>
+<h2 id="catalog-and-loading-architecture">Catalog and loading architecture<a class="headerlink" href="#catalog-and-loading-architecture" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Editor classification reads <code>$dreambitType</code> from generic <code>.asset</code> documents or
+   uses the existing semantic format classification for engine assets.</li>
+<li><code>.dreambit/assets.json</code> persists that stable identity in <code>type</code> alongside the
+   asset ID. Source registry schemas 1 and 2 remain supported by the baker.</li>
+<li>The baker reads this metadata once and embeds ID, logical name, and <code>type</code> in
+   <code>__dreambit/asset-registry.jsonb</code>. It excludes tombstones, unsupported sources,
+   and stylesheet entries using the existing bake rules. It does not reopen
+   source assets to rediscover type IDs.</li>
+<li><code>RuntimeAssetRegistry.GetAssets()</code> and the editor's <code>AssetDatabase.GetAssets()</code>
+   expose read-only catalog snapshots. Runtime schema 2 includes <code>type</code>; schema 1
+   remains readable with untyped entries. The registry cache signature is
+   <code>runtime-registry-v5</code>, invalidating older incremental registry blobs.</li>
+<li><code>Resources.FindAssets&lt;TAsset&gt;()</code> resolves each typed entry through
+   <code>DreambitAssetTypeRegistry.TryResolve</code> and checks <code>IsAssignableFrom</code>. Concrete,
+   derived, abstract-base queries, and former stable type IDs are supported. No
+   asset documents, PAK indexes, blob directories, or filesystems are scanned to
+   discover types. Discovery does not retain CLR type caches across reloads.</li>
+<li>The scene registry uses the catalog to select entries, and the typed Resources
+   overload loads each through its actual concrete type and existing loader/cache.
+   Successful completion publishes all indexes together for gameplay lookups.</li>
+</ol>
+<p>Untyped entries are excluded from typed discovery, preserving legacy stable ID/name
+resolution. An unknown non-empty type ID fails discovery because compatibility
+cannot be established. An absent catalog also fails clearly. Explicit selection
+requires a live catalog entry with a resolvable compatible type; old untyped
+catalogs must be rebuilt before using explicit typed preload.</p>
+<p>Explicit selections use <code>AssetReference&lt;TAsset&gt;</code>, an immutable deferred reference
+with <code>Id</code> and an optional diagnostic <code>AssetName</code>. Its converter reuses the existing
+<code>$dreambitAsset</code> token:</p>
+<pre><code class="language-json">{
+  &quot;$dreambitAsset&quot;: &quot;a36a9caa-9196-4a5f-8d65-acd9cba36373&quot;,
+  &quot;path&quot;: &quot;Audio/gameplay.soundcue&quot;
+}
+</code></pre>
+<p>The ID is authoritative, so moving an asset does not break a selection. Direct
+<code>TAsset</code> references would load during scene deserialization; deferred references
+do not load during materialization or editor selection. The editor infers the
+asset type from <code>TAsset</code> and only shows compatible choices. The explicit collection
+is visible when Source is Explicit. Only Source, LoadMode, and ExplicitAssets are
+serialized; Assets, Count, IsLoaded, and the dictionaries are runtime state.</p>
+<h2 id="startup-and-shutdown">Startup and shutdown<a class="headerlink" href="#startup-and-shutdown" title="Permanent link">&para;</a></h2>
+<p>Scene materialization registers service components, deserializes their properties,
+and calls <code>OnCreated</code>. In a runtime scene, service activation follows initialization
+and orders <code>OnServicesReady</code> using <code>RequiresSceneService</code>. A Preload registry
+populates synchronously in that callback, before its dependent services receive
+their callbacks. Activation finishes before <code>Scene.OnBegin</code>, after which the scene
+transitions to Running. Registry subclasses overriding <code>OnServicesReady</code> should
+call the base implementation before using the loaded index.</p>
+<p>Required load errors, incompatible/unresolved types, missing explicit IDs, empty
+selections, duplicate IDs, and duplicate normalized names throw descriptive errors.
+The registry stays empty and <code>IsLoaded</code> stays false on failure. Registry startup
+exceptions use the usual component fault reporting and also propagate, preventing
+dependent callbacks and <code>OnBegin</code> from proceeding. Other scene services retain
+their existing callback quarantine behavior.</p>
+<p>Editor execution mode does not activate runtime service callbacks, so editing a
+scene does not preload. The registry also guards its startup callback against
+editor execution. An explicit call to <code>LoadAll</code> still means load now.</p>
+<p>During shutdown, ordinary entities are destroyed before services receive their
+stopping callbacks in reverse dependency order. The index remains available for
+that cleanup and is cleared when the service is disposed. Registry subclasses
+overriding <code>OnServiceDisposing</code> must call the base implementation.</p>
+<h2 id="shared-ownership">Shared ownership<a class="headerlink" href="#shared-ownership" title="Permanent link">&para;</a></h2>
+<p>Resources and <code>DreambitContentCollection</code> remain the authoritative shared cache.
+Base and concrete registries use the same concrete loader key and share cached
+objects with other Resources callers. A registry owns its lists and dictionaries;
+it does not own the underlying assets. Disposing it clears those references without
+calling <code>UnloadAsset</code> or disposing assets. Even a failed preload leaves successfully
+loaded shared content in Resources, because another caller may hold it.</p>
+<p>SoundCue preload uses the unchanged <code>SoundCueLoader</code>, including <code>LoadInternal()</code>
+and its existing loading of SoundEffect takes. Graphics and audio loaders still run
+on the calling/resource thread. Registry preload should run on that same thread.</p>
+<p>Incremental preload progress, a worker-I/O/resource-finalization split for true
+asynchronous loading, and scoped resource leases are possible future work. This
+implementation adds neither background loading nor reference counting.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../resources/" class="btn btn-neutral float-left" title="Loading resources"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../sprites/" class="btn btn-neutral float-right" title="Sprites and sprite sheets">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../resources/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../sprites/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

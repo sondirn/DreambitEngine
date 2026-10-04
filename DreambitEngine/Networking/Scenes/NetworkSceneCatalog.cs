@@ -41,7 +41,6 @@ public sealed class NetworkSceneCatalog
     /// The asset is loaded eagerly whenever the synchronized Scene is entered.
     /// </summary>
     /// <remarks>
-    /// Tiled-linked Scene Blueprints require the generic overload with a TiledScene-derived host.
     /// </remarks>
     public void RegisterBlueprint(string key, string sceneAssetName)
     {
@@ -54,8 +53,7 @@ public sealed class NetworkSceneCatalog
     /// The asset is eagerly materialized before the Scene is assigned to a NetworkWorld.
     /// </summary>
     /// <typeparam name="TScene">
-    /// Runtime behavior and source-integration host for the Scene. Use a TiledScene-derived type
-    /// when the Scene Blueprint is linked to a Tiled map.
+    /// Runtime behavior for the Scene.
     /// </typeparam>
     public void RegisterBlueprint<TScene>(string key, string sceneAssetName)
         where TScene : Scene, new()

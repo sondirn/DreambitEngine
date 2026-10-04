@@ -556,12 +556,6 @@ consistent. Ordinary `Scene.LoadAdditive` remains a local-only API and still rej
 `NetworkObject`; the permission to materialize scoped network objects is private to the active
 network session.
 
-Tiled-linked scoped Scene Blueprints are supported. Each process builds its own `TiledMapInstance`,
-and its generated renderers, colliders, and entities share the enclosing content lifetime. Authored
-Dreambit entities in the Scene Blueprint can be networked normally. Runtime tile edits and Tiled-
-generated entities are local content and are **not** automatically replicated; games must define
-their own tile-change messages or replicated state when they need that behavior.
-
 ## Editor-authored Scene Blueprints
 
 Dreambit's networking model works directly with Scenes constructed in Dreambit.Editor.
@@ -570,7 +564,6 @@ A `SceneBlueprint` is a `.scene` Dreambit asset containing:
 
 - Scene name.
 - serialized Entity Blueprints.
-- optional Tiled reference.
 - Scene settings.
 
 The recommended runtime architecture is:
@@ -658,8 +651,7 @@ registration and loads its own copy of `Scenes/village`.
 ### Why Scene Blueprints are loaded eagerly
 
 `RegisterBlueprint<TScene>` creates the requested runtime Scene type and materializes the Scene
-Blueprint before returning it to networking. This is important for source-specific hosts such as
-`TiledScene`, which must receive their linked-source configuration while still in `Scene.Created`.
+Blueprint before returning it to networking, while the Scene is still in `Scene.Created`.
 
 The synchronized load order is:
 
@@ -685,9 +677,8 @@ OnBegin() only when the gate succeeds
 Scene.Running
 ```
 
-Ordinary authored entities therefore exist before the Scene is assigned. A `TiledScene` imports its
-configured map during `OnInitialize`. Both paths complete before the network startup gate scans for
-authored `NetworkObject` Components.
+Authored entities therefore exist before the Scene is assigned. Initialization completes before the
+network startup gate scans for authored `NetworkObject` Components.
 
 On the server:
 
@@ -696,7 +687,7 @@ RegisterBlueprint<TScene> factory
     ↓
 all authored NetworkObjects materialize
     ↓
-OnInitialize (including Tiled import when applicable)
+OnInitialize
     ↓
 Services activate
     ↓
@@ -714,7 +705,7 @@ RegisterBlueprint<TScene> factory
     ↓
 all local authored NetworkObjects materialize
     ↓
-OnInitialize (including Tiled import when applicable)
+OnInitialize
     ↓
 network startup gate
     ↓
@@ -761,8 +752,6 @@ SceneBlueprintLoadOptions.Runtime
 The runtime load path performs this order:
 
 ```text
-optional Tiled materialization
-        ↓
 Scene settings
         ↓
 materialize boxed Entity Blueprint instances
@@ -959,39 +948,6 @@ SERVER
 
 Every synchronized transition receives a new `NetworkSceneEpoch`, so delayed traffic from the old
 Scene cannot be mistaken for state in the new Scene.
-
-### Tiled references inside a Scene Blueprint
-
-Register a Tiled-linked Scene Blueprint with a `TiledScene` subclass:
-
-```csharp
-public sealed class VillageScene : TiledScene
-{
-    public VillageScene() : base()
-    {
-    }
-
-    protected override void OnTiledMapLoaded(TiledMapInstance map)
-    {
-    }
-}
-
-network.Scenes.RegisterBlueprint<VillageScene>(
-    "village",
-    "Scenes/village");
-```
-
-The blueprint link is configured eagerly while the Scene is in `Created`; the map is imported during
-`TiledScene.OnInitialize`. After initialization completes, networking scans the resulting live Scene
-for `NetworkObject` Components.
-
-Networking does not have a separate Tiled network protocol. The synchronized unit remains the
-resulting Dreambit `Scene`.
-
-For ordinary editor-authored network gameplay entities, prefer Dreambit Scene entities or linked
-Entity Blueprint instances whose serialized identity is under Dreambit's control. If imported map
-generation is used to create network roots, those generated entities must also have stable,
-matching source identity on every peer.
 
 ## Authored entities and dynamic entities
 

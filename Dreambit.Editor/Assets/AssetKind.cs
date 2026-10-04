@@ -18,9 +18,7 @@ internal enum AssetKind
     SoundCue,
     ParticleEffect,
     Cutscene,
-    // Keeps later persisted numeric values stable after removing a legacy map integration.
-    ReservedLegacyTilemap,
-    TiledMap,
-    Data,
+    // Preserve persisted values after removing the map asset kinds.
+    Data = 18,
     Stylesheet
 }

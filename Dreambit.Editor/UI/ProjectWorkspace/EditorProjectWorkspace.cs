@@ -39,8 +39,8 @@ internal sealed class EditorProjectWorkspace : IDisposable
 
         // This must run before registration because registration creates missing visibility keys.
         var dockLayoutMissingNewTabs =
+            !workspaceState.PanelVisibility.ContainsKey(EditorPanelIds.DialogueGraph) ||
             !workspaceState.PanelVisibility.ContainsKey(EditorPanelIds.Blueprint) ||
-            !workspaceState.PanelVisibility.ContainsKey(EditorPanelIds.TiledImportOptions) ||
             !workspaceState.PanelVisibility.ContainsKey(EditorPanelIds.SceneSettings);
 
         var panels = new EditorPanelRegistry(workspaceState);
@@ -74,6 +74,7 @@ internal sealed class EditorProjectWorkspace : IDisposable
                 icons,
                 reportSceneError);
             panels.Register(blueprintView);
+            panels.Register(new DialogueGraphPanel(session.AssetEditing, session.Assets, session.InspectorMetadata, _dragDrop));
             panels.Register(new InspectorPanel(
                 documentContext,
                 session.InspectorMetadata,
@@ -84,7 +85,6 @@ internal sealed class EditorProjectWorkspace : IDisposable
                 new AssetPreviewService(graphicsDevice, imGuiRenderer, session.Assets.ContentRoot),
                 session.CustomEditors,
                 logs));
-            panels.Register(new TiledImportOptionsPanel(documentContext));
             panels.Register(new SceneSettingsPanel(documentContext));
             var projectPanel = new ProjectPanel(
                 session.Project,

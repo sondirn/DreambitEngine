@@ -4,7 +4,6 @@ using Dreambit.Editor.Commands;
 using Dreambit.Editor.Inspection;
 using Dreambit.Editor.Scenes;
 using Dreambit.EditorApi;
-using Dreambit.Tiled;
 using ImGuiNET;
 
 namespace Dreambit.Editor.UI.Dialogs;
@@ -17,7 +16,6 @@ namespace Dreambit.Editor.UI.Dialogs;
 internal sealed class SceneDocumentDialogs
 {
     private const string NewScenePopup = "New Scene##Dreambit.Editor";
-    private const string NewTiledScenePopup = "New Tiled Scene##Dreambit.Editor";
     private const string OpenScenePopup = "Open Scene##Dreambit.Editor";
     private const string SaveSceneAsPopup = "Save Scene As##Dreambit.Editor";
     private const string CreateFromBlueprintPopup = "Create From Blueprint##Dreambit.Editor";
@@ -29,11 +27,6 @@ internal sealed class SceneDocumentDialogs
     private bool _newSceneRequested;
     private string _newSceneName = "Untitled";
     private string? _newSceneError;
-
-    private bool _newTiledSceneRequested;
-    private string _tiledSearch = string.Empty;
-    private TiledImportOptions _tiledImportOptions = new();
-    private string? _tiledSceneError;
 
     private bool _openSceneRequested;
     private string _openScenePath = string.Empty;
@@ -59,14 +52,6 @@ internal sealed class SceneDocumentDialogs
 
     public void RequestNewScene() => _newSceneRequested = true;
 
-    public void RequestNewTiledScene()
-    {
-        _tiledSearch = string.Empty;
-        _tiledImportOptions = new TiledImportOptions();
-        _tiledSceneError = null;
-        _newTiledSceneRequested = true;
-    }
-
     public void RequestOpenScene() => _openSceneRequested = true;
 
     public void RequestSaveSceneAs()
@@ -91,7 +76,6 @@ internal sealed class SceneDocumentDialogs
     {
         OpenRequestedPopups();
         DrawNewScenePopup();
-        DrawNewTiledScenePopup();
         DrawCreateFromBlueprintPopup();
         DrawScenePathPopup(
             OpenScenePopup,
@@ -113,11 +97,6 @@ internal sealed class SceneDocumentDialogs
         {
             EditorGui.OpenPopup(NewScenePopup);
             _newSceneRequested = false;
-        }
-        if (_newTiledSceneRequested)
-        {
-            EditorGui.OpenPopup(NewTiledScenePopup);
-            _newTiledSceneRequested = false;
         }
         if (_openSceneRequested)
         {
@@ -165,58 +144,6 @@ internal sealed class SceneDocumentDialogs
         DrawError(_newSceneError);
         EditorGui.Inline();
         if (EditorGui.Button("NewScene.Cancel", "Cancel", new Vector2(90f, 0f)))
-            EditorGui.ClosePopup();
-    }
-
-    private void DrawNewTiledScenePopup()
-    {
-        using var popup = EditorGui.Modal(NewTiledScenePopup);
-        if (!popup.IsOpen)
-            return;
-
-        EditorGui.WrappedText(
-            "Choose a Tiled TMX map. Its tile layers stay linked while entities placed in " +
-            "Dreambit are preserved on reimport. Object and image layers are ignored.");
-        ImportOptionsEditorGui.Draw(_tiledImportOptions, "NewTiled");
-        EditorGui.Separator();
-        EditorGui.SearchInput("NewTiled.Search", "Search TMX maps", ref _tiledSearch);
-        using (var results = EditorGui.Child(
-                   "##TiledResults",
-                   new Vector2(520f, 300f),
-                   ImGuiChildFlags.Borders))
-        {
-            if (results.IsVisible)
-            {
-                var maps = _assets.GetSnapshot().Assets
-                    .Where(asset => asset.Kind == AssetKind.TiledMap &&
-                                    asset.RelativePath.EndsWith(".tmx", StringComparison.OrdinalIgnoreCase) &&
-                                    (string.IsNullOrWhiteSpace(_tiledSearch) ||
-                                     asset.RelativePath.Contains(
-                                         _tiledSearch,
-                                         StringComparison.OrdinalIgnoreCase)))
-                    .ToArray();
-                if (maps.Length == 0)
-                    EditorGui.MutedText("No matching .tmx maps were found under Assets.");
-                foreach (var asset in maps)
-                {
-                    if (!EditorGui.Selectable(asset.Id.Value.ToString("N"), asset.RelativePath))
-                        continue;
-
-                    var result = _commands.CreateSceneFromTiled(asset, _tiledImportOptions);
-                    if (result.Succeeded)
-                    {
-                        _tiledSceneError = null;
-                        EditorGui.ClosePopup();
-                        return;
-                    }
-
-                    _tiledSceneError = result.Error;
-                }
-            }
-        }
-
-        DrawError(_tiledSceneError);
-        if (EditorGui.Button("NewTiled.Cancel", "Cancel", new Vector2(90f, 0f)))
             EditorGui.ClosePopup();
     }
 

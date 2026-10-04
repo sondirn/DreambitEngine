@@ -13,9 +13,9 @@ It recursively mirrors logical paths inside the pak and supports:
 | `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tga` | `.texb` |
 | `.wav`, `.ogg`, `.mp3` | `.audb` |
 | `.json` | `.jsonb` |
-| `.asset`, `.blueprint`, `.particlefx`, `.scene`, `.soundcue`, `.sprite`, `.spriteanimation`, `.spritesheet`, `.tileset` | source extension + `.jsonb` |
+| `.asset`, `.blueprint`, `.particlefx`, `.scene`, `.soundcue`, `.sprite`, `.spriteanimation`, `.spritesheet` | source extension + `.jsonb` |
 | `.yaml`, `.cutscene` | `.yamlb` (`.cutscene` keeps its source extension) |
-| `.uxml`, `.xml`, `.tmx`, `.tx`, `.tsx` | `.xmlb` |
+| `.uxml`, `.xml` | `.xmlb` |
 | `.ucss`, `.css` | `.cssb` |
 
 Serialized Dreambit assets use their semantic source extension as part of their logical runtime

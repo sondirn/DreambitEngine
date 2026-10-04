@@ -50,9 +50,8 @@ The factory constructs `GameplayScene`, loads the `.scene` asset immediately whi
 in `Created`, and returns it without running initialization. If materialization fails, it disposes the
 partially constructed Scene before rethrowing the error.
 
-For a Scene Blueprint linked to Tiled, `GameplayScene` must derive from `TiledScene`. Networking uses
-this same factory through `NetworkSceneCatalog.RegisterBlueprint<TScene>` so every peer constructs the
-same typed host before synchronization starts.
+Networking uses this same factory through `NetworkSceneCatalog.RegisterBlueprint<TScene>` so every
+peer constructs the same typed Scene before synchronization starts.
 
 ## Additive Scene content
 
@@ -64,7 +63,7 @@ render pipeline, physics world, services, cameras, settings, and network world.
 var village = Scene.Instance.LoadAdditive("Scenes/Zones/Village.scene");
 var tree = Scene.Instance.LoadAdditive("Scenes/Zones/AncientTree.scene");
 
-// Only entities and Tiled content owned by village are removed.
+// Only entities owned by village are removed.
 Scene.Instance.Unload(village);
 ```
 
@@ -111,7 +110,7 @@ a source GUID that would become dangling.
 lighting, exposure, or other Scene-wide settings. Setting it to `true` applies the Blueprint settings;
 if loading fails, the previous settings are restored.
 
-Loading is transactional. A failed Blueprint, component, or Tiled materialization leaves no content
+Loading is transactional. A failed Blueprint or component materialization leaves no content
 handle, generated map, renderer, collider, or partial entity hierarchy. Unload invalidates the handle
 immediately, suspends its entities, and completes destruction at the current or next safe ECS
 structural boundary. Calling `Unload` again returns `false`.

@@ -1,40 +1,44 @@
-﻿using Dreambit.ECS;
+using System;
+using Dreambit.ECS;
 
 namespace Dreambit.Scripting;
 
-public class SetAnimationScript : ScriptAction
+/// <summary>Selects an animation immediately; waitForCompletion explicitly plays and waits for a non-looping animation.</summary>
+public sealed class SetAnimationScript : ScriptAction
 {
-    private readonly string _animationName;
-    private readonly string _entityName;
-    private readonly Logger<SetAnimationScript> _logger = new();
-
+    private readonly string _role, _animation;
+    private readonly bool _wait;
     private SpriteAnimator _animator;
-
-    public SetAnimationScript(string entity, string animation)
+    private SpriteAnimation _selected;
+    private IDisposable _presentation;
+    private Entity _actor;
+    public SetAnimationScript(string entity, string animation, bool waitForCompletion = false)
     {
-        _animationName = animation;
-        _entityName = entity;
+        ArgumentException.ThrowIfNullOrWhiteSpace(entity);
+        ArgumentException.ThrowIfNullOrWhiteSpace(animation);
+        _role = entity; _animation = animation; _wait = waitForCompletion;
     }
-
     public override void OnStart()
     {
-        var entity = Entity.FindByName(_entityName);
-        _animator = entity.GetComponent<SpriteAnimator>();
+        _actor = Context.GetActor(_role);
+        _animator = _actor.GetComponent<SpriteAnimator>() ?? throw new InvalidOperationException($"Actor '{_role}' has no SpriteAnimator.");
+        _selected = Resources.LoadAsset<SpriteAnimation>(_animation) ?? throw new InvalidOperationException($"Animation '{_animation}' could not load.");
+        if (_wait && _selected.Loop) throw new InvalidOperationException("Cannot wait for a looping animation.");
+        if (_wait) _animator.AnimationCompleted += OnAnimationCompleted;
+        _presentation = _animator.BeginPresentation(_selected, play: _wait);
     }
-
+    private void OnAnimationCompleted(SpriteAnimation animation) { if (ReferenceEquals(animation, _selected)) IsComplete = true; }
     public override void OnUpdate()
     {
-        if (_animator == null)
-        {
-            _logger.Warn("No Animator Found");
-            IsComplete = true;
-            return;
-        }
-
-        _animator.SetAnimation(_animationName);
-        IsComplete = true;
-
-        if (_animator.Animation is null)
-            _logger.Warn("Animation {0} Found", _animationName);
+        if (!ReferenceEquals(_animator.Animation, _selected)) throw new InvalidOperationException("Cutscene animation was replaced externally.");
+        if (!_wait) IsComplete = true;
+    }
+    public override void CleanUp()
+    {
+        if (_animator is null) return;
+        _animator.AnimationCompleted -= OnAnimationCompleted;
+        _presentation?.Dispose();
+        _presentation = null;
+        _animator = null; _actor = null;
     }
 }

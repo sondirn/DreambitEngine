@@ -23,8 +23,8 @@ public sealed class EditorViewportUiTests
     }
 
     [Theory]
-    [InlineData(0f, 0.001f)]
-    [InlineData(-4f, 0.001f)]
+    [InlineData(0f, 0.00001f)]
+    [InlineData(-4f, 0.00001f)]
     [InlineData(float.NaN, 1f)]
     [InlineData(2.5f, 2.5f)]
     public void GridSizeIsAlwaysUsable(float input, float expected)

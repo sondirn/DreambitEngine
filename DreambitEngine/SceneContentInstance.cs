@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Dreambit.ECS;
-using Dreambit.Tiled;
+using Dreambit.ECS.Tilemaps;
 using Microsoft.Xna.Framework;
 
 namespace Dreambit;
@@ -49,7 +49,7 @@ public sealed class SceneContentInstance
 
     public string? SourceAssetName { get; }
 
-    /// <summary>Authored roots from the Scene Blueprint; the Tiled map root is not included.</summary>
+    /// <summary>Authored roots from the Scene Blueprint.</summary>
     public IReadOnlyList<Entity> RootEntities => _rootEntitiesView;
 
     /// <summary>Every currently live Entity explicitly owned by this content lifetime.</summary>
@@ -65,8 +65,8 @@ public sealed class SceneContentInstance
     /// content must be removed through the replication-scope API so peers cannot diverge.
     /// </summary>
     public bool IsNetworkManaged => _networkCoordinator is not null;
-
-    public TiledMapInstance? TiledMap { get; private set; }
+    
+    public TileMap? TileMap { get; private set; }
 
     public bool TryGetEntity(Guid sourceEntityGuid, out Entity? entity)
     {
@@ -79,6 +79,14 @@ public sealed class SceneContentInstance
 
         entity = found;
         return true;
+    }
+
+    public void SetTileMap(TileMap tileMap)
+    {
+        if (tileMap is not null)
+            throw new InvalidOperationException("Only one tilemap may exist per content instance");
+
+        TileMap = tileMap;
     }
 
     public Entity GetEntity(Guid sourceEntityGuid)
@@ -187,15 +195,6 @@ public sealed class SceneContentInstance
         }
     }
 
-    internal void SetTiledMap(TiledMapInstance tiledMap)
-    {
-        ArgumentNullException.ThrowIfNull(tiledMap);
-        if (TiledMap is not null)
-            throw new InvalidOperationException(
-                $"Content instance '{InstanceId}' already owns a Tiled map.");
-        TiledMap = tiledMap;
-    }
-
     internal void Commit()
     {
         if (_state != SceneContentInstanceState.Loading)
@@ -267,7 +266,6 @@ public sealed class SceneContentInstance
         _rootEntities.Clear();
         _entitiesBySourceGuid.Clear();
         _sourceGuidByEntity.Clear();
-        TiledMap = null;
         _networkCoordinator = null;
         _state = SceneContentInstanceState.Unloaded;
     }

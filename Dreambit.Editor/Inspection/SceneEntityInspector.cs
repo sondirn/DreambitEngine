@@ -19,12 +19,10 @@ internal sealed class SceneEntityInspector(
     {
         DrawEntityHeader(document, entities);
         DrawEntityTags(document, entities);
-        DrawImportedMapNotice(entities);
         EditorGui.Separator();
         DrawTransform(document, entities);
         DrawComponents(document, entities);
-        if (entities.All(entity => !entity.IsImportedMapGenerated))
-            DrawAddComponent(document, entities);
+        DrawAddComponent(document, entities);
         DrawError();
     }
 
@@ -110,19 +108,6 @@ internal sealed class SceneEntityInspector(
         }
     }
 
-    private static void DrawImportedMapNotice(IReadOnlyList<Entity> entities)
-    {
-        if (!entities.Any(entity => entity.IsImportedMapGenerated))
-            return;
-
-        var sourceLabel = entities.All(entity => entity.IsTiledGenerated)
-            ? "Tiled-generated visualization"
-            : "Imported map visualization";
-        EditorGui.Message(EditorGuiMessageKind.Information, sourceLabel);
-        EditorGui.MutedText("Value changes are stored as Dreambit overrides and survive reimport.");
-        EditorGui.MutedText("Hierarchy structure and components remain owned by the source map.");
-    }
-
     private void DrawTransform(SceneDocument document, IReadOnlyList<Entity> entities)
     {
         using var section = EditorGui.Section("Transform", "Transform");
@@ -188,12 +173,11 @@ internal sealed class SceneEntityInspector(
                 .Select(entity => entity.GetComponent(componentType)!)
                 .ToArray();
 
-            var generated = entities.Any(entity => entity.IsImportedMapGenerated);
             using var section = EditorGui.Section(
                 componentType.FullName ?? componentType.Name,
                 componentType.Name,
-                allowRemove: !readOnly && !generated,
-                statusText: GetComponentStatus(entities, readOnly));
+                allowRemove: !readOnly,
+                statusText: GetComponentStatus(readOnly));
             if (section.RemoveRequested)
             {
                 TryMutation(() => document.Apply($"Remove {componentType.Name}", _ =>
@@ -218,11 +202,7 @@ internal sealed class SceneEntityInspector(
                     componentType,
                     components.Cast<object>().ToArray(),
                     () => DrawComponentMembers(document, components),
-                    (name, mutation) => document.Apply(name, _ =>
-                    {
-                        mutation();
-                        RecordGeneratedComponentValues(document, components);
-                    }),
+                    (name, mutation) => document.Apply(name, _ => mutation()),
                     $"Custom Component Editor for '{componentType.FullName}' failed."))
                 continue;
 
@@ -244,25 +224,7 @@ internal sealed class SceneEntityInspector(
         return union.Count != commonTypes.Count || union.Any(type => !commonTypes.Contains(type));
     }
 
-    internal static string? GetComponentStatus(IReadOnlyList<Entity> entities, bool readOnly)
-    {
-        return GetComponentStatus(
-            readOnly,
-            entities.Any(entity => entity.IsImportedMapGenerated),
-            entities.All(entity => entity.IsTiledGenerated));
-    }
-
-    internal static string? GetComponentStatus(
-        bool readOnly,
-        bool hasGeneratedEntity,
-        bool allTiledGenerated) =>
-        readOnly
-            ? "Boxed"
-            : !hasGeneratedEntity
-                ? null
-                : allTiledGenerated
-                    ? "Tiled"
-                    : "Imported";
+    internal static string? GetComponentStatus(bool readOnly) => readOnly ? "Boxed" : null;
 
     private void DrawComponentMembers(
         SceneDocument document,
@@ -317,19 +279,6 @@ internal sealed class SceneEntityInspector(
                 EditorGui.Error(_error);
             }
         }
-    }
-
-    private void RecordGeneratedComponentValues(
-        SceneDocument document,
-        IReadOnlyList<Component> components)
-    {
-        foreach (var component in components)
-            foreach (var member in metadata.Get(component.GetType(), InspectorTargetKind.Component))
-                if (!member.IsReadOnly)
-                    document.RecordGeneratedComponentMember(
-                        component,
-                        member.SerializedName,
-                        member.GetValue(component));
     }
 
     private void DrawAddComponent(SceneDocument document, IReadOnlyList<Entity> entities)

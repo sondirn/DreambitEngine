@@ -135,8 +135,6 @@ nav:
   - AI:
       - Overview: ai/index.md
       - State machines and blackboards: ai/fsm.md
-  - Tiled:
-      - Overview and quick start: tiled/index.md
   - Scripting and cutscenes: scripting/index.md
   - Utilities:
       - Math and ranges: utilities/math.md

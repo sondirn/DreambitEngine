@@ -410,8 +410,6 @@ internal sealed class EditorApplication : IDisposable
         {
             if (EditorGui.MenuItem("New Scene", "Ctrl+N"))
                 _sceneDialogs!.RequestNewScene();
-            if (EditorGui.MenuItem("New Tiled Scene..."))
-                _sceneDialogs!.RequestNewTiledScene();
             if (EditorGui.MenuItem("Open Scene...", "Ctrl+Shift+O"))
                 _sceneDialogs!.RequestOpenScene();
             if (EditorGui.MenuItem("Save", "Ctrl+S"))

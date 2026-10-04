@@ -488,7 +488,7 @@ internal sealed class MainWindow : AvaloniaWindow
                     Patterns =
                     [
                         "*.asset", "*.blueprint", "*.particlefx", "*.scene", "*.soundcue",
-                        "*.sprite", "*.spriteanimation", "*.spritesheet", "*.tileset",
+                        "*.sprite", "*.spriteanimation", "*.spritesheet",
                         "*.json", "*.jsonb"
                     ]
                 },
