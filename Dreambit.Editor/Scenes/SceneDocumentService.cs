@@ -1,6 +1,7 @@
 using Dreambit.Editor.Compilation;
 using Dreambit.Editor.Projects;
 using Dreambit.Editor.Assets;
+using Dreambit.Tiled;
 
 namespace Dreambit.Editor.Scenes;
 
@@ -11,6 +12,7 @@ internal sealed class SceneDocumentService : IDisposable
     private readonly AssetDatabase _assets;
     private readonly BlueprintSourceService _blueprintSources;
     private readonly Action<string, Exception?>? _reportError;
+    private long _observedAssetVersion;
     private bool _disposed;
 
     public SceneDocumentService(
@@ -25,6 +27,7 @@ internal sealed class SceneDocumentService : IDisposable
         _assets = assets;
         _blueprintSources = blueprintSources;
         _reportError = reportError;
+        _observedAssetVersion = _assets.GetSnapshot().Version;
         Selection = new SelectionService();
         _blueprintSources.Changed += OnBlueprintSourcesChanged;
         _assemblies.Reloading += OnAssemblyReloading;
@@ -43,6 +46,34 @@ internal sealed class SceneDocumentService : IDisposable
             Selection,
             _reportError,
             ResolveBlueprintInstance,
+            tiledMapResolver: ResolveTiledMap,
+            activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
+        ReplaceCurrent(replacement);
+        return replacement;
+    }
+
+    public SceneDocument NewFromTiled(
+        AssetRecord asset,
+        TiledImportOptions? importOptions = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(asset);
+        if (asset.Kind != AssetKind.TiledMap ||
+            !asset.RelativePath.EndsWith(".tmx", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("The selected asset is not a Tiled TMX map.", nameof(asset));
+
+        var replacement = SceneDocument.CreateNew(
+            System.IO.Path.GetFileNameWithoutExtension(asset.Name),
+            Selection,
+            _reportError,
+            ResolveBlueprintInstance,
+            tiledMapResolver: ResolveTiledMap,
+            tiled: new TiledSceneReference
+            {
+                AssetId = asset.Id.Value,
+                AssetName = asset.LogicalAssetName,
+                ImportOptions = (importOptions ?? new TiledImportOptions()).Clone()
+            },
             activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
         ReplaceCurrent(replacement);
         return replacement;
@@ -57,6 +88,7 @@ internal sealed class SceneDocumentService : IDisposable
             Selection,
             _reportError,
             ResolveBlueprintInstance,
+            tiledMapResolver: ResolveTiledMap,
             activeGameAssemblyNameProvider: GetActiveGameAssemblyName);
         ReplaceCurrent(replacement);
         return replacement;
@@ -96,6 +128,25 @@ internal sealed class SceneDocumentService : IDisposable
 
     public void Update(bool autoSave, TimeSpan autoSaveDelay)
     {
+        var assetVersion = _assets.GetSnapshot().Version;
+        if (assetVersion != _observedAssetVersion)
+        {
+            _observedAssetVersion = assetVersion;
+            if (Current is { TiledReference: not null } current)
+            {
+                try
+                {
+                    current.ReimportTiled();
+                }
+                catch (Exception exception)
+                {
+                    _reportError?.Invoke(
+                        "Could not live-reimport the linked map source. The editor will retry after the next asset change or bake.",
+                        exception);
+                }
+            }
+        }
+
         Current?.Update(autoSave, autoSaveDelay);
     }
 
@@ -189,6 +240,34 @@ internal sealed class SceneDocumentService : IDisposable
 
     private EntityBlueprint ResolveBlueprintInstance(BlueprintInstanceReference instance) =>
         _blueprintSources.Resolve(instance);
+
+    private TmxMap ResolveTiledMap(TiledSceneReference instance)
+    {
+        var assets = _assets.GetSnapshot().Assets;
+        var asset = instance.AssetId != Guid.Empty
+            ? assets.FirstOrDefault(candidate => candidate.Id.Value == instance.AssetId)
+            : assets.FirstOrDefault(candidate =>
+                !string.IsNullOrWhiteSpace(instance.AssetName) &&
+                string.Equals(
+                    candidate.LogicalAssetName,
+                    instance.AssetName,
+                    StringComparison.OrdinalIgnoreCase));
+        if (asset is null || asset.Kind != AssetKind.TiledMap ||
+            !asset.RelativePath.EndsWith(".tmx", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FileNotFoundException(
+                $"Tiled map asset '{instance.AssetName}' is not present in this project.");
+        }
+        return LoadTiledSource(asset);
+    }
+
+    private TmxMap LoadTiledSource(AssetRecord asset)
+    {
+        var path = System.IO.Path.Combine(
+            _project.ContentRootPath,
+            asset.RelativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+        return TmxMap.FromContentFile(path, asset.LogicalAssetName, _project.ContentRootPath);
+    }
 
     private static void WriteSceneAtomically(string path, string content)
     {

@@ -197,6 +197,7 @@ internal sealed class SceneViewportRenderer : IDisposable
         DrawableComponent drawable) =>
         drawable is not Light2D &&
         drawable is not ParticleSystemDrawer &&
+        !drawable.Entity.IsImportedMapGenerated &&
         drawable.Enabled &&
         drawable.Entity.Enabled;
 

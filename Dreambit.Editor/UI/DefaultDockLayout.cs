@@ -50,6 +50,9 @@ internal static class DefaultDockLayout
             panels.GetRequired(EditorPanelIds.Inspector).WindowName,
             rightId);
         ImGuiNativeDocking.DockWindow(
+            panels.GetRequired(EditorPanelIds.TiledImportOptions).WindowName,
+            rightId);
+        ImGuiNativeDocking.DockWindow(
             panels.GetRequired(EditorPanelIds.SceneSettings).WindowName,
             rightId);
         ImGuiNativeDocking.DockWindow(

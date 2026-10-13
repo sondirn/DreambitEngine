@@ -317,7 +317,7 @@ internal sealed class ProjectPanel : EditorPanel
                 _openBlueprint(asset);
                 _error = null;
             }
-            else if (asset.Kind == AssetKind.Scene)
+            else if (asset.Kind == AssetKind.Scene || IsTiledMap(asset))
             {
                 try
                 {
@@ -326,7 +326,10 @@ internal sealed class ProjectPanel : EditorPanel
                         SetError("Could not open the scene because the current asset could not be saved.");
                         return;
                     }
-                    _scenes.Open(asset.RelativePath);
+                    if (asset.Kind == AssetKind.Scene)
+                        _scenes.Open(asset.RelativePath);
+                    else
+                        _scenes.NewFromTiled(asset);
                     _documentContext.ActivateScene();
                     _error = null;
                 }
@@ -395,6 +398,7 @@ internal sealed class ProjectPanel : EditorPanel
         AssetKind.Animation => "animation",
         AssetKind.Audio => "audiotrack",
         AssetKind.SoundCue => "audiotrack",
+        AssetKind.TiledMap => "data_object",
         _ => "extension"
     };
 
@@ -896,6 +900,10 @@ internal sealed class ProjectPanel : EditorPanel
             _workspace.LastSelectionKind = "asset";
     }
 
+    private static bool IsTiledMap(AssetRecord asset) =>
+        asset.Kind == AssetKind.TiledMap &&
+        asset.RelativePath.EndsWith(".tmx", StringComparison.OrdinalIgnoreCase);
+
     private void SetError(string message, Exception? exception = null)
     {
         _error = message;
@@ -995,6 +1003,7 @@ internal sealed class ProjectPanel : EditorPanel
         AssetKind.SoundCue => "Sound Cue",
         AssetKind.ParticleEffect => "Particle Effect",
         AssetKind.DreambitAsset => "Dreambit Asset",
+        AssetKind.TiledMap => "Tiled Map",
         _ => kind.ToString()
     };
 

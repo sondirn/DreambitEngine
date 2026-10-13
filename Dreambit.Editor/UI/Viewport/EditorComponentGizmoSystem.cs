@@ -1018,10 +1018,16 @@ internal sealed class EditorComponentGizmoSystem : IDisposable
                 snapEnabled,
                 snapSize);
 
-        SetMemberValue(
+        var storedValue =
+            SetMemberValue(
+                component,
+                binding.MemberName,
+                radius);
+
+        document.RecordGeneratedComponentMember(
             component,
             binding.MemberName,
-            radius);
+            storedValue);
     }
 
     private static void ApplyBoxResize(
@@ -1046,10 +1052,16 @@ internal sealed class EditorComponentGizmoSystem : IDisposable
                 snapEnabled,
                 snapSize);
 
-        SetMemberValue(
+        var storedValue =
+            SetMemberValue(
+                component,
+                binding.MemberName,
+                box);
+
+        document.RecordGeneratedComponentMember(
             component,
             binding.MemberName,
-            box);
+            storedValue);
     }
 
     private static ComponentMemberBinding CreateBinding(
@@ -1094,10 +1106,16 @@ internal sealed class EditorComponentGizmoSystem : IDisposable
                 snapEnabled,
                 snapSize);
 
-        SetMemberValue(
+        var storedValue =
+            SetMemberValue(
+                component,
+                binding.MemberName,
+                updated);
+
+        document.RecordGeneratedComponentMember(
             component,
             binding.MemberName,
-            updated);
+            storedValue);
     }
 
     private static void ApplyPolygonVertexInsert(
@@ -1123,10 +1141,16 @@ internal sealed class EditorComponentGizmoSystem : IDisposable
                 edgeIndex,
                 localPosition);
 
-        SetMemberValue(
+        var storedValue =
+            SetMemberValue(
+                component,
+                binding.MemberName,
+                updated);
+
+        document.RecordGeneratedComponentMember(
             component,
             binding.MemberName,
-            updated);
+            storedValue);
     }
 
     private static void ApplyPolygonVertexRemove(
@@ -1150,10 +1174,16 @@ internal sealed class EditorComponentGizmoSystem : IDisposable
                 polygon,
                 vertexIndex);
 
-        SetMemberValue(
+        var storedValue =
+            SetMemberValue(
+                component,
+                binding.MemberName,
+                updated);
+
+        document.RecordGeneratedComponentMember(
             component,
             binding.MemberName,
-            updated);
+            storedValue);
     }
 
     private static bool TryResolveHandleTarget(

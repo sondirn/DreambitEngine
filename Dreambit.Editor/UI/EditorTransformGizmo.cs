@@ -267,6 +267,7 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldPosition = state.WorldPosition + new Vector3(delta, 0f);
+            document.RecordGeneratedPosition(entity);
         }
     }
 
@@ -281,6 +282,7 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldRotation2D = state.WorldRotation + angle;
+            document.RecordGeneratedRotation(entity);
         }
     }
 
@@ -295,6 +297,7 @@ internal sealed class EditorTransformGizmo : IDisposable
             if (scene.FindEntity(state.Id) is not { } entity)
                 continue;
             entity.Transform.WorldScale = state.WorldScale * factor;
+            document.RecordGeneratedScale(entity);
         }
     }
 

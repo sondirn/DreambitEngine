@@ -23,6 +23,8 @@ public static class DreambitAssetFileExtensions
     [Obsolete("Use SpriteAnimation.")]
     public const string SpriteSheetAnimation = SpriteAnimation;
 
+    public const string Tileset = ".tileset";
+
     private static readonly HashSet<string> SerializedExtensions = new(
         StringComparer.OrdinalIgnoreCase)
     {
@@ -34,7 +36,8 @@ public static class DreambitAssetFileExtensions
         SoundCue,
         Sprite,
         SpriteSheet,
-        SpriteAnimation
+        SpriteAnimation,
+        Tileset
     };
 
     /// <summary>Returns whether an extension identifies a serialized Dreambit asset document.</summary>

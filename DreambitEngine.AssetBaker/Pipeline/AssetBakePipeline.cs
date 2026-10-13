@@ -8,6 +8,7 @@ using Dreambit;
 using DreambitEngine.AssetBaker.Abstractions;
 using DreambitEngine.AssetBaker.Core;
 using DreambitEngine.AssetBaker.Pipeline.Docs;
+using DreambitEngine.AssetBaker.Pipeline.Tiled;
 using DreambitEngine.AssetBaker.Pipeline.Textures;
 
 namespace DreambitEngine.AssetBaker.Pipeline;
@@ -23,7 +24,10 @@ public sealed record AssetBakeRequest(
     int? MaxDimension = null,
     bool MarkSrgb = true,
     string TargetPlatform = "DesktopVK",
-    bool IncludeBuiltInContent = false);
+    bool IncludeBuiltInContent = false)
+{
+    public string? ProjectRoot { get; init; }
+}
 
 public sealed record AssetBlobBakeRequest(
     string InputRoot,
@@ -38,6 +42,7 @@ public sealed record AssetBlobBakeRequest(
     bool IncludeBuiltInContent = false)
 {
     public string? RuntimeOutputDirectory { get; init; }
+    public string? ProjectRoot { get; init; }
 }
 
 public sealed record AssetBakeProgress(
@@ -119,7 +124,8 @@ public sealed class AssetBakePipeline
                     request.MaxDimension,
                     request.MarkSrgb,
                     request.TargetPlatform,
-                    request.IncludeBuiltInContent),
+                    request.IncludeBuiltInContent,
+                    request.ProjectRoot),
                 retainBlobData: false,
                 progress,
                 cancellationToken);
@@ -177,7 +183,8 @@ public sealed class AssetBakePipeline
                     request.MaxDimension,
                     request.MarkSrgb,
                     request.TargetPlatform,
-                    request.IncludeBuiltInContent),
+                    request.IncludeBuiltInContent,
+                    request.ProjectRoot),
                 retainBlobData: true,
                 progress,
                 cancellationToken);
@@ -256,6 +263,12 @@ public sealed class AssetBakePipeline
                 var baker = bakerRegistry.GetByExt(Path.GetExtension(file));
                 if (baker is null)
                 {
+                    // Tiled project metadata is consumed by the generated runtime
+                    // Automapping catalog below rather than emitted as a user asset.
+                    if (Path.GetExtension(file).Equals(
+                            ".tiled-project",
+                            StringComparison.OrdinalIgnoreCase))
+                        continue;
                     unsupportedCount++;
                     continue;
                 }
@@ -343,6 +356,35 @@ public sealed class AssetBakePipeline
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        const string automappingCacheKey = "tiled/automapping-catalog";
+        const string automappingCacheSignature = "tiled-automapping-v1";
+        liveCacheKeys.Add(automappingCacheKey);
+        var bakedAutomappingCatalog = TiledAutomappingAssetCompiler.Compile(
+            inputRoot,
+            request.ProjectRoot);
+        var automappingHash = Convert.ToHexString(SHA256.HashData(bakedAutomappingCatalog.Data))
+            .ToLowerInvariant();
+        PreparedBlob automappingCatalog;
+        if (!cache.TryRead(
+                automappingCacheKey,
+                automappingHash,
+                automappingCacheSignature,
+                retainBlobData,
+                out automappingCatalog))
+        {
+            var catalogBlobFile = cache.Write(
+                automappingCacheKey,
+                automappingHash,
+                automappingCacheSignature,
+                bakedAutomappingCatalog);
+            automappingCatalog = PreparedBlob.FromBlob(
+                bakedAutomappingCatalog,
+                catalogBlobFile,
+                retainBlobData);
+        }
+        finalBlobs[automappingCatalog.LogicalPath] = automappingCatalog;
+
         if (sourceRegistry is not null)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -413,6 +455,8 @@ public sealed class AssetBakePipeline
             // The editor tracks source-only files so they remain visible in the
             // Project panel. They must not enter the runtime registry unless a
             // baker can actually produce a loadable asset for their extension.
+            // This excludes Tiled's .tiled-project/.tiled-session metadata while
+            // retaining runtime .tmx maps and .tsx tilesets.
             if (bakerRegistry.GetByExt(extension) is null)
                 continue;
 
@@ -719,7 +763,8 @@ public sealed class AssetBakePipeline
         extension.Equals(".soundcue", StringComparison.OrdinalIgnoreCase) ||
         extension.Equals(".sprite", StringComparison.OrdinalIgnoreCase) ||
         extension.Equals(".spriteanimation", StringComparison.OrdinalIgnoreCase) ||
-        extension.Equals(".spritesheet", StringComparison.OrdinalIgnoreCase);
+        extension.Equals(".spritesheet", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".tileset", StringComparison.OrdinalIgnoreCase);
 
     private sealed record BakeRoot(
         string Path,
@@ -737,7 +782,8 @@ public sealed class AssetBakePipeline
         int? MaxDimension,
         bool MarkSrgb,
         string TargetPlatform,
-        bool IncludeBuiltInContent);
+        bool IncludeBuiltInContent,
+        string? ProjectRoot);
 
     private sealed record PreparedBlob(
         string LogicalPath,
